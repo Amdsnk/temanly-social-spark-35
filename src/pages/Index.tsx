@@ -111,6 +111,32 @@ const Index = () => {
     }
   };
 
+  const handleBookNow = (talentId: number) => {
+    console.log(`Booking talent with ID: ${talentId}`);
+    // Here you would implement the booking flow
+    alert(`Booking request for talent ID: ${talentId}. This will redirect to booking page.`);
+  };
+
+  const handleLogin = () => {
+    console.log('Login button clicked');
+    alert('Login functionality will be implemented here');
+  };
+
+  const handleSignUp = () => {
+    console.log('Sign up button clicked');
+    alert('Sign up functionality will be implemented here');
+  };
+
+  const handleBecomeTalent = () => {
+    console.log('Become a talent button clicked');
+    alert('Become a talent registration will be implemented here');
+  };
+
+  const handleFindMatch = () => {
+    console.log('Find your match button clicked');
+    alert('Find match functionality will be implemented here');
+  };
+
   const TalentCard = ({ talent }: { talent: any }) => (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
       <div className="relative">
@@ -165,7 +191,10 @@ const Index = () => {
           ))}
         </div>
 
-        <Button className="w-full bg-gradient-to-r from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-black font-medium">
+        <Button 
+          onClick={() => handleBookNow(talent.id)}
+          className="w-full bg-gradient-to-r from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-gray-900 font-medium"
+        >
           Book Now
         </Button>
       </CardContent>
@@ -179,21 +208,24 @@ const Index = () => {
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center">
-                <Heart className="w-6 h-6 text-gray-800" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">
-                  Temanly
-                </h1>
-                <p className="text-sm text-gray-300">Chat. Date. Repeat. No Judgments. Just Vibes.</p>
-              </div>
+              <img 
+                src="/lovable-uploads/a8b92c73-b6d3-423f-9e71-b61f792f8a7a.png" 
+                alt="Temanly Logo"
+                className="h-16 w-auto"
+              />
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" className="text-white border-white hover:bg-white hover:text-gray-900">
+              <Button 
+                variant="outline" 
+                onClick={handleLogin}
+                className="text-white border-white hover:bg-white hover:text-gray-900"
+              >
                 Login
               </Button>
-              <Button className="bg-gradient-to-r from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-black">
+              <Button 
+                onClick={handleSignUp}
+                className="bg-gradient-to-r from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-gray-900 font-medium"
+              >
                 Sign Up
               </Button>
             </div>
@@ -210,7 +242,7 @@ const Index = () => {
                   size="sm"
                   onClick={() => setSelectedCity(city)}
                   className={selectedCity === city 
-                    ? "bg-gradient-to-r from-yellow-400 to-yellow-600 text-black hover:from-yellow-500 hover:to-yellow-700" 
+                    ? "bg-gradient-to-r from-yellow-400 to-yellow-600 text-gray-900 hover:from-yellow-500 hover:to-yellow-700 font-medium" 
                     : "text-white border-white hover:bg-white hover:text-gray-900"
                   }
                 >
@@ -231,7 +263,11 @@ const Index = () => {
                 className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-gray-300"
               />
             </div>
-            <Button variant="outline" size="icon" className="text-white border-white hover:bg-white hover:text-gray-900">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="text-white border-white hover:bg-white hover:text-gray-900"
+            >
               <Filter className="w-4 h-4" />
             </Button>
           </div>
@@ -284,10 +320,17 @@ const Index = () => {
           <h2 className="text-3xl font-bold mb-4">Ready to Connect?</h2>
           <p className="text-lg mb-6 text-gray-300">Join thousands of users finding meaningful connections</p>
           <div className="flex gap-4 justify-center">
-            <Button className="bg-gradient-to-r from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-black font-medium px-8">
+            <Button 
+              onClick={handleBecomeTalent}
+              className="bg-gradient-to-r from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-gray-900 font-medium px-8"
+            >
               Become a Talent
             </Button>
-            <Button variant="outline" className="text-white border-white hover:bg-white hover:text-gray-900 px-8">
+            <Button 
+              variant="outline" 
+              onClick={handleFindMatch}
+              className="text-white border-white hover:bg-white hover:text-gray-900 px-8"
+            >
               Find Your Match
             </Button>
           </div>
@@ -298,14 +341,12 @@ const Index = () => {
       <footer className="bg-gray-900 text-white py-8 mt-12">
         <div className="container mx-auto px-4 text-center">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="w-8 h-8 bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center">
-              <Heart className="w-5 h-5 text-gray-800" />
-            </div>
-            <h3 className="text-xl font-bold bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">
-              Temanly
-            </h3>
+            <img 
+              src="/lovable-uploads/a8b92c73-b6d3-423f-9e71-b61f792f8a7a.png" 
+              alt="Temanly Logo"
+              className="h-8 w-auto"
+            />
           </div>
-          <p className="text-gray-400 mb-4">Chat. Date. Repeat. No Judgments. Just Vibes.</p>
           <div className="flex justify-center gap-6 text-sm text-gray-400">
             <a href="#" className="hover:text-white">Privacy Policy</a>
             <a href="#" className="hover:text-white">Terms of Service</a>
