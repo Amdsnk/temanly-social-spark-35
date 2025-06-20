@@ -9,7 +9,6 @@ import Rent from "./pages/Rent";
 import FAQ from "./pages/FAQ";
 import Terms from "./pages/Terms";
 import Contact from "./pages/Contact";
-import InviteEarn from "./pages/InviteEarn";
 import Privacy from "./pages/Privacy";
 import Safety from "./pages/Safety";
 import Help from "./pages/Help";
@@ -30,7 +29,6 @@ const App = () => (
           <Route path="/faq" element={<FAQ />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/contact" element={<Contact />} />
-          <Route path="/invite" element={<InviteEarn />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/safety" element={<Safety />} />
           <Route path="/help" element={<Help />} />

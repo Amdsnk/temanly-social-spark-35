@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 
@@ -11,7 +10,7 @@ const Footer = () => {
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center gap-2 mb-4">
               <img 
-                src="/lovable-uploads/a8b92c73-b6d3-423f-9e71-b61f792f8a7a.png" 
+                src="/lovable-uploads/f3ebdf6a-39b9-44d3-b1c2-44a55f8ff2d4.png" 
                 alt="Temanly Logo"
                 className="h-8 w-auto"
               />
@@ -46,7 +45,6 @@ const Footer = () => {
               <li><Link to="/faq" className="text-gray-300 hover:text-white transition-colors">FAQ</Link></li>
               <li><Link to="/terms" className="text-gray-300 hover:text-white transition-colors">Terms</Link></li>
               <li><Link to="/contact" className="text-gray-300 hover:text-white transition-colors">Contact</Link></li>
-              <li><Link to="/invite" className="text-gray-300 hover:text-white transition-colors">Invite & Earn</Link></li>
             </ul>
           </div>
 

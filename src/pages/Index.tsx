@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -86,7 +85,7 @@ const Index = () => {
             <div className="flex items-center gap-8">
               <div className="flex items-center gap-2">
                 <img 
-                  src="/lovable-uploads/a8b92c73-b6d3-423f-9e71-b61f792f8a7a.png" 
+                  src="/lovable-uploads/f3ebdf6a-39b9-44d3-b1c2-44a55f8ff2d4.png" 
                   alt="Temanly Logo"
                   className="h-10 w-auto"
                 />
@@ -96,7 +95,6 @@ const Index = () => {
                 <Link to="/faq" className="text-gray-700 hover:text-gray-900 font-medium">FAQ</Link>
                 <Link to="/terms" className="text-gray-700 hover:text-gray-900 font-medium">Terms</Link>
                 <Link to="/contact" className="text-gray-700 hover:text-gray-900 font-medium">Contact</Link>
-                <Link to="/invite" className="text-gray-700 hover:text-gray-900 font-medium">Invite & Earn</Link>
               </nav>
             </div>
 
