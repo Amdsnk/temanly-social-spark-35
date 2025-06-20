@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 
@@ -10,7 +11,7 @@ const Footer = () => {
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center gap-2 mb-4">
               <img 
-                src="/lovable-uploads/f3ebdf6a-39b9-44d3-b1c2-44a55f8ff2d4.png" 
+                src="/lovable-uploads/2b715270-d5ae-4f6c-be60-2dfaf1662139.png" 
                 alt="Temanly Logo"
                 className="h-8 w-auto"
               />
@@ -61,6 +62,9 @@ const Footer = () => {
         </div>
 
         <div className="border-t border-gray-700 mt-8 pt-8 text-center">
+          <p className="text-yellow-400 text-lg font-medium mb-2">
+            Chat. Date. Repeat. No Judgments. Just Vibes.
+          </p>
           <p className="text-gray-400">
             © 2024 Temanly. All rights reserved. Made with ❤️ for meaningful connections.
           </p>

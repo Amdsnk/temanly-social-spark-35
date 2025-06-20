@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -85,7 +86,7 @@ const Index = () => {
             <div className="flex items-center gap-8">
               <div className="flex items-center gap-2">
                 <img 
-                  src="/lovable-uploads/f3ebdf6a-39b9-44d3-b1c2-44a55f8ff2d4.png" 
+                  src="/lovable-uploads/2b715270-d5ae-4f6c-be60-2dfaf1662139.png" 
                   alt="Temanly Logo"
                   className="h-10 w-auto"
                 />
