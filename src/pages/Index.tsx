@@ -2,357 +2,288 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Heart, MessageCircle, Phone, Video, MapPin, Calendar, Star, Search, Filter } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Heart, MessageCircle, Phone, Video, MapPin, Calendar, Star, Search, Filter, Globe } from 'lucide-react';
 
 const Index = () => {
   const [selectedCity, setSelectedCity] = useState('Jakarta');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('For You');
 
   const cities = ['Jakarta', 'Surabaya', 'Bandung', 'Yogyakarta', 'Bali', 'Medan'];
 
-  const services = [
-    { name: 'Chat', price: '25k', period: '/hari', icon: MessageCircle, color: 'bg-blue-500' },
-    { name: 'Call', price: '40k', period: '/jam', icon: Phone, color: 'bg-green-500' },
-    { name: 'Video Call', price: '65k', period: '/jam', icon: Video, color: 'bg-purple-500' },
-    { name: 'Offline Date', price: '285k', period: '/3 jam', icon: MapPin, color: 'bg-pink-500' },
-    { name: 'Party Buddy', price: '1,000k', period: '/event', icon: Calendar, color: 'bg-orange-500' },
-    { name: 'Rent a Lover', price: 'up to 85k', period: '/hari', icon: Heart, color: 'bg-red-500' }
+  const categories = [
+    { name: 'For You', icon: '💛', active: true },
+    { name: 'Games', icon: '🎮', active: false },
+    { name: 'E-Meet', icon: '💬', active: false },
+    { name: 'Meals', icon: '🍽️', active: false },
+    { name: 'Drinks', icon: '🍸', active: false },
+    { name: 'Mobile Legends', icon: '🎯', active: false }
   ];
 
-  const featuredTalents = [
+  const filterTags = [
+    { name: 'Most Spenders', icon: '🔥', color: 'bg-orange-100 text-orange-600' },
+    { name: 'Newest Members', icon: '👥', color: 'bg-blue-100 text-blue-600' },
+    { name: 'Most Earners', icon: '💰', color: 'bg-green-100 text-green-600' },
+    { name: 'Potential Members', icon: '✅', color: 'bg-emerald-100 text-emerald-600' },
+    { name: 'Join Telegram', icon: '📱', color: 'bg-sky-100 text-sky-600' },
+    { name: 'Join Discord', icon: '🎮', color: 'bg-purple-100 text-purple-600' },
+    { name: 'About Us', icon: '❓', color: 'bg-gray-100 text-gray-600' }
+  ];
+
+  const talents = [
     {
       id: 1,
-      name: 'Sarah',
-      age: 24,
-      city: 'Jakarta',
-      rating: 4.9,
-      reviews: 45,
-      level: 'VIP',
-      avatar: '/placeholder.svg',
-      interests: ['Sushi Date', 'Museum', 'Movie'],
-      zodiac: 'Gemini',
-      loveLanguage: 'Quality Time',
-      services: ['Chat', 'Call', 'Video Call', 'Offline Date'],
+      name: 'Beboo',
+      description: 'dinner with a beautiful story?',
+      category: 'Fine Dining',
+      rating: '---',
+      priceRange: '10.00 ~ 30.00',
+      image: '/placeholder.svg',
+      isOnline: true,
       verified: true
     },
     {
       id: 2,
-      name: 'Maya',
-      age: 23,
-      city: 'Jakarta',
-      rating: 4.8,
-      reviews: 32,
-      level: 'Elite',
-      avatar: '/placeholder.svg',
-      interests: ['Picnic Date', 'Tennis', 'Coffee'],
-      zodiac: 'Leo',
-      loveLanguage: 'Words of Affirmation',
-      services: ['Chat', 'Call', 'Offline Date'],
+      name: 'Penlibels',
+      description: 'Looking for a fun conversation partner',
+      category: 'Chat & Call',
+      rating: '---',
+      priceRange: '00.00 ~ 00.00',
+      image: '/placeholder.svg',
+      isOnline: false,
       verified: true
     },
     {
       id: 3,
-      name: 'Kira',
-      age: 22,
-      city: 'Jakarta',
-      rating: 4.7,
-      reviews: 28,
-      level: 'Elite',
-      avatar: '/placeholder.svg',
-      interests: ['Movie Date', 'Golf', 'Shopping'],
-      zodiac: 'Scorpio',
-      loveLanguage: 'Physical Touch',
-      services: ['Chat', 'Video Call', 'Party Buddy'],
+      name: 'Yayang',
+      description: 'Adventure and outdoor activities',
+      category: 'Outdoor Date',
+      rating: '---',
+      priceRange: '00.00 ~ 00.00',
+      image: '/placeholder.svg',
+      isOnline: true,
       verified: true
     }
   ];
-
-  const newcomers = [
-    {
-      id: 4,
-      name: 'Luna',
-      age: 21,
-      city: 'Jakarta',
-      rating: 5.0,
-      reviews: 3,
-      level: 'Fresh',
-      avatar: '/placeholder.svg',
-      interests: ['Art Gallery', 'Cafe', 'Book Store'],
-      zodiac: 'Pisces',
-      loveLanguage: 'Acts of Service',
-      services: ['Chat', 'Call'],
-      verified: true
-    },
-    {
-      id: 5,
-      name: 'Aria',
-      age: 23,
-      city: 'Jakarta',
-      rating: 4.6,
-      reviews: 8,
-      level: 'Fresh',
-      avatar: '/placeholder.svg',
-      interests: ['Karaoke', 'Food Tour', 'Gaming'],
-      zodiac: 'Aries',
-      loveLanguage: 'Gift Giving',
-      services: ['Chat', 'Video Call', 'Offline Date'],
-      verified: true
-    }
-  ];
-
-  const getLevelColor = (level: string) => {
-    switch (level) {
-      case 'VIP': return 'bg-gradient-to-r from-purple-500 to-purple-600 text-white';
-      case 'Elite': return 'bg-gradient-to-r from-blue-500 to-blue-600 text-white';
-      case 'Fresh': return 'bg-gradient-to-r from-green-500 to-green-600 text-white';
-      default: return 'bg-gradient-to-r from-gray-500 to-gray-600 text-white';
-    }
-  };
 
   const handleBookNow = (talentId: number) => {
     console.log(`Booking talent with ID: ${talentId}`);
     alert(`Booking request for talent ID: ${talentId}. This will redirect to booking page.`);
   };
 
-  const handleLogin = () => {
-    console.log('Login button clicked');
-    alert('Login functionality will be implemented here');
-  };
-
-  const handleSignUp = () => {
-    console.log('Sign up button clicked');
-    alert('Sign up functionality will be implemented here');
-  };
-
-  const handleBecomeTalent = () => {
-    console.log('Become a talent button clicked');
-    alert('Become a talent registration will be implemented here');
-  };
-
-  const handleFindMatch = () => {
-    console.log('Find your match button clicked');
-    alert('Find match functionality will be implemented here');
-  };
-
-  const TalentCard = ({ talent }: { talent: any }) => (
-    <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-0 bg-white shadow-lg">
-      <div className="relative">
-        <img 
-          src={talent.avatar} 
-          alt={talent.name}
-          className="w-full h-48 object-cover"
-        />
-        <Badge className={`absolute top-3 right-3 ${getLevelColor(talent.level)} shadow-lg`}>
-          {talent.level}
-        </Badge>
-        {talent.verified && (
-          <Badge className="absolute top-3 left-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg">
-            ✓ Verified
-          </Badge>
-        )}
-      </div>
-      <CardContent className="p-6">
-        <div className="flex justify-between items-start mb-4">
-          <div>
-            <h3 className="font-bold text-xl text-gray-800">{talent.name}, {talent.age}</h3>
-            <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
-              <MapPin className="w-4 h-4 text-pink-500" />
-              {talent.city}
-            </p>
-          </div>
-          <div className="text-right">
-            <div className="flex items-center gap-1">
-              <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-              <span className="font-bold text-gray-800">{talent.rating}</span>
-            </div>
-            <p className="text-xs text-gray-500">{talent.reviews} reviews</p>
-          </div>
-        </div>
-        
-        <div className="mb-4">
-          <p className="text-sm text-gray-600 mb-2">{talent.zodiac} • {talent.loveLanguage}</p>
-          <div className="flex flex-wrap gap-2">
-            {talent.interests.slice(0, 3).map((interest: string) => (
-              <Badge key={interest} variant="outline" className="text-xs border-pink-200 text-pink-700 bg-pink-50">
-                {interest}
-              </Badge>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex flex-wrap gap-2 mb-4">
-          {talent.services.map((service: string) => (
-            <Badge key={service} className="text-xs bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 border-0">
-              {service}
-            </Badge>
-          ))}
-        </div>
-
-        <Button 
-          onClick={() => handleBookNow(talent.id)}
-          className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-semibold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
-        >
-          Book Now
-        </Button>
-      </CardContent>
-    </Card>
-  );
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-gradient-to-r from-pink-500 via-purple-600 to-blue-600 text-white">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-3">
-              <img 
-                src="/lovable-uploads/a8b92c73-b6d3-423f-9e71-b61f792f8a7a.png" 
-                alt="Temanly Logo"
-                className="h-16 w-auto"
-              />
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            {/* Logo and Navigation */}
+            <div className="flex items-center gap-8">
+              <div className="flex items-center gap-2">
+                <img 
+                  src="/lovable-uploads/a8b92c73-b6d3-423f-9e71-b61f792f8a7a.png" 
+                  alt="Temanly Logo"
+                  className="h-10 w-auto"
+                />
+              </div>
+              <nav className="hidden md:flex items-center gap-6">
+                <a href="#" className="text-gray-700 hover:text-gray-900 font-medium">Rent</a>
+                <a href="#" className="text-gray-700 hover:text-gray-900 font-medium">FAQ</a>
+                <a href="#" className="text-gray-700 hover:text-gray-900 font-medium">Terms</a>
+                <a href="#" className="text-gray-700 hover:text-gray-900 font-medium">Contact</a>
+                <a href="#" className="text-gray-700 hover:text-gray-900 font-medium">Invite & Earn</a>
+              </nav>
             </div>
-            <div className="flex gap-3">
-              <Button 
-                variant="outline" 
-                onClick={handleLogin}
-                className="text-white border-2 border-white/80 hover:bg-white hover:text-purple-600 font-semibold px-6 py-2 rounded-full transition-all duration-300"
-              >
+
+            {/* Right side buttons */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 text-sm">
+                <img src="/placeholder.svg" alt="EN" className="w-5 h-5" />
+                <span className="text-gray-700">EN</span>
+              </div>
+              <Button className="bg-black text-white hover:bg-gray-800 rounded-full px-6">
+                ⭐ Be a Babe
+              </Button>
+              <Button variant="ghost" className="text-gray-700 hover:text-gray-900">
                 Login
               </Button>
-              <Button 
-                onClick={handleSignUp}
-                className="bg-white text-purple-600 hover:bg-gray-100 font-semibold px-6 py-2 rounded-full shadow-lg transition-all duration-300"
-              >
-                Sign Up
-              </Button>
             </div>
-          </div>
-
-          {/* City Selection */}
-          <div className="mb-8">
-            <h2 className="text-xl font-bold mb-4">Select Your City</h2>
-            <div className="flex flex-wrap gap-3">
-              {cities.map((city) => (
-                <Button
-                  key={city}
-                  variant={selectedCity === city ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedCity(city)}
-                  className={selectedCity === city 
-                    ? "bg-white text-purple-600 hover:bg-gray-100 font-semibold px-4 py-2 rounded-full shadow-lg" 
-                    : "text-white border-2 border-white/60 hover:bg-white/20 font-medium px-4 py-2 rounded-full transition-all duration-300"
-                  }
-                >
-                  {city}
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          {/* Search Bar */}
-          <div className="flex gap-3">
-            <div className="flex-1 relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <Input
-                placeholder="Search talents by name, interests, or services..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-12 bg-white/95 border-0 text-gray-700 placeholder:text-gray-400 rounded-full py-3 shadow-lg focus:shadow-xl transition-all duration-300"
-              />
-            </div>
-            <Button 
-              variant="outline" 
-              size="icon" 
-              className="text-white border-2 border-white/60 hover:bg-white/20 rounded-full p-3 transition-all duration-300"
-            >
-              <Filter className="w-5 h-5" />
-            </Button>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-12">
-        {/* Services Overview */}
-        <section className="mb-16">
-          <h2 className="text-3xl font-bold mb-8 text-center text-gray-800">Our Services</h2>
+      <div className="container mx-auto px-4 py-8">
+        {/* What's New Section */}
+        <section className="mb-8">
+          <h2 className="text-2xl font-bold mb-6 text-gray-900">What's New</h2>
+          <div className="flex flex-wrap gap-3">
+            {filterTags.map((tag) => (
+              <Badge
+                key={tag.name}
+                className={`${tag.color} border-0 px-4 py-2 rounded-full font-medium text-sm cursor-pointer hover:opacity-80`}
+              >
+                <span className="mr-2">{tag.icon}</span>
+                {tag.name}
+              </Badge>
+            ))}
+          </div>
+        </section>
+
+        {/* Find Your Match Section */}
+        <section className="mb-8">
+          <h2 className="text-2xl font-bold mb-6 text-gray-900">Find your match</h2>
+          
+          {/* Category Tabs */}
+          <div className="flex flex-wrap gap-3 mb-6">
+            {categories.map((category) => (
+              <Button
+                key={category.name}
+                variant={selectedCategory === category.name ? "default" : "outline"}
+                className={`rounded-full px-6 py-2 font-medium ${
+                  selectedCategory === category.name 
+                    ? 'bg-yellow-400 text-black hover:bg-yellow-500 border-0' 
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-0'
+                }`}
+                onClick={() => setSelectedCategory(category.name)}
+              >
+                <span className="mr-2">{category.icon}</span>
+                {category.name}
+              </Button>
+            ))}
+          </div>
+
+          {/* Filters */}
+          <div className="flex flex-wrap gap-4 mb-8">
+            <Select value={selectedCity} onValueChange={setSelectedCity}>
+              <SelectTrigger className="w-40 bg-white border-gray-300 rounded-lg">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {cities.map((city) => (
+                  <SelectItem key={city} value={city}>{city}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <div className="relative flex-1 max-w-xs">
+              <Input
+                placeholder="Type username"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="bg-white border-gray-300 rounded-lg pl-4"
+              />
+            </div>
+
+            <Select defaultValue="highest">
+              <SelectTrigger className="w-40 bg-white border-gray-300 rounded-lg">
+                <SelectValue placeholder="Highest Ratings" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="highest">Highest Ratings</SelectItem>
+                <SelectItem value="newest">Newest</SelectItem>
+                <SelectItem value="popular">Most Popular</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select defaultValue="public">
+              <SelectTrigger className="w-32 bg-white border-gray-300 rounded-lg">
+                <SelectValue placeholder="Public" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="public">Public</SelectItem>
+                <SelectItem value="private">Private</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select defaultValue="all-gender">
+              <SelectTrigger className="w-36 bg-white border-gray-300 rounded-lg">
+                <SelectValue placeholder="All Gender" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all-gender">All Gender</SelectItem>
+                <SelectItem value="male">Male</SelectItem>
+                <SelectItem value="female">Female</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select defaultValue="all-ethnicity">
+              <SelectTrigger className="w-36 bg-white border-gray-300 rounded-lg">
+                <SelectValue placeholder="All Ethnicity" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all-ethnicity">All Ethnicity</SelectItem>
+                <SelectItem value="asian">Asian</SelectItem>
+                <SelectItem value="european">European</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button className="bg-black text-white hover:bg-gray-800 rounded-lg px-8">
+              Apply
+            </Button>
+          </div>
+        </section>
+
+        {/* Talents Grid */}
+        <section>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {services.map((service) => (
-              <Card key={service.name} className="hover:shadow-xl transition-all duration-300 border-0 bg-white shadow-lg">
-                <CardContent className="p-6 text-center">
-                  <div className={`w-16 h-16 ${service.color} rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg`}>
-                    <service.icon className="w-8 h-8 text-white" />
+            {talents.map((talent) => (
+              <Card key={talent.id} className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow border-0">
+                <div className="relative">
+                  <img 
+                    src={talent.image} 
+                    alt={talent.name}
+                    className="w-full h-64 object-cover"
+                  />
+                  <div className="absolute top-4 left-4">
+                    <div className="bg-black/70 text-white px-3 py-1 rounded-lg text-sm font-medium">
+                      {talent.name}
+                    </div>
                   </div>
-                  <h3 className="font-bold text-lg mb-2 text-gray-800">{service.name}</h3>
-                  <p className="text-2xl font-bold bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text text-transparent">
-                    IDR {service.price}<span className="text-sm text-gray-500 font-normal">{service.period}</span>
-                  </p>
+                  <div className="absolute top-4 right-4">
+                    <Button size="icon" variant="ghost" className="bg-black/20 hover:bg-black/40 text-white rounded-full">
+                      <Heart className="w-5 h-5" />
+                    </Button>
+                  </div>
+                  <div className="absolute bottom-4 left-4">
+                    <div className="bg-black/70 text-white px-3 py-1 rounded-lg text-xs">
+                      {talent.description}
+                    </div>
+                  </div>
+                  <div className="absolute bottom-4 right-4">
+                    <Badge className="bg-green-100 text-green-700 border-0 text-xs">
+                      <MessageCircle className="w-3 h-3 mr-1" />
+                      {talent.category}
+                    </Badge>
+                  </div>
+                </div>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Star className="w-4 h-4 text-yellow-400" />
+                      <span className="text-sm font-medium">{talent.rating}</span>
+                      <span className="text-sm text-gray-500">💰 {talent.priceRange}</span>
+                    </div>
+                    <Button 
+                      onClick={() => handleBookNow(talent.id)}
+                      size="sm"
+                      className="bg-yellow-400 text-black hover:bg-yellow-500 rounded-lg font-medium"
+                    >
+                      Book Now
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}
           </div>
-        </section>
-
-        {/* Featured Talents */}
-        <section className="mb-16">
-          <h2 className="text-3xl font-bold mb-8 text-gray-800">Featured Talents in {selectedCity}</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {featuredTalents.map((talent) => (
-              <TalentCard key={talent.id} talent={talent} />
-            ))}
+          
+          <div className="text-center mt-8">
+            <p className="text-gray-500">You've Reached the End</p>
           </div>
         </section>
-
-        {/* Newcomers */}
-        <section className="mb-16">
-          <h2 className="text-3xl font-bold mb-8 text-gray-800">Newcomers</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {newcomers.map((talent) => (
-              <TalentCard key={talent.id} talent={talent} />
-            ))}
-          </div>
-        </section>
-
-        {/* CTA Section */}
-        <section className="text-center py-16 bg-gradient-to-r from-pink-500 via-purple-600 to-blue-600 rounded-3xl text-white shadow-2xl">
-          <h2 className="text-4xl font-bold mb-6">Ready to Connect?</h2>
-          <p className="text-xl mb-8 text-white/90">Join thousands of users finding meaningful connections</p>
-          <div className="flex gap-6 justify-center flex-wrap">
-            <Button 
-              onClick={handleBecomeTalent}
-              className="bg-white text-purple-600 hover:bg-gray-100 font-bold px-8 py-4 rounded-full text-lg shadow-xl hover:shadow-2xl transition-all duration-300"
-            >
-              Become a Talent
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={handleFindMatch}
-              className="text-white border-2 border-white hover:bg-white hover:text-purple-600 font-bold px-8 py-4 rounded-full text-lg transition-all duration-300"
-            >
-              Find Your Match
-            </Button>
-          </div>
-        </section>
-      </main>
-
-      {/* Footer */}
-      <footer className="bg-gradient-to-r from-gray-800 to-gray-900 text-white py-12 mt-16">
-        <div className="container mx-auto px-4 text-center">
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <img 
-              src="/lovable-uploads/a8b92c73-b6d3-423f-9e71-b61f792f8a7a.png" 
-              alt="Temanly Logo"
-              className="h-10 w-auto"
-            />
-          </div>
-          <div className="flex justify-center gap-8 text-gray-300">
-            <a href="#" className="hover:text-white transition-colors duration-300">Privacy Policy</a>
-            <a href="#" className="hover:text-white transition-colors duration-300">Terms of Service</a>
-            <a href="#" className="hover:text-white transition-colors duration-300">Support</a>
-          </div>
-        </div>
-      </footer>
+      </div>
     </div>
   );
 };
