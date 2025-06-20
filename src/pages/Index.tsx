@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -107,7 +108,7 @@ const Index = () => {
               </div>
               <Link to="/rent">
                 <Button className="bg-black text-white hover:bg-gray-800 rounded-full px-6">
-                  ⭐ Be a Babe
+                  ⭐ Be Teman
                 </Button>
               </Link>
               <Button variant="ghost" className="text-gray-700 hover:text-gray-900">
