@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,6 +5,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Heart, MessageCircle, Phone, Video, MapPin, Calendar, Star, Search, Filter, Globe } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import Footer from '@/components/Footer';
 
 const Index = () => {
   const [selectedCity, setSelectedCity] = useState('Jakarta');
@@ -90,11 +91,11 @@ const Index = () => {
                 />
               </div>
               <nav className="hidden md:flex items-center gap-6">
-                <a href="#" className="text-gray-700 hover:text-gray-900 font-medium">Rent</a>
-                <a href="#" className="text-gray-700 hover:text-gray-900 font-medium">FAQ</a>
-                <a href="#" className="text-gray-700 hover:text-gray-900 font-medium">Terms</a>
-                <a href="#" className="text-gray-700 hover:text-gray-900 font-medium">Contact</a>
-                <a href="#" className="text-gray-700 hover:text-gray-900 font-medium">Invite & Earn</a>
+                <Link to="/rent" className="text-gray-700 hover:text-gray-900 font-medium">Rent</Link>
+                <Link to="/faq" className="text-gray-700 hover:text-gray-900 font-medium">FAQ</Link>
+                <Link to="/terms" className="text-gray-700 hover:text-gray-900 font-medium">Terms</Link>
+                <Link to="/contact" className="text-gray-700 hover:text-gray-900 font-medium">Contact</Link>
+                <Link to="/invite" className="text-gray-700 hover:text-gray-900 font-medium">Invite & Earn</Link>
               </nav>
             </div>
 
@@ -104,9 +105,11 @@ const Index = () => {
                 <img src="/placeholder.svg" alt="EN" className="w-5 h-5" />
                 <span className="text-gray-700">EN</span>
               </div>
-              <Button className="bg-black text-white hover:bg-gray-800 rounded-full px-6">
-                ⭐ Be a Babe
-              </Button>
+              <Link to="/rent">
+                <Button className="bg-black text-white hover:bg-gray-800 rounded-full px-6">
+                  ⭐ Be a Babe
+                </Button>
+              </Link>
               <Button variant="ghost" className="text-gray-700 hover:text-gray-900">
                 Login
               </Button>
@@ -284,6 +287,8 @@ const Index = () => {
           </div>
         </section>
       </div>
+
+      <Footer />
     </div>
   );
 };
