@@ -1,244 +1,292 @@
+
 import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Heart, MessageCircle, Phone, Video, MapPin, Calendar, Star, Search, Filter, Globe } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Star, MapPin, Clock, Heart, Users, Shield } from 'lucide-react';
-import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import TalentCard from '@/components/TalentCard';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
-  const [selectedCity, setSelectedCity] = useState<string>('');
+  const [selectedCity, setSelectedCity] = useState('Jakarta');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('For You');
 
-  // Fetch featured talents (high rating, elite/vip level)
-  const { data: featuredTalents } = useQuery({
-    queryKey: ['featured-talents', selectedCity],
-    queryFn: async () => {
-      let query = supabase
-        .from('profiles')
-        .select(`
-          *,
-          talent_services(*),
-          talent_interests(*),
-          reviews!reviewee_id(rating)
-        `)
-        .eq('user_type', 'companion')
-        .eq('verification_status', 'verified')
-        .eq('is_available', true)
-        .in('talent_level', ['elite', 'vip'])
-        .gte('rating', 4.5)
-        .limit(6);
+  const cities = ['Jakarta', 'Surabaya', 'Bandung', 'Yogyakarta', 'Bali', 'Medan'];
 
-      if (selectedCity) {
-        query = query.eq('city', selectedCity);
-      }
+  const categories = [
+    { name: 'For You', icon: '💛', active: true },
+    { name: 'Games', icon: '🎮', active: false },
+    { name: 'E-Meet', icon: '💬', active: false },
+    { name: 'Meals', icon: '🍽️', active: false },
+    { name: 'Drinks', icon: '🍸', active: false },
+    { name: 'Mobile Legends', icon: '🎯', active: false }
+  ];
 
-      const { data, error } = await query;
-      if (error) throw error;
-      return data || [];
-    }
-  });
+  const filterTags = [
+    { name: 'Most Spenders', icon: '🔥', color: 'bg-orange-100 text-orange-600' },
+    { name: 'Newest Members', icon: '👥', color: 'bg-blue-100 text-blue-600' },
+    { name: 'Most Earners', icon: '💰', color: 'bg-green-100 text-green-600' },
+    { name: 'Potential Members', icon: '✅', color: 'bg-emerald-100 text-emerald-600' },
+    { name: 'Join Telegram', icon: '📱', color: 'bg-sky-100 text-sky-600' },
+    { name: 'Join Discord', icon: '🎮', color: 'bg-purple-100 text-purple-600' },
+    { name: 'About Us', icon: '❓', color: 'bg-gray-100 text-gray-600' }
+  ];
 
-  // Fetch newcomers (recently verified, fresh level)
-  const { data: newcomers } = useQuery({
-    queryKey: ['newcomers', selectedCity],
-    queryFn: async () => {
-      let query = supabase
-        .from('profiles')
-        .select(`
-          *,
-          talent_services(*),
-          talent_interests(*)
-        `)
-        .eq('user_type', 'companion')
-        .eq('verification_status', 'verified')
-        .eq('is_available', true)
-        .eq('talent_level', 'fresh')
-        .order('created_at', { ascending: false })
-        .limit(6);
-
-      if (selectedCity) {
-        query = query.eq('city', selectedCity);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return data || [];
-    }
-  });
-
-  // Fetch available cities
-  const { data: cities } = useQuery({
-    queryKey: ['cities'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('city')
-        .eq('user_type', 'companion')
-        .eq('verification_status', 'verified')
-        .not('city', 'is', null);
-
-      if (error) throw error;
-      
-      const uniqueCities = [...new Set(data?.map(p => p.city).filter(Boolean))];
-      return uniqueCities;
-    }
-  });
-
-  const features = [
+  const talents = [
     {
-      icon: <Heart className="h-8 w-8 text-pink-500" />,
-      title: "Verified Companions",
-      description: "All our talents are verified with KTP and background checks"
+      id: 1,
+      name: 'Beboo',
+      description: 'dinner with a beautiful story?',
+      category: 'Fine Dining',
+      rating: '---',
+      priceRange: '10.00 ~ 30.00',
+      image: '/placeholder.svg',
+      isOnline: true,
+      verified: true
     },
     {
-      icon: <Shield className="h-8 w-8 text-green-500" />,
-      title: "Safe & Secure",
-      description: "Your safety and privacy are our top priorities"
+      id: 2,
+      name: 'Penlibels',
+      description: 'Looking for a fun conversation partner',
+      category: 'Chat & Call',
+      rating: '---',
+      priceRange: '00.00 ~ 00.00',
+      image: '/placeholder.svg',
+      isOnline: false,
+      verified: true
     },
     {
-      icon: <Users className="h-8 w-8 text-blue-500" />,
-      title: "Diverse Services",
-      description: "From casual chats to dinner dates and party companions"
+      id: 3,
+      name: 'Yayang',
+      description: 'Adventure and outdoor activities',
+      category: 'Outdoor Date',
+      rating: '---',
+      priceRange: '00.00 ~ 00.00',
+      image: '/placeholder.svg',
+      isOnline: true,
+      verified: true
     }
   ];
 
+  const handleBookNow = (talentId: number) => {
+    console.log(`Booking talent with ID: ${talentId}`);
+    alert(`Booking request for talent ID: ${talentId}. This will redirect to booking page.`);
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-yellow-50">
-      <Header />
-      
-      {/* Hero Section */}
-      <section className="relative py-20 px-4">
-        <div className="container mx-auto text-center">
-          <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-pink-600 via-purple-600 to-yellow-500 bg-clip-text text-transparent mb-6">
-            Find Your Perfect
-            <br />
-            Companion
-          </h1>
-          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Connect with amazing people for unforgettable experiences. From casual conversations to exciting adventures, find your perfect companion in Indonesia.
-          </p>
-          
-          {/* Search Section */}
-          <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl p-6 mb-12">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Select value={selectedCity} onValueChange={setSelectedCity}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select City" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">All Cities</SelectItem>
-                  {cities?.map((city) => (
-                    <SelectItem key={city} value={city}>{city}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              
-              <Input
-                placeholder="Search by interests..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="border-2"
-              />
-              
-              <Button size="lg" className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700">
-                <Link to="/rent" className="flex items-center gap-2">
-                  Find Companions
-                </Link>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            {/* Logo and Navigation */}
+            <div className="flex items-center gap-8">
+              <div className="flex items-center gap-2">
+                <img 
+                  src="/lovable-uploads/2b715270-d5ae-4f6c-be60-2dfaf1662139.png" 
+                  alt="Temanly Logo"
+                  className="h-10 w-auto"
+                />
+              </div>
+              <nav className="hidden md:flex items-center gap-6">
+                <Link to="/rent" className="text-gray-700 hover:text-gray-900 font-medium">Rent</Link>
+                <Link to="/faq" className="text-gray-700 hover:text-gray-900 font-medium">FAQ</Link>
+                <Link to="/terms" className="text-gray-700 hover:text-gray-900 font-medium">Terms</Link>
+                <Link to="/contact" className="text-gray-700 hover:text-gray-900 font-medium">Contact</Link>
+              </nav>
+            </div>
+
+            {/* Right side buttons */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 text-sm">
+                <img src="/placeholder.svg" alt="EN" className="w-5 h-5" />
+                <span className="text-gray-700">EN</span>
+              </div>
+              <Link to="/rent">
+                <Button className="bg-black text-white hover:bg-gray-800 rounded-full px-6">
+                  ⭐ Be Teman
+                </Button>
+              </Link>
+              <Button variant="ghost" className="text-gray-700 hover:text-gray-900">
+                Login
               </Button>
             </div>
           </div>
+        </div>
+      </header>
 
-          {/* Quick Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-            {features.map((feature, index) => (
-              <Card key={index} className="border-0 shadow-lg hover:shadow-xl transition-shadow">
-                <CardHeader className="text-center">
-                  <div className="flex justify-center mb-4">
-                    {feature.icon}
+      <div className="container mx-auto px-4 py-8">
+        {/* What's New Section */}
+        <section className="mb-8">
+          <h2 className="text-2xl font-bold mb-6 text-gray-900">What's New</h2>
+          <div className="flex flex-wrap gap-3">
+            {filterTags.map((tag) => (
+              <Badge
+                key={tag.name}
+                className={`${tag.color} border-0 px-4 py-2 rounded-full font-medium text-sm cursor-pointer hover:opacity-80`}
+              >
+                <span className="mr-2">{tag.icon}</span>
+                {tag.name}
+              </Badge>
+            ))}
+          </div>
+        </section>
+
+        {/* Find Your Match Section */}
+        <section className="mb-8">
+          <h2 className="text-2xl font-bold mb-6 text-gray-900">Find your match</h2>
+          
+          {/* Category Tabs */}
+          <div className="flex flex-wrap gap-3 mb-6">
+            {categories.map((category) => (
+              <Button
+                key={category.name}
+                variant={selectedCategory === category.name ? "default" : "outline"}
+                className={`rounded-full px-6 py-2 font-medium ${
+                  selectedCategory === category.name 
+                    ? 'bg-yellow-400 text-black hover:bg-yellow-500 border-0' 
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-0'
+                }`}
+                onClick={() => setSelectedCategory(category.name)}
+              >
+                <span className="mr-2">{category.icon}</span>
+                {category.name}
+              </Button>
+            ))}
+          </div>
+
+          {/* Filters */}
+          <div className="flex flex-wrap gap-4 mb-8">
+            <Select value={selectedCity} onValueChange={setSelectedCity}>
+              <SelectTrigger className="w-40 bg-white border-gray-300 rounded-lg">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {cities.map((city) => (
+                  <SelectItem key={city} value={city}>{city}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <div className="relative flex-1 max-w-xs">
+              <Input
+                placeholder="Type username"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="bg-white border-gray-300 rounded-lg pl-4"
+              />
+            </div>
+
+            <Select defaultValue="highest">
+              <SelectTrigger className="w-40 bg-white border-gray-300 rounded-lg">
+                <SelectValue placeholder="Highest Ratings" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="highest">Highest Ratings</SelectItem>
+                <SelectItem value="newest">Newest</SelectItem>
+                <SelectItem value="popular">Most Popular</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select defaultValue="public">
+              <SelectTrigger className="w-32 bg-white border-gray-300 rounded-lg">
+                <SelectValue placeholder="Public" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="public">Public</SelectItem>
+                <SelectItem value="private">Private</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select defaultValue="all-gender">
+              <SelectTrigger className="w-36 bg-white border-gray-300 rounded-lg">
+                <SelectValue placeholder="All Gender" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all-gender">All Gender</SelectItem>
+                <SelectItem value="male">Male</SelectItem>
+                <SelectItem value="female">Female</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select defaultValue="all-ethnicity">
+              <SelectTrigger className="w-36 bg-white border-gray-300 rounded-lg">
+                <SelectValue placeholder="All Ethnicity" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all-ethnicity">All Ethnicity</SelectItem>
+                <SelectItem value="asian">Asian</SelectItem>
+                <SelectItem value="european">European</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button className="bg-black text-white hover:bg-gray-800 rounded-lg px-8">
+              Apply
+            </Button>
+          </div>
+        </section>
+
+        {/* Talents Grid */}
+        <section>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {talents.map((talent) => (
+              <Card key={talent.id} className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow border-0">
+                <div className="relative">
+                  <img 
+                    src={talent.image} 
+                    alt={talent.name}
+                    className="w-full h-64 object-cover"
+                  />
+                  <div className="absolute top-4 left-4">
+                    <div className="bg-black/70 text-white px-3 py-1 rounded-lg text-sm font-medium">
+                      {talent.name}
+                    </div>
                   </div>
-                  <CardTitle className="text-xl">{feature.title}</CardTitle>
-                  <CardDescription className="text-gray-600">
-                    {feature.description}
-                  </CardDescription>
-                </CardHeader>
+                  <div className="absolute top-4 right-4">
+                    <Button size="icon" variant="ghost" className="bg-black/20 hover:bg-black/40 text-white rounded-full">
+                      <Heart className="w-5 h-5" />
+                    </Button>
+                  </div>
+                  <div className="absolute bottom-4 left-4">
+                    <div className="bg-black/70 text-white px-3 py-1 rounded-lg text-xs">
+                      {talent.description}
+                    </div>
+                  </div>
+                  <div className="absolute bottom-4 right-4">
+                    <Badge className="bg-green-100 text-green-700 border-0 text-xs">
+                      <MessageCircle className="w-3 h-3 mr-1" />
+                      {talent.category}
+                    </Badge>
+                  </div>
+                </div>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Star className="w-4 h-4 text-yellow-400" />
+                      <span className="text-sm font-medium">{talent.rating}</span>
+                      <span className="text-sm text-gray-500">💰 {talent.priceRange}</span>
+                    </div>
+                    <Button 
+                      onClick={() => handleBookNow(talent.id)}
+                      size="sm"
+                      className="bg-yellow-400 text-black hover:bg-yellow-500 rounded-lg font-medium"
+                    >
+                      Book Now
+                    </Button>
+                  </div>
+                </CardContent>
               </Card>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* Featured Talents Section */}
-      {featuredTalents && featuredTalents.length > 0 && (
-        <section className="py-16 px-4 bg-white/50">
-          <div className="container mx-auto">
-            <div className="text-center mb-12">
-              <h2 className="text-4xl font-bold text-gray-900 mb-4">Featured Talents</h2>
-              <p className="text-xl text-gray-600">Meet our top-rated companions with excellent reviews</p>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {featuredTalents.map((talent) => (
-                <TalentCard key={talent.id} talent={talent} featured />
-              ))}
-            </div>
-            
-            <div className="text-center mt-12">
-              <Button asChild size="lg" variant="outline">
-                <Link to="/rent">View All Featured Talents</Link>
-              </Button>
-            </div>
+          
+          <div className="text-center mt-8">
+            <p className="text-gray-500">You've Reached the End</p>
           </div>
         </section>
-      )}
-
-      {/* Newcomers Section */}
-      {newcomers && newcomers.length > 0 && (
-        <section className="py-16 px-4">
-          <div className="container mx-auto">
-            <div className="text-center mb-12">
-              <h2 className="text-4xl font-bold text-gray-900 mb-4">New Talents</h2>
-              <p className="text-xl text-gray-600">Welcome our newest verified companions</p>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {newcomers.map((talent) => (
-                <TalentCard key={talent.id} talent={talent} isNewcomer />
-              ))}
-            </div>
-            
-            <div className="text-center mt-12">
-              <Button asChild size="lg" variant="outline">
-                <Link to="/rent">View All New Talents</Link>
-              </Button>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* CTA Section */}
-      <section className="py-20 px-4 bg-gradient-to-r from-pink-600 via-purple-600 to-yellow-500">
-        <div className="container mx-auto text-center text-white">
-          <h2 className="text-4xl font-bold mb-6">Ready to Start Your Journey?</h2>
-          <p className="text-xl mb-8 opacity-90">
-            Join thousands of people finding meaningful connections every day
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" variant="secondary" asChild>
-              <Link to="/rent">Browse Companions</Link>
-            </Button>
-            <Button size="lg" variant="outline" className="text-white border-white hover:bg-white hover:text-purple-600" asChild>
-              <Link to="/contact">Become a Talent</Link>
-            </Button>
-          </div>
-        </div>
-      </section>
+      </div>
 
       <Footer />
     </div>
