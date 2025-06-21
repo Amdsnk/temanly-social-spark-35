@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -219,10 +220,12 @@ const BookingPage = () => {
                         <Checkbox 
                           checked={selectedServices.includes(service.id)}
                           onCheckedChange={(checked) => {
-                            // Handle the boolean | "indeterminate" type properly
-                            if (typeof checked === 'boolean') {
-                              const isCurrentlySelected = selectedServices.includes(service.id);
-                              if (checked !== isCurrentlySelected) {
+                            if (checked === true) {
+                              if (!selectedServices.includes(service.id)) {
+                                handleServiceToggle(service.id);
+                              }
+                            } else if (checked === false) {
+                              if (selectedServices.includes(service.id)) {
                                 handleServiceToggle(service.id);
                               }
                             }
