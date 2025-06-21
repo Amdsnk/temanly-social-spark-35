@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -7,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Upload } from 'lucide-react';
+import { Upload, IdCard } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/Header';
 
@@ -24,7 +25,8 @@ const TalentRegister = () => {
     services: [] as string[],
     interests: [] as string[],
     availability: '',
-    agreeTerms: false
+    agreeTerms: false,
+    idVerification: null as File | null
   });
   
   const { toast } = useToast();
@@ -72,6 +74,13 @@ const TalentRegister = () => {
     }));
   };
 
+  const handleIdUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFormData(prev => ({ ...prev, idVerification: file }));
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -93,10 +102,19 @@ const TalentRegister = () => {
       return;
     }
 
+    if (!formData.idVerification) {
+      toast({
+        title: "Error",
+        description: "Wajib upload KTP/ID Card untuk verifikasi.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     console.log('Talent registration:', formData);
     toast({
       title: "Registrasi berhasil!",
-      description: "Selamat! Akun talent Anda telah aktif dan siap digunakan.",
+      description: "Data Anda telah diterima. Proses verifikasi ID akan dilakukan dalam 1-2 hari kerja.",
     });
   };
 
@@ -231,6 +249,35 @@ const TalentRegister = () => {
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+              </div>
+
+              {/* ID Verification */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-red-600">Verifikasi Identitas *</h3>
+                <p className="text-sm text-gray-600">Upload KTP/ID Card untuk verifikasi identitas (wajib)</p>
+                
+                <div className="border-2 border-dashed border-red-300 rounded-lg p-6 text-center">
+                  <IdCard className="w-12 h-12 text-red-400 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-2">Upload KTP/ID Card</p>
+                  <p className="text-xs text-red-500 mb-4">* Wajib untuk verifikasi identitas</p>
+                  <input
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={handleIdUpload}
+                    className="hidden"
+                    id="id-upload"
+                  />
+                  <Label htmlFor="id-upload">
+                    <Button type="button" variant="outline" className="border-red-300 text-red-600 hover:bg-red-50">
+                      Pilih File KTP/ID
+                    </Button>
+                  </Label>
+                  {formData.idVerification && (
+                    <p className="text-sm text-green-600 mt-2">
+                      ✓ File terpilih: {formData.idVerification.name}
+                    </p>
+                  )}
                 </div>
               </div>
 
