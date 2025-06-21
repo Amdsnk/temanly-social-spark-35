@@ -219,9 +219,8 @@ const BookingPage = () => {
                         <Checkbox 
                           checked={selectedServices.includes(service.id)}
                           onCheckedChange={(checked) => {
-                            if (checked) {
-                              handleServiceToggle(service.id);
-                            } else {
+                            const isChecked = checked === true;
+                            if (isChecked !== selectedServices.includes(service.id)) {
                               handleServiceToggle(service.id);
                             }
                           }}
@@ -231,10 +230,10 @@ const BookingPage = () => {
                           <div className="flex items-center gap-2">
                             <h3 className="font-medium">{service.name}</h3>
                             {service.ageRestriction && (
-                              <Badge className="bg-red-100 text-red-600 text-xs">{service.ageRestriction}</Badge>
+                              <Badge className="bg-red-100 text-red-600">{service.ageRestriction}</Badge>
                             )}
                             {service.requiresVerification && (
-                              <Badge className="bg-yellow-100 text-yellow-600 text-xs">Verification Required</Badge>
+                              <Badge className="bg-yellow-100 text-yellow-600">Verification Required</Badge>
                             )}
                           </div>
                           <p className="text-sm text-gray-600 mt-1">{service.description}</p>
