@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -78,6 +77,10 @@ const TalentRegister = () => {
     const file = e.target.files?.[0];
     if (file) {
       setFormData(prev => ({ ...prev, idVerification: file }));
+      toast({
+        title: "File berhasil dipilih",
+        description: `File ${file.name} telah dipilih untuk verifikasi ID.`,
+      });
     }
   };
 
@@ -268,11 +271,14 @@ const TalentRegister = () => {
                     className="hidden"
                     id="id-upload"
                   />
-                  <Label htmlFor="id-upload">
-                    <Button type="button" variant="outline" className="border-red-300 text-red-600 hover:bg-red-50">
-                      Pilih File KTP/ID
-                    </Button>
-                  </Label>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="border-red-300 text-red-600 hover:bg-red-50"
+                    onClick={() => document.getElementById('id-upload')?.click()}
+                  >
+                    Pilih File KTP/ID
+                  </Button>
                   {formData.idVerification && (
                     <p className="text-sm text-green-600 mt-2">
                       ✓ File terpilih: {formData.idVerification.name}
