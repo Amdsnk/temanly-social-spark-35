@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -219,7 +218,13 @@ const BookingPage = () => {
                       <div className="flex items-start space-x-3">
                         <Checkbox 
                           checked={selectedServices.includes(service.id)}
-                          onCheckedChange={() => handleServiceToggle(service.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              handleServiceToggle(service.id);
+                            } else {
+                              handleServiceToggle(service.id);
+                            }
+                          }}
                           disabled={service.requiresVerification || service.ageRestriction}
                         />
                         <div className="flex-1">
