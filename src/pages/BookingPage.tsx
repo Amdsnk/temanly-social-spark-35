@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -219,13 +220,11 @@ const BookingPage = () => {
                         <Checkbox 
                           checked={selectedServices.includes(service.id)}
                           onCheckedChange={(checked) => {
-                            // Only handle boolean values, ignore "indeterminate"
-                            if (typeof checked === 'boolean') {
-                              if (checked && !selectedServices.includes(service.id)) {
-                                handleServiceToggle(service.id);
-                              } else if (!checked && selectedServices.includes(service.id)) {
-                                handleServiceToggle(service.id);
-                              }
+                            // Only handle true boolean values for toggling
+                            if (checked === true) {
+                              handleServiceToggle(service.id);
+                            } else if (checked === false) {
+                              handleServiceToggle(service.id);
                             }
                           }}
                           disabled={service.requiresVerification || service.ageRestriction}
