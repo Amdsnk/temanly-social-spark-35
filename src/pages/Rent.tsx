@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -51,11 +52,11 @@ const Rent = () => {
         query = query.eq('is_available', true);
       }
 
-      if (filters.city) {
+      if (filters.city && filters.city !== 'all') {
         query = query.eq('city', filters.city);
       }
 
-      if (filters.talentLevel) {
+      if (filters.talentLevel && filters.talentLevel !== 'all') {
         query = query.eq('talent_level', filters.talentLevel as TalentLevel);
       }
 
@@ -87,7 +88,7 @@ const Rent = () => {
         );
       }
 
-      if (filters.serviceType) {
+      if (filters.serviceType && filters.serviceType !== 'all') {
         filteredData = filteredData.filter(talent =>
           talent.talent_services?.some((service: any) => 
             service.service_type === filters.serviceType && service.is_available
@@ -178,36 +179,36 @@ const Rent = () => {
 
           {/* Quick Filters */}
           <div className="flex flex-wrap gap-2 mb-4">
-            <Select value={filters.city} onValueChange={(value) => setFilters({...filters, city: value})}>
+            <Select value={filters.city || 'all'} onValueChange={(value) => setFilters({...filters, city: value === 'all' ? '' : value})}>
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="Select City" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Cities</SelectItem>
+                <SelectItem value="all">All Cities</SelectItem>
                 {cities?.map((city) => (
                   <SelectItem key={city} value={city}>{city}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
 
-            <Select value={filters.serviceType} onValueChange={(value) => setFilters({...filters, serviceType: value})}>
+            <Select value={filters.serviceType || 'all'} onValueChange={(value) => setFilters({...filters, serviceType: value === 'all' ? '' : value})}>
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="Service Type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Services</SelectItem>
+                <SelectItem value="all">All Services</SelectItem>
                 {serviceTypes.map((service) => (
                   <SelectItem key={service.value} value={service.value}>{service.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
 
-            <Select value={filters.talentLevel} onValueChange={(value) => setFilters({...filters, talentLevel: value as TalentLevel | ''})}>
+            <Select value={filters.talentLevel || 'all'} onValueChange={(value) => setFilters({...filters, talentLevel: value === 'all' ? '' : value as TalentLevel | ''})}>
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="Talent Level" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Levels</SelectItem>
+                <SelectItem value="all">All Levels</SelectItem>
                 {talentLevels.map((level) => (
                   <SelectItem key={level.value} value={level.value}>{level.label}</SelectItem>
                 ))}
