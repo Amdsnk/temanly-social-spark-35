@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -42,7 +41,7 @@ const Rent = () => {
           talent_interests(*),
           availability_slots(*)
         `)
-        .eq('user_type', 'talent')
+        .eq('user_type', 'companion')
         .eq('verification_status', 'verified');
 
       if (filters.availability) {
@@ -104,7 +103,7 @@ const Rent = () => {
       const { data, error } = await supabase
         .from('profiles')
         .select('city')
-        .eq('user_type', 'talent')
+        .eq('user_type', 'companion')
         .eq('verification_status', 'verified')
         .not('city', 'is', null);
 

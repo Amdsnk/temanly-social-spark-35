@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -29,7 +28,7 @@ const Index = () => {
           talent_interests(*),
           reviews!reviewee_id(rating)
         `)
-        .eq('user_type', 'talent')
+        .eq('user_type', 'companion')
         .eq('verification_status', 'verified')
         .eq('is_available', true)
         .in('talent_level', ['elite', 'vip'])
@@ -57,7 +56,7 @@ const Index = () => {
           talent_services(*),
           talent_interests(*)
         `)
-        .eq('user_type', 'talent')
+        .eq('user_type', 'companion')
         .eq('verification_status', 'verified')
         .eq('is_available', true)
         .eq('talent_level', 'fresh')
@@ -81,7 +80,7 @@ const Index = () => {
       const { data, error } = await supabase
         .from('profiles')
         .select('city')
-        .eq('user_type', 'talent')
+        .eq('user_type', 'companion')
         .eq('verification_status', 'verified')
         .not('city', 'is', null);
 
