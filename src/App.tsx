@@ -23,6 +23,7 @@ import TalentProfile from "./pages/TalentProfile";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import TalentRegister from "./pages/TalentRegister";
+import TalentRegisterSuccess from "./pages/TalentRegisterSuccess";
 import BrowseTalents from "./pages/BrowseTalents";
 import HowItWorks from "./pages/HowItWorks";
 
@@ -53,6 +54,7 @@ const App = () => (
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/talent-register" element={<TalentRegister />} />
+          <Route path="/talent-register-success" element={<TalentRegisterSuccess />} />
           <Route path="/talents" element={<BrowseTalents />} />
           <Route path="/how-it-works" element={<HowItWorks />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

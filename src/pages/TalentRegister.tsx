@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -84,6 +84,8 @@ const TalentRegister = () => {
     }
   };
 
+  const navigate = useNavigate();
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -115,10 +117,9 @@ const TalentRegister = () => {
     }
 
     console.log('Talent registration:', formData);
-    toast({
-      title: "Registrasi berhasil!",
-      description: "Data Anda telah diterima. Proses verifikasi ID akan dilakukan dalam 1-2 hari kerja.",
-    });
+    
+    // Redirect to success page
+    navigate('/talent-register-success');
   };
 
   return (
