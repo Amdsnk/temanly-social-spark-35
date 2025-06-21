@@ -14,6 +14,10 @@ import Safety from "./pages/Safety";
 import Help from "./pages/Help";
 import Community from "./pages/Community";
 import NotFound from "./pages/NotFound";
+import AdminDashboard from "./pages/AdminDashboard";
+import TalentDashboard from "./pages/TalentDashboard";
+import UserDashboard from "./pages/UserDashboard";
+import BookingPage from "./pages/BookingPage";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +37,10 @@ const App = () => (
           <Route path="/safety" element={<Safety />} />
           <Route path="/help" element={<Help />} />
           <Route path="/community" element={<Community />} />
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/talent-dashboard" element={<TalentDashboard />} />
+          <Route path="/user-dashboard" element={<UserDashboard />} />
+          <Route path="/booking" element={<BookingPage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
