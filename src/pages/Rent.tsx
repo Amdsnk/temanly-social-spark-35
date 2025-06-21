@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -56,8 +55,8 @@ const Rent = () => {
         query = query.eq('city', filters.city);
       }
 
-      if (filters.talentLevel && filters.talentLevel !== '') {
-        query = query.eq('talent_level', filters.talentLevel as TalentLevel);
+      if (filters.talentLevel) {
+        query = query.eq('talent_level', filters.talentLevel);
       }
 
       if (filters.minRating > 0) {
@@ -203,7 +202,7 @@ const Rent = () => {
               </SelectContent>
             </Select>
 
-            <Select value={filters.talentLevel || 'all'} onValueChange={(value) => setFilters({...filters, talentLevel: value === 'all' ? '' : value as TalentLevel | ''})}>
+            <Select value={filters.talentLevel || 'all'} onValueChange={(value) => setFilters({...filters, talentLevel: value === 'all' ? '' : value as TalentLevel})}>
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="Talent Level" />
               </SelectTrigger>
