@@ -218,8 +218,8 @@ const BookingPage = () => {
                       <div className="flex items-start space-x-3">
                         <Checkbox 
                           checked={selectedServices.includes(service.id)}
-                          onCheckedChange={(checked: boolean | "indeterminate") => {
-                            // Handle the checkbox state change properly
+                          onCheckedChange={(checked) => {
+                            // Only handle true/false, ignore indeterminate
                             if (checked === true || checked === false) {
                               const isCurrentlySelected = selectedServices.includes(service.id);
                               if (checked === true && !isCurrentlySelected) {
@@ -228,7 +228,6 @@ const BookingPage = () => {
                                 handleServiceToggle(service.id);
                               }
                             }
-                            // Ignore "indeterminate" state
                           }}
                           disabled={service.requiresVerification || service.ageRestriction}
                         />
