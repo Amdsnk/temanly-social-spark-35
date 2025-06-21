@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -64,7 +63,7 @@ const BookingPage = () => {
   };
 
   const handleBack = () => {
-    navigate(-1);
+    navigate('/talents');
   };
 
   const isFormValid = selectedService && selectedDate && selectedTime;
