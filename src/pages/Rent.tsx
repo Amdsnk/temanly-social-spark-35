@@ -56,7 +56,7 @@ const Rent = () => {
         query = query.eq('city', filters.city);
       }
 
-      if (filters.talentLevel && filters.talentLevel !== 'all') {
+      if (filters.talentLevel && filters.talentLevel !== '') {
         query = query.eq('talent_level', filters.talentLevel as TalentLevel);
       }
 
