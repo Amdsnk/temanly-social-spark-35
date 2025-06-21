@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,15 +10,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Star, MapPin, Clock, DollarSign } from 'lucide-react';
+import { CalendarIcon, Star, Clock, DollarSign, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 
 const BookingPage = () => {
+  const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedService, setSelectedService] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [bookingForm, setBookingForm] = useState({
-    location: '',
     message: '',
     duration: 1
   });
@@ -56,11 +57,14 @@ const BookingPage = () => {
       service: selectedService,
       date: selectedDate,
       time: selectedTime,
-      location: bookingForm.location,
       message: bookingForm.message,
       total: finalTotal
     });
     alert('Booking submitted successfully!');
+  };
+
+  const handleBack = () => {
+    navigate(-1);
   };
 
   const isFormValid = selectedService && selectedDate && selectedTime;
@@ -68,6 +72,18 @@ const BookingPage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
+        {/* Back Button */}
+        <div className="mb-6">
+          <Button 
+            variant="ghost" 
+            onClick={handleBack}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </Button>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
           {/* Talent Profile */}
@@ -174,29 +190,6 @@ const BookingPage = () => {
                         </SelectContent>
                       </Select>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Additional Details */}
-            {selectedService === 'offline-date' && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Meeting Details</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="location">Meeting Location</Label>
-                    <Input 
-                      id="location"
-                      placeholder="e.g., Mall Central Park, Jakarta"
-                      value={bookingForm.location}
-                      onChange={(e) => setBookingForm(prev => ({
-                        ...prev, 
-                        location: e.target.value
-                      }))}
-                    />
                   </div>
                 </CardContent>
               </Card>
