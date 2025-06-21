@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -219,13 +218,17 @@ const BookingPage = () => {
                       <div className="flex items-start space-x-3">
                         <Checkbox 
                           checked={selectedServices.includes(service.id)}
-                          onCheckedChange={(checked) => {
-                            // Only handle true boolean values for toggling
-                            if (checked === true) {
-                              handleServiceToggle(service.id);
-                            } else if (checked === false) {
-                              handleServiceToggle(service.id);
+                          onCheckedChange={(checked: boolean | "indeterminate") => {
+                            // Handle the checkbox state change properly
+                            if (checked === true || checked === false) {
+                              const isCurrentlySelected = selectedServices.includes(service.id);
+                              if (checked && !isCurrentlySelected) {
+                                handleServiceToggle(service.id);
+                              } else if (!checked && isCurrentlySelected) {
+                                handleServiceToggle(service.id);
+                              }
                             }
+                            // Ignore "indeterminate" state
                           }}
                           disabled={service.requiresVerification || service.ageRestriction}
                         />
