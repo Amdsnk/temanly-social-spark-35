@@ -96,7 +96,7 @@ const TalentRegister = () => {
     console.log('Talent registration:', formData);
     toast({
       title: "Registrasi berhasil!",
-      description: "Aplikasi Anda akan diverifikasi dalam 1-2 hari kerja.",
+      description: "Selamat! Akun talent Anda telah aktif dan siap digunakan.",
     });
   };
 
