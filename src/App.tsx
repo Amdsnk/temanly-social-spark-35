@@ -19,6 +19,12 @@ import AdminDashboard from "./pages/AdminDashboard";
 import TalentDashboard from "./pages/TalentDashboard";
 import UserDashboard from "./pages/UserDashboard";
 import BookingPage from "./pages/BookingPage";
+import TalentProfile from "./pages/TalentProfile";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
+import TalentRegister from "./pages/TalentRegister";
+import BrowseTalents from "./pages/BrowseTalents";
+import HowItWorks from "./pages/HowItWorks";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +49,12 @@ const App = () => (
           <Route path="/talent-dashboard" element={<TalentDashboard />} />
           <Route path="/user-dashboard" element={<UserDashboard />} />
           <Route path="/booking" element={<BookingPage />} />
+          <Route path="/talent/:id" element={<TalentProfile />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/talent-register" element={<TalentRegister />} />
+          <Route path="/talents" element={<BrowseTalents />} />
+          <Route path="/how-it-works" element={<HowItWorks />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
