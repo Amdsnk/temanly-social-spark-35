@@ -222,9 +222,9 @@ const BookingPage = () => {
                             // Handle the checkbox state change properly
                             if (checked === true || checked === false) {
                               const isCurrentlySelected = selectedServices.includes(service.id);
-                              if (checked && !isCurrentlySelected) {
+                              if (checked === true && !isCurrentlySelected) {
                                 handleServiceToggle(service.id);
-                              } else if (!checked && isCurrentlySelected) {
+                              } else if (checked === false && isCurrentlySelected) {
                                 handleServiceToggle(service.id);
                               }
                             }
