@@ -219,13 +219,14 @@ const BookingPage = () => {
                         <Checkbox 
                           checked={selectedServices.includes(service.id)}
                           onCheckedChange={(checked) => {
-                            // Handle the checked state properly - only toggle if it's explicitly true or false
-                            if (checked === true) {
-                              handleServiceToggle(service.id);
-                            } else if (checked === false) {
-                              handleServiceToggle(service.id);
+                            // Only handle boolean values, ignore "indeterminate"
+                            if (typeof checked === 'boolean') {
+                              if (checked && !selectedServices.includes(service.id)) {
+                                handleServiceToggle(service.id);
+                              } else if (!checked && selectedServices.includes(service.id)) {
+                                handleServiceToggle(service.id);
+                              }
                             }
-                            // Ignore "indeterminate" state
                           }}
                           disabled={service.requiresVerification || service.ageRestriction}
                         />
