@@ -12,6 +12,9 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
 import { Filter, SlidersHorizontal } from 'lucide-react';
+import type { Database } from '@/integrations/supabase/types';
+
+type TalentLevel = Database['public']['Enums']['talent_level'];
 
 const Rent = () => {
   const [filters, setFilters] = useState({
@@ -19,7 +22,7 @@ const Rent = () => {
     serviceType: '',
     minAge: 18,
     maxAge: 50,
-    talentLevel: '',
+    talentLevel: '' as TalentLevel | '',
     availability: true,
     minRating: 0,
     priceRange: [0, 2000000],
@@ -53,7 +56,7 @@ const Rent = () => {
       }
 
       if (filters.talentLevel) {
-        query = query.eq('talent_level', filters.talentLevel);
+        query = query.eq('talent_level', filters.talentLevel as TalentLevel);
       }
 
       if (filters.minRating > 0) {
@@ -139,9 +142,9 @@ const Rent = () => {
   ];
 
   const talentLevels = [
-    { value: 'fresh', label: 'Fresh' },
-    { value: 'elite', label: 'Elite' },
-    { value: 'vip', label: 'VIP' }
+    { value: 'fresh' as TalentLevel, label: 'Fresh' },
+    { value: 'elite' as TalentLevel, label: 'Elite' },
+    { value: 'vip' as TalentLevel, label: 'VIP' }
   ];
 
   return (
@@ -199,7 +202,7 @@ const Rent = () => {
               </SelectContent>
             </Select>
 
-            <Select value={filters.talentLevel} onValueChange={(value) => setFilters({...filters, talentLevel: value})}>
+            <Select value={filters.talentLevel} onValueChange={(value) => setFilters({...filters, talentLevel: value as TalentLevel | ''})}>
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="Talent Level" />
               </SelectTrigger>
