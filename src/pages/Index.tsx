@@ -2,79 +2,141 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Heart, MessageCircle, Phone, Video, MapPin, Calendar, Star, Search, Filter, Globe } from 'lucide-react';
+import { Heart, MessageCircle, Phone, Video, MapPin, Calendar, Star, Search, Filter, Globe, Clock, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Footer from '@/components/Footer';
+import TalentCard from '@/components/TalentCard';
+import ServiceSelector from '@/components/ServiceSelector';
 
 const Index = () => {
   const [selectedCity, setSelectedCity] = useState('Jakarta');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('For You');
+  const [selectedService, setSelectedService] = useState('all');
 
   const cities = ['Jakarta', 'Surabaya', 'Bandung', 'Yogyakarta', 'Bali', 'Medan'];
 
-  const categories = [
-    { name: 'For You', icon: '💛', active: true },
-    { name: 'Games', icon: '🎮', active: false },
-    { name: 'E-Meet', icon: '💬', active: false },
-    { name: 'Meals', icon: '🍽️', active: false },
-    { name: 'Drinks', icon: '🍸', active: false },
-    { name: 'Mobile Legends', icon: '🎯', active: false }
+  const services = [
+    { id: 'all', name: 'All Services', icon: '🎯' },
+    { id: 'chat', name: 'Chat', icon: '💬' },
+    { id: 'call', name: 'Voice Call', icon: '📞' },
+    { id: 'video', name: 'Video Call', icon: '📹' },
+    { id: 'offline-date', name: 'Offline Date', icon: '❤️' },
+    { id: 'party-buddy', name: 'Party Buddy', icon: '🎉' },
+    { id: 'rent-a-lover', name: 'Rent a Lover', icon: '💕' }
   ];
 
-  const filterTags = [
-    { name: 'Most Spenders', icon: '🔥', color: 'bg-orange-100 text-orange-600' },
-    { name: 'Newest Members', icon: '👥', color: 'bg-blue-100 text-blue-600' },
-    { name: 'Most Earners', icon: '💰', color: 'bg-green-100 text-green-600' },
-    { name: 'Potential Members', icon: '✅', color: 'bg-emerald-100 text-emerald-600' },
-    { name: 'Join Telegram', icon: '📱', color: 'bg-sky-100 text-sky-600' },
-    { name: 'Join Discord', icon: '🎮', color: 'bg-purple-100 text-purple-600' },
-    { name: 'About Us', icon: '❓', color: 'bg-gray-100 text-gray-600' }
-  ];
-
-  const talents = [
+  const featuredTalents = [
     {
       id: 1,
-      name: 'Beboo',
-      description: 'dinner with a beautiful story?',
-      category: 'Fine Dining',
-      rating: '---',
-      priceRange: '10.00 ~ 30.00',
+      name: 'Sari',
+      age: 24,
+      city: 'Jakarta',
+      rating: 4.8,
+      reviewCount: 127,
+      level: 'VIP Talent',
       image: '/placeholder.svg',
+      services: ['chat', 'call', 'video', 'offline-date'],
+      interests: ['sushi date', 'museum date', 'movie date'],
+      zodiac: 'Leo',
+      loveLanguage: 'Quality Time',
+      description: 'Friendly companion for deep conversations and fun dates',
+      priceRange: '25k - 285k',
       isOnline: true,
-      verified: true
+      verified: true,
+      availability: 'Weekdays 5-10 PM'
     },
     {
       id: 2,
-      name: 'Penlibels',
-      description: 'Looking for a fun conversation partner',
-      category: 'Chat & Call',
-      rating: '---',
-      priceRange: '00.00 ~ 00.00',
+      name: 'Maya',
+      age: 22,
+      city: 'Jakarta',
+      rating: 4.9,
+      reviewCount: 89,
+      level: 'Elite Talent',
       image: '/placeholder.svg',
-      isOnline: false,
-      verified: true
+      services: ['chat', 'call', 'rent-a-lover'],
+      interests: ['picnic date', 'coffee chat', 'gaming'],
+      zodiac: 'Gemini',
+      loveLanguage: 'Words of Affirmation',
+      description: 'Sweet and caring virtual girlfriend experience',
+      priceRange: '25k - 85k',
+      isOnline: true,
+      verified: true,
+      availability: 'Daily 7 AM - 11 PM'
     },
     {
       id: 3,
-      name: 'Yayang',
-      description: 'Adventure and outdoor activities',
-      category: 'Outdoor Date',
-      rating: '---',
-      priceRange: '00.00 ~ 00.00',
+      name: 'Kania',
+      age: 26,
+      city: 'Jakarta',
+      rating: 4.7,
+      reviewCount: 156,
+      level: 'VIP Talent',
       image: '/placeholder.svg',
-      isOnline: true,
-      verified: true
+      services: ['party-buddy', 'offline-date', 'video'],
+      interests: ['nightlife', 'cocktails', 'dancing'],
+      zodiac: 'Scorpio',
+      loveLanguage: 'Physical Touch',
+      description: 'Perfect party companion for nightlife adventures',
+      priceRange: '65k - 1M',
+      isOnline: false,
+      verified: true,
+      availability: 'Weekends 8 PM - 4 AM'
     }
   ];
 
-  const handleBookNow = (talentId: number) => {
-    console.log(`Booking talent with ID: ${talentId}`);
-    alert(`Booking request for talent ID: ${talentId}. This will redirect to booking page.`);
-  };
+  const newcomers = [
+    {
+      id: 4,
+      name: 'Dinda',
+      age: 23,
+      city: 'Jakarta',
+      rating: 0,
+      reviewCount: 0,
+      level: 'Fresh Talent',
+      image: '/placeholder.svg',
+      services: ['chat', 'call'],
+      interests: ['anime', 'books', 'cooking'],
+      zodiac: 'Virgo',
+      loveLanguage: 'Acts of Service',
+      description: 'New talent ready to be your perfect companion',
+      priceRange: '25k - 40k',
+      isOnline: true,
+      verified: true,
+      availability: 'Evenings 6-10 PM'
+    },
+    {
+      id: 5,
+      name: 'Rina',
+      age: 25,
+      city: 'Jakarta',
+      rating: 0,
+      reviewCount: 0,
+      level: 'Fresh Talent',
+      image: '/placeholder.svg',
+      services: ['offline-date', 'video'],
+      interests: ['art gallery', 'yoga', 'hiking'],
+      zodiac: 'Aquarius',
+      loveLanguage: 'Gift Giving',
+      description: 'Art lover seeking meaningful connections',
+      priceRange: '65k - 285k',
+      isOnline: true,
+      verified: true,
+      availability: 'Weekends Only'
+    }
+  ];
+
+  const filteredTalents = [...featuredTalents, ...newcomers].filter(talent => {
+    const matchesCity = talent.city === selectedCity;
+    const matchesSearch = talent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         talent.interests.some(interest => interest.toLowerCase().includes(searchQuery.toLowerCase()));
+    const matchesService = selectedService === 'all' || talent.services.includes(selectedService);
+    
+    return matchesCity && matchesSearch && matchesService;
+  });
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -82,7 +144,6 @@ const Index = () => {
       <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
-            {/* Logo and Navigation */}
             <div className="flex items-center gap-8">
               <div className="flex items-center gap-2">
                 <img 
@@ -92,26 +153,26 @@ const Index = () => {
                 />
               </div>
               <nav className="hidden md:flex items-center gap-6">
-                <Link to="/rent" className="text-gray-700 hover:text-gray-900 font-medium">Rent</Link>
+                <Link to="/services" className="text-gray-700 hover:text-gray-900 font-medium">Services</Link>
+                <Link to="/talents" className="text-gray-700 hover:text-gray-900 font-medium">Browse Talents</Link>
+                <Link to="/how-it-works" className="text-gray-700 hover:text-gray-900 font-medium">How It Works</Link>
+                <Link to="/safety" className="text-gray-700 hover:text-gray-900 font-medium">Safety</Link>
                 <Link to="/faq" className="text-gray-700 hover:text-gray-900 font-medium">FAQ</Link>
-                <Link to="/terms" className="text-gray-700 hover:text-gray-900 font-medium">Terms</Link>
-                <Link to="/contact" className="text-gray-700 hover:text-gray-900 font-medium">Contact</Link>
               </nav>
             </div>
 
-            {/* Right side buttons */}
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2 text-sm">
-                <img src="/placeholder.svg" alt="EN" className="w-5 h-5" />
-                <span className="text-gray-700">EN</span>
+                <Globe className="w-4 h-4" />
+                <span className="text-gray-700">ID</span>
               </div>
-              <Link to="/rent">
-                <Button className="bg-black text-white hover:bg-gray-800 rounded-full px-6">
-                  ⭐ Be Teman
+              <Link to="/talent-register">
+                <Button className="bg-pink-500 text-white hover:bg-pink-600 rounded-full px-6">
+                  ⭐ Jadi Talent
                 </Button>
               </Link>
               <Button variant="ghost" className="text-gray-700 hover:text-gray-900">
-                Login
+                Masuk
               </Button>
             </div>
           </div>
@@ -119,173 +180,136 @@ const Index = () => {
       </header>
 
       <div className="container mx-auto px-4 py-8">
-        {/* What's New Section */}
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold mb-6 text-gray-900">What's New</h2>
-          <div className="flex flex-wrap gap-3">
-            {filterTags.map((tag) => (
-              <Badge
-                key={tag.name}
-                className={`${tag.color} border-0 px-4 py-2 rounded-full font-medium text-sm cursor-pointer hover:opacity-80`}
-              >
-                <span className="mr-2">{tag.icon}</span>
-                {tag.name}
-              </Badge>
-            ))}
-          </div>
-        </section>
-
-        {/* Find Your Match Section */}
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold mb-6 text-gray-900">Find your match</h2>
+        {/* Hero Section */}
+        <section className="text-center mb-12">
+          <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-4">
+            Temukan Teman <span className="text-pink-500">Perfect</span> Anda
+          </h1>
+          <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+            Platform rental talent terpercaya untuk kebutuhan sosial Anda. 
+            Chat, call, video call, offline date, hingga party buddy.
+          </p>
           
-          {/* Category Tabs */}
-          <div className="flex flex-wrap gap-3 mb-6">
-            {categories.map((category) => (
-              <Button
-                key={category.name}
-                variant={selectedCategory === category.name ? "default" : "outline"}
-                className={`rounded-full px-6 py-2 font-medium ${
-                  selectedCategory === category.name 
-                    ? 'bg-yellow-400 text-black hover:bg-yellow-500 border-0' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-0'
-                }`}
-                onClick={() => setSelectedCategory(category.name)}
-              >
-                <span className="mr-2">{category.icon}</span>
-                {category.name}
-              </Button>
-            ))}
-          </div>
-
-          {/* Filters */}
-          <div className="flex flex-wrap gap-4 mb-8">
-            <Select value={selectedCity} onValueChange={setSelectedCity}>
-              <SelectTrigger className="w-40 bg-white border-gray-300 rounded-lg">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {cities.map((city) => (
-                  <SelectItem key={city} value={city}>{city}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <div className="relative flex-1 max-w-xs">
-              <Input
-                placeholder="Type username"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-white border-gray-300 rounded-lg pl-4"
-              />
+          {/* Service Overview */}
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-8">
+            <div className="bg-white p-4 rounded-lg shadow-sm text-center">
+              <MessageCircle className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+              <p className="text-sm font-medium">Chat</p>
+              <p className="text-xs text-gray-500">25k/hari</p>
             </div>
-
-            <Select defaultValue="highest">
-              <SelectTrigger className="w-40 bg-white border-gray-300 rounded-lg">
-                <SelectValue placeholder="Highest Ratings" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="highest">Highest Ratings</SelectItem>
-                <SelectItem value="newest">Newest</SelectItem>
-                <SelectItem value="popular">Most Popular</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select defaultValue="public">
-              <SelectTrigger className="w-32 bg-white border-gray-300 rounded-lg">
-                <SelectValue placeholder="Public" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="public">Public</SelectItem>
-                <SelectItem value="private">Private</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select defaultValue="all-gender">
-              <SelectTrigger className="w-36 bg-white border-gray-300 rounded-lg">
-                <SelectValue placeholder="All Gender" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all-gender">All Gender</SelectItem>
-                <SelectItem value="male">Male</SelectItem>
-                <SelectItem value="female">Female</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select defaultValue="all-ethnicity">
-              <SelectTrigger className="w-36 bg-white border-gray-300 rounded-lg">
-                <SelectValue placeholder="All Ethnicity" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all-ethnicity">All Ethnicity</SelectItem>
-                <SelectItem value="asian">Asian</SelectItem>
-                <SelectItem value="european">European</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Button className="bg-black text-white hover:bg-gray-800 rounded-lg px-8">
-              Apply
-            </Button>
+            <div className="bg-white p-4 rounded-lg shadow-sm text-center">
+              <Phone className="w-8 h-8 text-green-500 mx-auto mb-2" />
+              <p className="text-sm font-medium">Voice Call</p>
+              <p className="text-xs text-gray-500">40k/jam</p>
+            </div>
+            <div className="bg-white p-4 rounded-lg shadow-sm text-center">
+              <Video className="w-8 h-8 text-purple-500 mx-auto mb-2" />
+              <p className="text-sm font-medium">Video Call</p>
+              <p className="text-xs text-gray-500">65k/jam</p>
+            </div>
+            <div className="bg-white p-4 rounded-lg shadow-sm text-center">
+              <Heart className="w-8 h-8 text-red-500 mx-auto mb-2" />
+              <p className="text-sm font-medium">Offline Date</p>
+              <p className="text-xs text-gray-500">285k/3jam</p>
+            </div>
+            <div className="bg-white p-4 rounded-lg shadow-sm text-center">
+              <Users className="w-8 h-8 text-orange-500 mx-auto mb-2" />
+              <p className="text-sm font-medium">Party Buddy</p>
+              <p className="text-xs text-gray-500">1M/event</p>
+            </div>
+            <div className="bg-white p-4 rounded-lg shadow-sm text-center">
+              <Star className="w-8 h-8 text-pink-500 mx-auto mb-2" />
+              <p className="text-sm font-medium">Rent a Lover</p>
+              <p className="text-xs text-gray-500">up to 85k/hari</p>
+            </div>
           </div>
         </section>
 
-        {/* Talents Grid */}
-        <section>
+        {/* Search and Filters */}
+        <section className="mb-8">
+          <div className="bg-white p-6 rounded-xl shadow-sm">
+            <div className="flex flex-wrap gap-4 items-center">
+              <Select value={selectedCity} onValueChange={setSelectedCity}>
+                <SelectTrigger className="w-48">
+                  <MapPin className="w-4 h-4 mr-2" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {cities.map((city) => (
+                    <SelectItem key={city} value={city}>{city}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <div className="relative flex-1 min-w-64">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <Input
+                  placeholder="Cari nama talent atau minat..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+
+              <Select value={selectedService} onValueChange={setSelectedService}>
+                <SelectTrigger className="w-48">
+                  <Filter className="w-4 h-4 mr-2" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {services.map((service) => (
+                    <SelectItem key={service.id} value={service.id}>
+                      {service.icon} {service.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </section>
+
+        {/* Featured Talents */}
+        <section className="mb-12">
+          <h2 className="text-2xl font-bold mb-6 text-gray-900">✨ Featured Talents</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {talents.map((talent) => (
-              <Card key={talent.id} className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow border-0">
-                <div className="relative">
-                  <img 
-                    src={talent.image} 
-                    alt={talent.name}
-                    className="w-full h-64 object-cover"
-                  />
-                  <div className="absolute top-4 left-4">
-                    <div className="bg-black/70 text-white px-3 py-1 rounded-lg text-sm font-medium">
-                      {talent.name}
-                    </div>
-                  </div>
-                  <div className="absolute top-4 right-4">
-                    <Button size="icon" variant="ghost" className="bg-black/20 hover:bg-black/40 text-white rounded-full">
-                      <Heart className="w-5 h-5" />
-                    </Button>
-                  </div>
-                  <div className="absolute bottom-4 left-4">
-                    <div className="bg-black/70 text-white px-3 py-1 rounded-lg text-xs">
-                      {talent.description}
-                    </div>
-                  </div>
-                  <div className="absolute bottom-4 right-4">
-                    <Badge className="bg-green-100 text-green-700 border-0 text-xs">
-                      <MessageCircle className="w-3 h-3 mr-1" />
-                      {talent.category}
-                    </Badge>
-                  </div>
-                </div>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Star className="w-4 h-4 text-yellow-400" />
-                      <span className="text-sm font-medium">{talent.rating}</span>
-                      <span className="text-sm text-gray-500">💰 {talent.priceRange}</span>
-                    </div>
-                    <Button 
-                      onClick={() => handleBookNow(talent.id)}
-                      size="sm"
-                      className="bg-yellow-400 text-black hover:bg-yellow-500 rounded-lg font-medium"
-                    >
-                      Book Now
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          
-          <div className="text-center mt-8">
-            <p className="text-gray-500">You've Reached the End</p>
+            {featuredTalents
+              .filter(talent => talent.city === selectedCity)
+              .map((talent) => (
+                <TalentCard key={talent.id} talent={talent} />
+              ))}
           </div>
         </section>
+
+        {/* Newcomers */}
+        <section className="mb-12">
+          <h2 className="text-2xl font-bold mb-6 text-gray-900">🌟 Newcomers</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {newcomers
+              .filter(talent => talent.city === selectedCity)
+              .map((talent) => (
+                <TalentCard key={talent.id} talent={talent} isNewcomer />
+              ))}
+          </div>
+        </section>
+
+        {/* All Talents */}
+        {searchQuery || selectedService !== 'all' ? (
+          <section>
+            <h2 className="text-2xl font-bold mb-6 text-gray-900">
+              Hasil Pencarian ({filteredTalents.length})
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredTalents.map((talent) => (
+                <TalentCard key={talent.id} talent={talent} />
+              ))}
+            </div>
+            {filteredTalents.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-gray-500">Tidak ada talent yang ditemukan</p>
+              </div>
+            )}
+          </section>
+        ) : null}
       </div>
 
       <Footer />
