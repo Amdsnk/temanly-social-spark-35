@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -8,8 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Upload } from 'lucide-react';
+import { Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import Header from '@/components/Header';
 
 const TalentRegister = () => {
   const [formData, setFormData] = useState({
@@ -101,18 +101,14 @@ const TalentRegister = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 py-8 px-4">
-      <div className="container mx-auto max-w-2xl">
-        {/* Back Button */}
-        <div className="mb-6">
-          <Link to="/">
-            <Button variant="ghost" className="flex items-center gap-2">
-              <ArrowLeft className="w-4 h-4" />
-              Kembali ke Beranda
-            </Button>
-          </Link>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50">
+      <Header 
+        title="Daftar Jadi Talent" 
+        subtitle="Bergabunglah dengan komunitas talent Temanly dan mulai earning!"
+        showLogo={false}
+      />
 
+      <div className="container mx-auto px-4 py-8 max-w-2xl">
         <Card className="shadow-lg">
           <CardHeader className="text-center space-y-4">
             <img 
@@ -120,8 +116,6 @@ const TalentRegister = () => {
               alt="Temanly Logo"
               className="h-12 mx-auto"
             />
-            <CardTitle className="text-2xl">Daftar Jadi Talent</CardTitle>
-            <p className="text-gray-600">Bergabunglah dengan komunitas talent Temanly dan mulai earning!</p>
           </CardHeader>
           
           <CardContent>

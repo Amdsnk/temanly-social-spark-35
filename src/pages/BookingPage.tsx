@@ -9,8 +9,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Star, Clock, DollarSign, ArrowLeft } from 'lucide-react';
+import { CalendarIcon, Star, Clock, DollarSign } from 'lucide-react';
 import { format } from 'date-fns';
+import Header from '@/components/Header';
 
 const BookingPage = () => {
   const navigate = useNavigate();
@@ -70,19 +71,13 @@ const BookingPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
-        {/* Back Button */}
-        <div className="mb-6">
-          <Button 
-            variant="ghost" 
-            onClick={handleBack}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </Button>
-        </div>
+      <Header 
+        title="Book Talent" 
+        subtitle="Complete your booking details"
+        backTo="/talents"
+      />
 
+      <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
           {/* Talent Profile */}
