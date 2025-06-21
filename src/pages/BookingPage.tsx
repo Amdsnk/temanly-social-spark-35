@@ -219,13 +219,8 @@ const BookingPage = () => {
                         <Checkbox 
                           checked={selectedServices.includes(service.id)}
                           onCheckedChange={(checked) => {
-                            // Fix: Convert to boolean and handle the toggle properly
-                            const isChecked = checked === true;
-                            if (isChecked && !selectedServices.includes(service.id)) {
-                              handleServiceToggle(service.id);
-                            } else if (!isChecked && selectedServices.includes(service.id)) {
-                              handleServiceToggle(service.id);
-                            }
+                            // Fix: Simply toggle the service when checkbox changes
+                            handleServiceToggle(service.id);
                           }}
                           disabled={service.requiresVerification || service.ageRestriction}
                         />
