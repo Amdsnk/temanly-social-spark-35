@@ -5,13 +5,18 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Users, Star, Calendar, DollarSign, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { Users, Star, Calendar, DollarSign, CheckCircle, XCircle, AlertTriangle, LogOut, Shield } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AdminAuthProvider, useAdminAuth } from '@/contexts/AdminAuthContext';
+import AdminProtectedRoute from '@/components/AdminProtectedRoute';
+import UserApprovalManagement from '@/components/admin/UserApprovalManagement';
+import PaymentManagement from '@/components/admin/PaymentManagement';
 
-const AdminDashboard = () => {
+const AdminDashboardContent = () => {
   const [selectedTimeframe, setSelectedTimeframe] = useState('7days');
+  const { user, signOut } = useAdminAuth();
 
-  // Mock data
+  // Mock data - replace with real data from Supabase
   const stats = {
     totalUsers: 1250,
     totalTalents: 85,
@@ -20,12 +25,6 @@ const AdminDashboard = () => {
     pendingVerifications: 12,
     completedOrders: 340
   };
-
-  const pendingVerifications = [
-    { id: 1, name: 'Sarah Jakarta', type: 'KTP', date: '2024-01-15', status: 'pending' },
-    { id: 2, name: 'Andi Surabaya', type: 'WhatsApp', date: '2024-01-14', status: 'pending' },
-    { id: 3, name: 'Maya Bandung', type: 'Email', date: '2024-01-13', status: 'pending' }
-  ];
 
   const recentOrders = [
     { id: 'ORD001', user: 'John Doe', talent: 'Sarah', service: 'Chat', amount: 25000, status: 'completed' },
@@ -39,9 +38,8 @@ const AdminDashboard = () => {
     { name: 'VIP Talent', count: 12, commission: '15%', color: 'bg-purple-100 text-purple-600' }
   ];
 
-  const handleVerification = (id: number, action: 'approve' | 'reject') => {
-    console.log(`${action} verification for ID: ${id}`);
-    // Implementation here
+  const handleSignOut = async () => {
+    await signOut();
   };
 
   return (
@@ -49,17 +47,33 @@ const AdminDashboard = () => {
       <div className="bg-white border-b border-gray-200">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-gray-900">Temanly Admin Dashboard</h1>
-            <Select value={selectedTimeframe} onValueChange={setSelectedTimeframe}>
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="7days">7 Days</SelectItem>
-                <SelectItem value="30days">30 Days</SelectItem>
-                <SelectItem value="90days">90 Days</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-3">
+              <Shield className="w-8 h-8 text-blue-600" />
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Temanly Super Admin</h1>
+                <p className="text-sm text-gray-600">Welcome back, {user?.email}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <Select value={selectedTimeframe} onValueChange={setSelectedTimeframe}>
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="7days">7 Days</SelectItem>
+                  <SelectItem value="30days">30 Days</SelectItem>
+                  <SelectItem value="90days">90 Days</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button 
+                variant="outline" 
+                onClick={handleSignOut}
+                className="flex items-center gap-2"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign Out
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -128,65 +142,21 @@ const AdminDashboard = () => {
           </Card>
         </div>
 
-        <Tabs defaultValue="verifications" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="verifications">Verifications</TabsTrigger>
+        <Tabs defaultValue="approvals" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="approvals">User Approvals</TabsTrigger>
+            <TabsTrigger value="payments">Payment Management</TabsTrigger>
             <TabsTrigger value="orders">Orders</TabsTrigger>
             <TabsTrigger value="talents">Talents</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="verifications">
-            <Card>
-              <CardHeader>
-                <CardTitle>Pending Verifications</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {pendingVerifications.map((verification) => (
-                      <TableRow key={verification.id}>
-                        <TableCell>{verification.name}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{verification.type}</Badge>
-                        </TableCell>
-                        <TableCell>{verification.date}</TableCell>
-                        <TableCell>
-                          <Badge className="bg-yellow-100 text-yellow-600">Pending</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button 
-                              size="sm" 
-                              className="bg-green-500 hover:bg-green-600"
-                              onClick={() => handleVerification(verification.id, 'approve')}
-                            >
-                              Approve
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="destructive"
-                              onClick={() => handleVerification(verification.id, 'reject')}
-                            >
-                              Reject
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+          <TabsContent value="approvals">
+            <UserApprovalManagement />
+          </TabsContent>
+
+          <TabsContent value="payments">
+            <PaymentManagement />
           </TabsContent>
 
           <TabsContent value="orders">
@@ -311,6 +281,16 @@ const AdminDashboard = () => {
         </Tabs>
       </div>
     </div>
+  );
+};
+
+const AdminDashboard = () => {
+  return (
+    <AdminAuthProvider>
+      <AdminProtectedRoute>
+        <AdminDashboardContent />
+      </AdminProtectedRoute>
+    </AdminAuthProvider>
   );
 };
 
