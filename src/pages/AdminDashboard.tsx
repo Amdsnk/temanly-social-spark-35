@@ -228,13 +228,13 @@ const AdminDashboard = () => {
         </Card>
 
         <Tabs defaultValue="payments" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="payments">Payment Demo</TabsTrigger>
-            <TabsTrigger value="orders">Orders</TabsTrigger>
-            <TabsTrigger value="talents">Talent Levels</TabsTrigger>
-            <TabsTrigger value="analytics">Service Analytics</TabsTrigger>
-            <TabsTrigger value="verification">Verifikasi</TabsTrigger>
-            <TabsTrigger value="cities">Kota</TabsTrigger>
+          <TabsList className="flex flex-wrap gap-2 h-auto p-2 bg-muted">
+            <TabsTrigger value="payments" className="flex-shrink-0">Payment Demo</TabsTrigger>
+            <TabsTrigger value="orders" className="flex-shrink-0">Orders</TabsTrigger>
+            <TabsTrigger value="talents" className="flex-shrink-0">Talent Levels</TabsTrigger>
+            <TabsTrigger value="analytics" className="flex-shrink-0">Service Analytics</TabsTrigger>
+            <TabsTrigger value="verification" className="flex-shrink-0">Verifikasi</TabsTrigger>
+            <TabsTrigger value="cities" className="flex-shrink-0">Kota</TabsTrigger>
           </TabsList>
 
           <TabsContent value="payments">
