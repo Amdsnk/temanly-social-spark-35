@@ -4,24 +4,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Eye, EyeOff, Shield, Settings } from 'lucide-react';
+import { Eye, EyeOff, Shield } from 'lucide-react';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
 import { useToast } from '@/hooks/use-toast';
 
 const AdminLogin = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [passcode, setPasscode] = useState('');
+  const [showPasscode, setShowPasscode] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [settingUp, setSettingUp] = useState(false);
-  const { signIn, setupAdmin } = useAdminAuth();
+  const { signInWithPasscode } = useAdminAuth();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await signIn(email, password);
+    const { error } = await signInWithPasscode(passcode);
 
     if (error) {
       toast({
@@ -39,37 +37,6 @@ const AdminLogin = () => {
     setLoading(false);
   };
 
-  const handleSetupAdmin = async () => {
-    setSettingUp(true);
-    
-    const result = await setupAdmin();
-    
-    if (result.success) {
-      toast({
-        title: "Admin Setup Complete",
-        description: result.message,
-      });
-      
-      if (result.credentials) {
-        setEmail(result.credentials.email);
-        setPassword(result.credentials.password);
-        toast({
-          title: "Default Credentials Created",
-          description: `Email: ${result.credentials.email}`,
-          duration: 10000,
-        });
-      }
-    } else {
-      toast({
-        title: "Setup Failed",
-        description: result.error || "Failed to setup admin account",
-        variant: "destructive"
-      });
-    }
-    
-    setSettingUp(false);
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center px-4">
       <Card className="w-full max-w-md shadow-2xl">
@@ -84,26 +51,14 @@ const AdminLogin = () => {
         <CardContent className="space-y-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Admin Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="temanly.admin@gmail.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="passcode">Admin Passcode</Label>
               <div className="relative">
                 <Input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter admin password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  id="passcode"
+                  type={showPasscode ? 'text' : 'password'}
+                  placeholder="Enter admin passcode"
+                  value={passcode}
+                  onChange={(e) => setPasscode(e.target.value)}
                   required
                 />
                 <Button
@@ -111,9 +66,9 @@ const AdminLogin = () => {
                   variant="ghost"
                   size="icon"
                   className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8"
-                  onClick={() => setShowPassword(!showPassword)}
+                  onClick={() => setShowPasscode(!showPasscode)}
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showPasscode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </Button>
               </div>
             </div>
@@ -127,33 +82,8 @@ const AdminLogin = () => {
             </Button>
           </form>
 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-2 text-muted-foreground">First time setup</span>
-            </div>
-          </div>
-
-          <Button 
-            variant="outline" 
-            className="w-full"
-            onClick={handleSetupAdmin}
-            disabled={settingUp}
-          >
-            {settingUp ? (
-              'Setting up...'
-            ) : (
-              <>
-                <Settings className="w-4 h-4 mr-2" />
-                Setup Default Admin
-              </>
-            )}
-          </Button>
-
           <div className="text-xs text-gray-500 text-center">
-            Admin access restricted to authorized email addresses only
+            Admin access requires valid passcode
           </div>
         </CardContent>
       </Card>

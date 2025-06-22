@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Users, Star, Calendar, DollarSign, CheckCircle, XCircle, AlertTriangle, LogOut, Shield } from 'lucide-react';
+import { Users, Star, Calendar, DollarSign, CheckCircle, AlertTriangle, LogOut, Shield } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AdminAuthProvider, useAdminAuth } from '@/contexts/AdminAuthContext';
 import AdminProtectedRoute from '@/components/AdminProtectedRoute';
@@ -14,7 +13,7 @@ import PaymentManagement from '@/components/admin/PaymentManagement';
 
 const AdminDashboardContent = () => {
   const [selectedTimeframe, setSelectedTimeframe] = useState('7days');
-  const { user, signOut } = useAdminAuth();
+  const { signOut } = useAdminAuth();
 
   // Mock data - replace with real data from Supabase
   const stats = {
@@ -51,7 +50,7 @@ const AdminDashboardContent = () => {
               <Shield className="w-8 h-8 text-blue-600" />
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Temanly Super Admin</h1>
-                <p className="text-sm text-gray-600">Welcome back, {user?.email}</p>
+                <p className="text-sm text-gray-600">Welcome back, Admin</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
