@@ -11,10 +11,13 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon, Star, Clock, DollarSign } from 'lucide-react';
 import { format } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/Header';
+import MidtransPayment from '@/components/payment/MidtransPayment';
 
 const BookingPage = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedService, setSelectedService] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
@@ -51,20 +54,40 @@ const BookingPage = () => {
   const platformFee = Math.round(totalPrice * 0.1);
   const finalTotal = totalPrice + platformFee;
 
-  const handleBooking = () => {
-    console.log('Booking Details:', {
-      talent: talent.name,
-      service: selectedService,
-      date: selectedDate,
-      time: selectedTime,
-      message: bookingForm.message,
-      total: finalTotal
+  const handlePaymentSuccess = (result: any) => {
+    console.log('Payment successful:', result);
+    toast({
+      title: "Payment Successful!",
+      description: "Your booking has been confirmed. You will receive a confirmation email shortly.",
     });
-    alert('Booking submitted successfully!');
+    navigate('/user-dashboard');
   };
 
-  const handleBack = () => {
-    navigate('/talents');
+  const handlePaymentPending = (result: any) => {
+    console.log('Payment pending:', result);
+    toast({
+      title: "Payment Pending",
+      description: "Your payment is being processed. Please wait for confirmation.",
+      variant: "default"
+    });
+  };
+
+  const handlePaymentError = (result: any) => {
+    console.error('Payment failed:', result);
+    toast({
+      title: "Payment Failed",
+      description: "There was an error processing your payment. Please try again.",
+      variant: "destructive"
+    });
+  };
+
+  const bookingData = {
+    talent: talent.name,
+    service: selectedServiceData?.name || '',
+    date: selectedDate!,
+    time: selectedTime,
+    message: bookingForm.message,
+    total: finalTotal
   };
 
   const isFormValid = selectedService && selectedDate && selectedTime;
@@ -209,43 +232,53 @@ const BookingPage = () => {
               </Card>
             )}
 
-            {/* Order Summary */}
+            {/* Order Summary & Payment */}
             {selectedService && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Order Summary</CardTitle>
+                  <CardTitle>Order Summary & Payment</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span>{selectedServiceData?.name}</span>
-                      <span>Rp {totalPrice.toLocaleString()}</span>
-                    </div>
-                    
-                    <div className="border-t pt-2">
+                  <div className="space-y-4">
+                    <div className="space-y-3">
                       <div className="flex justify-between">
-                        <span>Subtotal</span>
+                        <span>{selectedServiceData?.name}</span>
                         <span>Rp {totalPrice.toLocaleString()}</span>
                       </div>
-                      <div className="flex justify-between text-sm text-gray-600">
-                        <span>Platform Fee (10%)</span>
-                        <span>Rp {platformFee.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between font-bold text-lg border-t pt-2 mt-2">
-                        <span>Total</span>
-                        <span>Rp {finalTotal.toLocaleString()}</span>
+                      
+                      <div className="border-t pt-2">
+                        <div className="flex justify-between">
+                          <span>Subtotal</span>
+                          <span>Rp {totalPrice.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between text-sm text-gray-600">
+                          <span>Platform Fee (10%)</span>
+                          <span>Rp {platformFee.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between font-bold text-lg border-t pt-2 mt-2">
+                          <span>Total</span>
+                          <span>Rp {finalTotal.toLocaleString()}</span>
+                        </div>
                       </div>
                     </div>
 
-                    <Button 
-                      className="w-full mt-6" 
-                      size="lg"
-                      onClick={handleBooking}
-                      disabled={!isFormValid}
-                    >
-                      <DollarSign className="w-4 h-4 mr-2" />
-                      Book Now - Rp {finalTotal.toLocaleString()}
-                    </Button>
+                    {/* Midtrans Payment Component */}
+                    <div className="mt-6">
+                      <MidtransPayment
+                        bookingData={bookingData}
+                        onSuccess={handlePaymentSuccess}
+                        onPending={handlePaymentPending}
+                        onError={handlePaymentError}
+                        disabled={!isFormValid}
+                      />
+                    </div>
+
+                    {/* Payment Security Notice */}
+                    <div className="text-xs text-gray-500 text-center mt-4 p-3 bg-gray-50 rounded-lg">
+                      🔒 Pembayaran aman diproses oleh Midtrans
+                      <br />
+                      Mendukung transfer bank, e-wallet, kartu kredit & debit
+                    </div>
                   </div>
                 </CardContent>
               </Card>
