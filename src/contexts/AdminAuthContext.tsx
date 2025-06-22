@@ -4,14 +4,16 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 interface AdminAuthContextType {
   isAdmin: boolean;
   loading: boolean;
-  signInWithPasscode: (passcode: string) => Promise<{ error?: string }>;
+  signInWithCredentials: (username: string, email: string, passcode: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
 }
 
 const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefined);
 
 // Admin credentials
-const ADMIN_PASSCODE = "TEMANLY2024ADMIN";
+const ADMIN_USERNAME = "temanly_admin";
+const ADMIN_EMAIL = "admin@temanly.com";
+const ADMIN_PASSCODE = "TemanlySecure2024@Admin!";
 
 export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -26,16 +28,26 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setLoading(false);
   }, []);
 
-  const signInWithPasscode = async (passcode: string) => {
+  const signInWithCredentials = async (username: string, email: string, passcode: string) => {
     try {
-      console.log('Attempting to sign in with passcode');
+      console.log('Attempting to sign in with credentials');
+      
+      if (username !== ADMIN_USERNAME) {
+        console.log('Invalid username');
+        return { error: 'Invalid username' };
+      }
+
+      if (email !== ADMIN_EMAIL) {
+        console.log('Invalid email');
+        return { error: 'Invalid email address' };
+      }
       
       if (passcode !== ADMIN_PASSCODE) {
         console.log('Invalid passcode');
-        return { error: 'Invalid admin passcode' };
+        return { error: 'Invalid passcode' };
       }
 
-      console.log('Passcode validated successfully');
+      console.log('All credentials validated successfully');
       setIsAdmin(true);
       localStorage.setItem('temanly_admin_logged_in', 'true');
       
@@ -55,7 +67,7 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const value = {
     isAdmin,
     loading,
-    signInWithPasscode,
+    signInWithCredentials,
     signOut,
   };
 

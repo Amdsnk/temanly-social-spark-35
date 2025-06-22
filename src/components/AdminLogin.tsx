@@ -4,22 +4,24 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Eye, EyeOff, Shield } from 'lucide-react';
+import { Eye, EyeOff, Shield, User, Mail, Lock } from 'lucide-react';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
 import { useToast } from '@/hooks/use-toast';
 
 const AdminLogin = () => {
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [passcode, setPasscode] = useState('');
   const [showPasscode, setShowPasscode] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { signInWithPasscode } = useAdminAuth();
+  const { signInWithCredentials } = useAdminAuth();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await signInWithPasscode(passcode);
+    const { error } = await signInWithCredentials(username, email, passcode);
 
     if (error) {
       toast({
@@ -51,14 +53,48 @@ const AdminLogin = () => {
         <CardContent className="space-y-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="passcode">Admin Passcode</Label>
+              <Label htmlFor="username">Username</Label>
               <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  id="username"
+                  type="text"
+                  placeholder="Enter admin username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="pl-10"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Enter admin email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="pl-10"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="passcode">Passcode</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input
                   id="passcode"
                   type={showPasscode ? 'text' : 'password'}
-                  placeholder="Enter admin passcode"
+                  placeholder="Enter strong passcode"
                   value={passcode}
                   onChange={(e) => setPasscode(e.target.value)}
+                  className="pl-10 pr-10"
                   required
                 />
                 <Button
@@ -82,8 +118,13 @@ const AdminLogin = () => {
             </Button>
           </form>
 
-          <div className="text-xs text-gray-500 text-center">
-            Admin access requires valid passcode
+          <div className="text-xs text-gray-500 text-center space-y-1">
+            <div>Admin access requires valid credentials</div>
+            <div className="text-blue-600 font-medium">
+              Username: temanly_admin<br />
+              Email: admin@temanly.com<br />
+              Passcode: TemanlySecure2024@Admin!
+            </div>
           </div>
         </CardContent>
       </Card>
