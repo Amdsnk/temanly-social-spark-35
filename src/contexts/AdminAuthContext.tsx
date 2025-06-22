@@ -60,14 +60,14 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         console.error('Error checking admin status:', error);
         setIsAdmin(false);
       } else {
-        // Additional security: verify email domain for admin accounts
-        const isValidAdminEmail = data?.email?.endsWith('@temanly.com') || 
-                                 data?.email === 'admin@temanly.com';
+        // Updated security: verify admin email addresses
+        const isValidAdminEmail = data?.email === 'temanly.admin@gmail.com' || 
+                                 data?.email?.endsWith('@temanly.com');
         
         setIsAdmin(data?.user_type === 'admin' && isValidAdminEmail);
         
         if (!isValidAdminEmail && data?.user_type === 'admin') {
-          console.warn('Invalid admin email domain detected');
+          console.warn('Invalid admin email detected');
         }
       }
     } catch (error) {
@@ -80,8 +80,11 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const signIn = async (email: string, password: string) => {
     try {
-      // Additional security: check if email is admin domain before attempting login
-      if (!email.endsWith('@temanly.com') && email !== 'admin@temanly.com') {
+      // Updated security: check if email is valid admin email
+      const isValidAdminEmail = email === 'temanly.admin@gmail.com' || 
+                               email.endsWith('@temanly.com');
+      
+      if (!isValidAdminEmail) {
         return { error: 'Invalid admin credentials' };
       }
 

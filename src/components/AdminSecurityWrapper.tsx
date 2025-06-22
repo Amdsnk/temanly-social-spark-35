@@ -37,10 +37,11 @@ const AdminSecurityWrapper: React.FC<AdminSecurityWrapperProps> = ({ children })
             return;
           }
 
-          // Additional security checks
+          // Updated security checks for new email format
           const isValidAdmin = profile.user_type === 'admin' && 
                               profile.verification_status === 'verified' &&
-                              (profile.email?.endsWith('@temanly.com') || profile.email === 'admin@temanly.com');
+                              (profile.email === 'temanly.admin@gmail.com' || 
+                               profile.email?.endsWith('@temanly.com'));
 
           if (!isValidAdmin) {
             console.warn('Invalid admin access attempt');

@@ -54,8 +54,8 @@ const AdminLogin = () => {
         setEmail(result.credentials.email);
         setPassword(result.credentials.password);
         toast({
-          title: "Default Credentials",
-          description: `Email: ${result.credentials.email} | Password: ${result.credentials.password}`,
+          title: "Default Credentials Created",
+          description: `Email: ${result.credentials.email}`,
           duration: 10000,
         });
       }
@@ -88,7 +88,7 @@ const AdminLogin = () => {
               <Input
                 id="email"
                 type="email"
-                placeholder="admin@temanly.com"
+                placeholder="temanly.admin@gmail.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -153,7 +153,7 @@ const AdminLogin = () => {
           </Button>
 
           <div className="text-xs text-gray-500 text-center">
-            Only @temanly.com email addresses are allowed for admin access
+            Admin access restricted to authorized email addresses only
           </div>
         </CardContent>
       </Card>

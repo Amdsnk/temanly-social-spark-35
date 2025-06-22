@@ -2,7 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 
 export const setupDefaultAdmin = async () => {
-  const defaultAdminEmail = 'admin@temanly.com';
+  const defaultAdminEmail = 'temanly.admin@gmail.com';
   const defaultAdminPassword = 'TemanlyAdmin2024!';
 
   try {
@@ -52,7 +52,7 @@ export const setupDefaultAdmin = async () => {
       console.log('Default admin created successfully');
       return { 
         success: true, 
-        message: 'Default admin created',
+        message: 'Default admin created successfully',
         credentials: {
           email: defaultAdminEmail,
           password: defaultAdminPassword
