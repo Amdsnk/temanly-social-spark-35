@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,8 @@ import { useAdminAuth } from '@/contexts/AdminAuthContext';
 import DemoPaymentManagement from '@/components/admin/DemoPaymentManagement';
 import TalentLevelManagement from '@/components/admin/TalentLevelManagement';
 import ServiceAnalytics from '@/components/admin/ServiceAnalytics';
+import UserApprovalManagement from '@/components/admin/UserApprovalManagement';
+import PaymentManagement from '@/components/admin/PaymentManagement';
 
 const AdminDashboard = () => {
   const [selectedTimeframe, setSelectedTimeframe] = useState('7days');
@@ -227,9 +228,11 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
 
-        <Tabs defaultValue="payments" className="space-y-6">
+        <Tabs defaultValue="approvals" className="space-y-6">
           <TabsList className="flex flex-wrap gap-2 h-auto p-2 bg-muted">
-            <TabsTrigger value="payments" className="flex-shrink-0">Payment Demo</TabsTrigger>
+            <TabsTrigger value="approvals" className="flex-shrink-0">User Approvals</TabsTrigger>
+            <TabsTrigger value="payments" className="flex-shrink-0">Payment Management</TabsTrigger>
+            <TabsTrigger value="payment-demo" className="flex-shrink-0">Payment Demo</TabsTrigger>
             <TabsTrigger value="orders" className="flex-shrink-0">Orders</TabsTrigger>
             <TabsTrigger value="talents" className="flex-shrink-0">Talent Levels</TabsTrigger>
             <TabsTrigger value="analytics" className="flex-shrink-0">Service Analytics</TabsTrigger>
@@ -237,7 +240,15 @@ const AdminDashboard = () => {
             <TabsTrigger value="cities" className="flex-shrink-0">Kota</TabsTrigger>
           </TabsList>
 
+          <TabsContent value="approvals">
+            <UserApprovalManagement />
+          </TabsContent>
+
           <TabsContent value="payments">
+            <PaymentManagement />
+          </TabsContent>
+
+          <TabsContent value="payment-demo">
             <DemoPaymentManagement />
           </TabsContent>
 
