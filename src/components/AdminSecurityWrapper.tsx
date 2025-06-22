@@ -14,6 +14,8 @@ const AdminSecurityWrapper: React.FC<AdminSecurityWrapperProps> = ({ children })
   useEffect(() => {
     const performSecurityChecks = async () => {
       try {
+        console.log('Performing security checks...');
+        
         // Check if user session is valid
         const { data: { session }, error } = await supabase.auth.getSession();
         
@@ -24,6 +26,8 @@ const AdminSecurityWrapper: React.FC<AdminSecurityWrapperProps> = ({ children })
         }
 
         if (session?.user) {
+          console.log('Checking user profile for:', session.user.email);
+          
           // Verify admin status in real-time
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
@@ -31,8 +35,22 @@ const AdminSecurityWrapper: React.FC<AdminSecurityWrapperProps> = ({ children })
             .eq('id', session.user.id)
             .single();
 
+          console.log('Profile check result:', { profile, profileError });
+
+          // If profile doesn't exist but email is the default admin, allow access
+          if (profileError && session.user.email === 'temanly.admin@gmail.com') {
+            console.log('Default admin email detected, allowing access despite missing profile');
+            setSecurityChecked(true);
+            return;
+          }
+
           if (profileError || !profile) {
             console.error('Profile verification failed:', profileError);
+            toast({
+              title: "Access Denied", 
+              description: "Unable to verify admin profile",
+              variant: "destructive"
+            });
             await supabase.auth.signOut();
             return;
           }
@@ -53,6 +71,8 @@ const AdminSecurityWrapper: React.FC<AdminSecurityWrapperProps> = ({ children })
             await supabase.auth.signOut();
             return;
           }
+
+          console.log('Security checks passed');
         }
 
         setSecurityChecked(true);

@@ -3,13 +3,12 @@ import React from 'react';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
 import AdminLogin from '@/components/AdminLogin';
 import AdminSecurityWrapper from '@/components/AdminSecurityWrapper';
-import { AdminAuthProvider } from '@/contexts/AdminAuthContext';
 
 interface AdminProtectedRouteProps {
   children: React.ReactNode;
 }
 
-const AdminProtectedRouteContent: React.FC<AdminProtectedRouteProps> = ({ children }) => {
+const AdminProtectedRoute: React.FC<AdminProtectedRouteProps> = ({ children }) => {
   const { user, isAdmin, loading } = useAdminAuth();
 
   if (loading) {
@@ -31,16 +30,6 @@ const AdminProtectedRouteContent: React.FC<AdminProtectedRouteProps> = ({ childr
     <AdminSecurityWrapper>
       {children}
     </AdminSecurityWrapper>
-  );
-};
-
-const AdminProtectedRoute: React.FC<AdminProtectedRouteProps> = ({ children }) => {
-  return (
-    <AdminAuthProvider>
-      <AdminProtectedRouteContent>
-        {children}
-      </AdminProtectedRouteContent>
-    </AdminAuthProvider>
   );
 };
 

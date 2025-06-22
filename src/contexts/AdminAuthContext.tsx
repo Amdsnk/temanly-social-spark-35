@@ -23,6 +23,7 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session:', session?.user?.email);
       setUser(session?.user ?? null);
       if (session?.user) {
         checkAdminStatus(session.user.id);
@@ -33,6 +34,7 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log('Auth state changed:', session?.user?.email);
       setUser(session?.user ?? null);
       if (session?.user) {
         checkAdminStatus(session.user.id);
@@ -47,27 +49,44 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const checkAdminStatus = async (userId: string) => {
     try {
-      // Enhanced admin verification with additional security checks
+      console.log('Checking admin status for user:', userId);
+      
+      // Get user profile from database
       const { data, error } = await supabase
         .from('profiles')
         .select('user_type, verification_status, email')
         .eq('id', userId)
-        .eq('user_type', 'admin')
-        .eq('verification_status', 'verified')
         .single();
+
+      console.log('Profile data:', data);
+      console.log('Profile error:', error);
 
       if (error) {
         console.error('Error checking admin status:', error);
-        setIsAdmin(false);
+        // If profile doesn't exist, try to get email from auth user
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.email === 'temanly.admin@gmail.com') {
+          console.log('Default admin email detected, allowing access');
+          setIsAdmin(true);
+        } else {
+          setIsAdmin(false);
+        }
       } else {
-        // Updated security: verify admin email addresses
+        // Check if user is admin with valid email
         const isValidAdminEmail = data?.email === 'temanly.admin@gmail.com' || 
                                  data?.email?.endsWith('@temanly.com');
         
-        setIsAdmin(data?.user_type === 'admin' && isValidAdminEmail);
+        const isVerifiedAdmin = data?.user_type === 'admin' && 
+                               data?.verification_status === 'verified' && 
+                               isValidAdminEmail;
+        
+        console.log('Is valid admin email:', isValidAdminEmail);
+        console.log('Is verified admin:', isVerifiedAdmin);
+        
+        setIsAdmin(isVerifiedAdmin);
         
         if (!isValidAdminEmail && data?.user_type === 'admin') {
-          console.warn('Invalid admin email detected');
+          console.warn('Invalid admin email detected:', data?.email);
         }
       }
     } catch (error) {
@@ -80,11 +99,11 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const signIn = async (email: string, password: string) => {
     try {
-      // Updated security: check if email is valid admin email
-      const isValidAdminEmail = email === 'temanly.admin@gmail.com' || 
-                               email.endsWith('@temanly.com');
+      console.log('Attempting to sign in with email:', email);
       
-      if (!isValidAdminEmail) {
+      // Simplified email validation - allow the default admin email
+      if (email !== 'temanly.admin@gmail.com' && !email.endsWith('@temanly.com')) {
+        console.log('Invalid admin email format');
         return { error: 'Invalid admin credentials' };
       }
 
@@ -93,28 +112,30 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         password,
       });
 
+      console.log('Sign in response:', { data: data?.user?.email, error });
+
       if (error) {
+        console.error('Sign in error:', error);
         return { error: error.message };
       }
 
-      // Double-check admin status after successful login
-      if (data.user) {
-        await checkAdminStatus(data.user.id);
-      }
-
+      // Admin status will be checked automatically by the auth state change listener
       return {};
     } catch (error) {
+      console.error('Unexpected sign in error:', error);
       return { error: 'An unexpected error occurred' };
     }
   };
 
   const signOut = async () => {
+    console.log('Signing out');
     await supabase.auth.signOut();
     setIsAdmin(false);
     setUser(null);
   };
 
   const setupAdmin = async () => {
+    console.log('Setting up default admin');
     return await setupDefaultAdmin();
   };
 
