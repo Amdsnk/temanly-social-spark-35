@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DollarSign, Eye, CheckCircle, XCircle, AlertTriangle, RefreshCw, CreditCard } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import DemoPaymentDetailModal from './DemoPaymentDetailModal';
 
 interface DemoTransaction {
   id: string;
@@ -110,6 +110,9 @@ const DemoPaymentManagement = () => {
   ]);
 
   const [filter, setFilter] = useState<string>('all');
+  const [selectedPayment, setSelectedPayment] = useState<DemoTransaction | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
   const { toast } = useToast();
 
   const filteredTransactions = filter === 'all' 
@@ -142,6 +145,19 @@ const DemoPaymentManagement = () => {
         });
       }, 1000);
     }
+  };
+
+  const handleViewDetails = (payment: DemoTransaction) => {
+    setSelectedPayment(payment);
+    setModalOpen(true);
+  };
+
+  const handleApprovePayment = (paymentId: string) => {
+    updateTransactionStatus(paymentId, 'paid');
+  };
+
+  const handleRejectPayment = (paymentId: string) => {
+    updateTransactionStatus(paymentId, 'failed');
   };
 
   const getStatusBadge = (status: string) => {
@@ -181,170 +197,186 @@ const DemoPaymentManagement = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Demo Payment Flow Explanation */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CreditCard className="w-5 h-5" />
-            Demo: Temanly Payment Flow
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="bg-blue-50 p-4 rounded-lg mb-4">
-            <h3 className="font-semibold text-blue-800 mb-2">Payment Flow Process:</h3>
-            <ol className="list-decimal list-inside space-y-1 text-sm text-blue-700">
-              <li>Order made → Payment completed → Payment verified</li>
-              <li>Both talent and user get WhatsApp notifications</li>
-              <li>Talent contacts user → Order executed → Order completed</li>
-              <li>WhatsApp notifications sent with review links</li>
-              <li>Reviews verified by admin before display</li>
-            </ol>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="text-center p-3 bg-green-50 rounded">
-              <div className="text-2xl font-bold text-green-600">
-                Rp {totalStats.totalAmount.toLocaleString()}
-              </div>
-              <div className="text-sm text-gray-600">Total Transactions</div>
-            </div>
-            <div className="text-center p-3 bg-blue-50 rounded">
-              <div className="text-2xl font-bold text-blue-600">
-                Rp {totalStats.totalTalentEarning.toLocaleString()}
-              </div>
-              <div className="text-sm text-gray-600">Talent Earnings</div>
-            </div>
-            <div className="text-center p-3 bg-purple-50 rounded">
-              <div className="text-2xl font-bold text-purple-600">
-                Rp {totalStats.totalCommission.toLocaleString()}
-              </div>
-              <div className="text-sm text-gray-600">Platform Commission</div>
-            </div>
-            <div className="text-center p-3 bg-orange-50 rounded">
-              <div className="text-2xl font-bold text-orange-600">
-                Rp {totalStats.totalAppFee.toLocaleString()}
-              </div>
-              <div className="text-sm text-gray-600">App Fee (10%)</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Demo Payment Management */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
+    <>
+      <div className="space-y-6">
+        {/* Demo Payment Flow Explanation */}
+        <Card>
+          <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <DollarSign className="w-5 h-5" />
-              Demo Payment Management
+              <CreditCard className="w-5 h-5" />
+              Demo: Temanly Payment Flow
             </CardTitle>
-            <Select value={filter} onValueChange={setFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Transactions</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="pending_verification">Pending Verification</SelectItem>
-                <SelectItem value="paid">Paid</SelectItem>
-                <SelectItem value="failed">Failed</SelectItem>
-                <SelectItem value="refunded">Refunded</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Order ID</TableHead>
-                <TableHead>User</TableHead>
-                <TableHead>Talent (Level)</TableHead>
-                <TableHead>Service</TableHead>
-                <TableHead>City</TableHead>
-                <TableHead>Total Amount</TableHead>
-                <TableHead>Talent Earning</TableHead>
-                <TableHead>Commission</TableHead>
-                <TableHead>App Fee</TableHead>
-                <TableHead>Payment Method</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredTransactions.map((transaction) => (
-                <TableRow key={transaction.id}>
-                  <TableCell className="font-medium">{transaction.orderId}</TableCell>
-                  <TableCell>{transaction.user}</TableCell>
-                  <TableCell>
-                    <div>
-                      <div>{transaction.talent}</div>
-                      <Badge variant="outline" className="text-xs">
-                        {transaction.talentLevel} ({getTalentCommissionRate(transaction.talentLevel)})
-                      </Badge>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{transaction.service}</Badge>
-                  </TableCell>
-                  <TableCell>{transaction.city}</TableCell>
-                  <TableCell className="font-semibold">
-                    Rp {transaction.amount.toLocaleString()}
-                  </TableCell>
-                  <TableCell className="text-green-600">
-                    Rp {transaction.talentEarning.toLocaleString()}
-                  </TableCell>
-                  <TableCell className="text-purple-600">
-                    Rp {transaction.platformCommission.toLocaleString()}
-                  </TableCell>
-                  <TableCell className="text-orange-600">
-                    Rp {transaction.appFee.toLocaleString()}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{transaction.payment_method}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    {getStatusBadge(transaction.status)}
-                  </TableCell>
-                  <TableCell>
-                    {transaction.status === 'pending_verification' && (
+          </CardHeader>
+          <CardContent>
+            <div className="bg-blue-50 p-4 rounded-lg mb-4">
+              <h3 className="font-semibold text-blue-800 mb-2">Payment Flow Process:</h3>
+              <ol className="list-decimal list-inside space-y-1 text-sm text-blue-700">
+                <li>Order made → Payment completed → Payment verified</li>
+                <li>Both talent and user get WhatsApp notifications</li>
+                <li>Talent contacts user → Order executed → Order completed</li>
+                <li>WhatsApp notifications sent with review links</li>
+                <li>Reviews verified by admin before display</li>
+              </ol>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="text-center p-3 bg-green-50 rounded">
+                <div className="text-2xl font-bold text-green-600">
+                  Rp {totalStats.totalAmount.toLocaleString()}
+                </div>
+                <div className="text-sm text-gray-600">Total Transactions</div>
+              </div>
+              <div className="text-center p-3 bg-blue-50 rounded">
+                <div className="text-2xl font-bold text-blue-600">
+                  Rp {totalStats.totalTalentEarning.toLocaleString()}
+                </div>
+                <div className="text-sm text-gray-600">Talent Earnings</div>
+              </div>
+              <div className="text-center p-3 bg-purple-50 rounded">
+                <div className="text-2xl font-bold text-purple-600">
+                  Rp {totalStats.totalCommission.toLocaleString()}
+                </div>
+                <div className="text-sm text-gray-600">Platform Commission</div>
+              </div>
+              <div className="text-center p-3 bg-orange-50 rounded">
+                <div className="text-2xl font-bold text-orange-600">
+                  Rp {totalStats.totalAppFee.toLocaleString()}
+                </div>
+                <div className="text-sm text-gray-600">App Fee (10%)</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Demo Payment Management */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="w-5 h-5" />
+                Demo Payment Management - Enhanced Verification
+              </CardTitle>
+              <Select value={filter} onValueChange={setFilter}>
+                <SelectTrigger className="w-48">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Transactions</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="pending_verification">Pending Verification</SelectItem>
+                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="failed">Failed</SelectItem>
+                  <SelectItem value="refunded">Refunded</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Order ID</TableHead>
+                  <TableHead>User</TableHead>
+                  <TableHead>Talent (Level)</TableHead>
+                  <TableHead>Service</TableHead>
+                  <TableHead>City</TableHead>
+                  <TableHead>Total Amount</TableHead>
+                  <TableHead>Talent Earning</TableHead>
+                  <TableHead>Commission</TableHead>
+                  <TableHead>App Fee</TableHead>
+                  <TableHead>Payment Method</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredTransactions.map((transaction) => (
+                  <TableRow key={transaction.id}>
+                    <TableCell className="font-medium">{transaction.orderId}</TableCell>
+                    <TableCell>{transaction.user}</TableCell>
+                    <TableCell>
+                      <div>
+                        <div>{transaction.talent}</div>
+                        <Badge variant="outline" className="text-xs">
+                          {transaction.talentLevel} ({getTalentCommissionRate(transaction.talentLevel)})
+                        </Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{transaction.service}</Badge>
+                    </TableCell>
+                    <TableCell>{transaction.city}</TableCell>
+                    <TableCell className="font-semibold">
+                      Rp {transaction.amount.toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-green-600">
+                      Rp {transaction.talentEarning.toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-purple-600">
+                      Rp {transaction.platformCommission.toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-orange-600">
+                      Rp {transaction.appFee.toLocaleString()}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{transaction.payment_method}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      {getStatusBadge(transaction.status)}
+                    </TableCell>
+                    <TableCell>
                       <div className="flex gap-1">
                         <Button
                           size="sm"
-                          className="bg-green-500 hover:bg-green-600 text-xs px-2 py-1"
-                          onClick={() => updateTransactionStatus(transaction.id, 'paid')}
+                          variant="outline"
+                          onClick={() => handleViewDetails(transaction)}
+                          className="flex items-center gap-1 text-xs px-2 py-1"
                         >
-                          Verify
+                          <Eye className="w-3 h-3" />
+                          Detail
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          className="text-xs px-2 py-1"
-                          onClick={() => updateTransactionStatus(transaction.id, 'failed')}
-                        >
-                          Reject
-                        </Button>
+                        {transaction.status === 'pending_verification' && (
+                          <Button
+                            size="sm"
+                            className="bg-blue-500 hover:bg-blue-600 text-xs px-2 py-1"
+                            onClick={() => handleViewDetails(transaction)}
+                          >
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            Verify
+                          </Button>
+                        )}
+                        {transaction.status === 'failed' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs px-2 py-1"
+                            onClick={() => updateTransactionStatus(transaction.id, 'refunded')}
+                          >
+                            Refund
+                          </Button>
+                        )}
                       </div>
-                    )}
-                    {transaction.status === 'failed' && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-xs px-2 py-1"
-                        onClick={() => updateTransactionStatus(transaction.id, 'refunded')}
-                      >
-                        Refund
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
+
+      <DemoPaymentDetailModal
+        payment={selectedPayment}
+        isOpen={modalOpen}
+        onClose={() => {
+          setModalOpen(false);
+          setSelectedPayment(null);
+        }}
+        onApprove={handleApprovePayment}
+        onReject={handleRejectPayment}
+        loading={actionLoading}
+      />
+    </>
   );
 };
 
