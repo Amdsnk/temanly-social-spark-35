@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Eye, EyeOff, Shield } from 'lucide-react';
+import { Eye, EyeOff, Shield, Settings } from 'lucide-react';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
 import { useToast } from '@/hooks/use-toast';
 
@@ -13,7 +13,8 @@ const AdminLogin = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { signIn } = useAdminAuth();
+  const [settingUp, setSettingUp] = useState(false);
+  const { signIn, setupAdmin } = useAdminAuth();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -38,6 +39,37 @@ const AdminLogin = () => {
     setLoading(false);
   };
 
+  const handleSetupAdmin = async () => {
+    setSettingUp(true);
+    
+    const result = await setupAdmin();
+    
+    if (result.success) {
+      toast({
+        title: "Admin Setup Complete",
+        description: result.message,
+      });
+      
+      if (result.credentials) {
+        setEmail(result.credentials.email);
+        setPassword(result.credentials.password);
+        toast({
+          title: "Default Credentials",
+          description: `Email: ${result.credentials.email} | Password: ${result.credentials.password}`,
+          duration: 10000,
+        });
+      }
+    } else {
+      toast({
+        title: "Setup Failed",
+        description: result.error || "Failed to setup admin account",
+        variant: "destructive"
+      });
+    }
+    
+    setSettingUp(false);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center px-4">
       <Card className="w-full max-w-md shadow-2xl">
@@ -49,7 +81,7 @@ const AdminLogin = () => {
           <p className="text-gray-600">Super Admin Dashboard Access</p>
         </CardHeader>
         
-        <CardContent>
+        <CardContent className="space-y-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Admin Email</Label>
@@ -94,6 +126,35 @@ const AdminLogin = () => {
               {loading ? 'Signing In...' : 'Sign In as Admin'}
             </Button>
           </form>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-white px-2 text-muted-foreground">First time setup</span>
+            </div>
+          </div>
+
+          <Button 
+            variant="outline" 
+            className="w-full"
+            onClick={handleSetupAdmin}
+            disabled={settingUp}
+          >
+            {settingUp ? (
+              'Setting up...'
+            ) : (
+              <>
+                <Settings className="w-4 h-4 mr-2" />
+                Setup Default Admin
+              </>
+            )}
+          </Button>
+
+          <div className="text-xs text-gray-500 text-center">
+            Only @temanly.com email addresses are allowed for admin access
+          </div>
         </CardContent>
       </Card>
     </div>

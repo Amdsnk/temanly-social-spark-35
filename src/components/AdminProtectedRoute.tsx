@@ -2,6 +2,7 @@
 import React from 'react';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
 import AdminLogin from '@/components/AdminLogin';
+import AdminSecurityWrapper from '@/components/AdminSecurityWrapper';
 
 interface AdminProtectedRouteProps {
   children: React.ReactNode;
@@ -25,7 +26,11 @@ const AdminProtectedRoute: React.FC<AdminProtectedRouteProps> = ({ children }) =
     return <AdminLogin />;
   }
 
-  return <>{children}</>;
+  return (
+    <AdminSecurityWrapper>
+      {children}
+    </AdminSecurityWrapper>
+  );
 };
 
 export default AdminProtectedRoute;

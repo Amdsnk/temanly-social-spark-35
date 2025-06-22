@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
+import { setupDefaultAdmin } from '@/utils/adminSetup';
 
 interface AdminAuthContextType {
   user: User | null;
@@ -9,6 +10,7 @@ interface AdminAuthContextType {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
+  setupAdmin: () => Promise<{ success: boolean; message?: string; credentials?: any; error?: string }>;
 }
 
 const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefined);
@@ -45,17 +47,28 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const checkAdminStatus = async (userId: string) => {
     try {
+      // Enhanced admin verification with additional security checks
       const { data, error } = await supabase
         .from('profiles')
-        .select('user_type')
+        .select('user_type, verification_status, email')
         .eq('id', userId)
+        .eq('user_type', 'admin')
+        .eq('verification_status', 'verified')
         .single();
 
       if (error) {
         console.error('Error checking admin status:', error);
         setIsAdmin(false);
       } else {
-        setIsAdmin(data?.user_type === 'admin');
+        // Additional security: verify email domain for admin accounts
+        const isValidAdminEmail = data?.email?.endsWith('@temanly.com') || 
+                                 data?.email === 'admin@temanly.com';
+        
+        setIsAdmin(data?.user_type === 'admin' && isValidAdminEmail);
+        
+        if (!isValidAdminEmail && data?.user_type === 'admin') {
+          console.warn('Invalid admin email domain detected');
+        }
       }
     } catch (error) {
       console.error('Error checking admin status:', error);
@@ -67,6 +80,11 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const signIn = async (email: string, password: string) => {
     try {
+      // Additional security: check if email is admin domain before attempting login
+      if (!email.endsWith('@temanly.com') && email !== 'admin@temanly.com') {
+        return { error: 'Invalid admin credentials' };
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -74,6 +92,11 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       if (error) {
         return { error: error.message };
+      }
+
+      // Double-check admin status after successful login
+      if (data.user) {
+        await checkAdminStatus(data.user.id);
       }
 
       return {};
@@ -84,6 +107,12 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    setIsAdmin(false);
+    setUser(null);
+  };
+
+  const setupAdmin = async () => {
+    return await setupDefaultAdmin();
   };
 
   const value = {
@@ -92,6 +121,7 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     loading,
     signIn,
     signOut,
+    setupAdmin,
   };
 
   return (
