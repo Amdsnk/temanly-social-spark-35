@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,13 +7,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DollarSign, Eye, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { Database } from '@/integrations/supabase/types';
+
+type PaymentStatus = Database['public']['Enums']['payment_status'];
 
 interface Transaction {
   id: string;
   amount: number;
   service: string;
   payment_method: string;
-  status: 'pending' | 'paid' | 'failed' | 'refunded' | 'pending_verification';
+  status: PaymentStatus;
   companion_earnings: number;
   platform_fee: number;
   created_at: string;
@@ -41,7 +43,7 @@ const PaymentManagement = () => {
         .order('created_at', { ascending: false });
 
       if (filter !== 'all') {
-        query = query.eq('status', filter);
+        query = query.eq('status', filter as PaymentStatus);
       }
 
       const { data, error } = await query;
@@ -59,7 +61,7 @@ const PaymentManagement = () => {
     }
   };
 
-  const updateTransactionStatus = async (transactionId: string, newStatus: string) => {
+  const updateTransactionStatus = async (transactionId: string, newStatus: PaymentStatus) => {
     try {
       const { error } = await supabase
         .from('transactions')
@@ -74,7 +76,7 @@ const PaymentManagement = () => {
       setTransactions(prev => 
         prev.map(t => 
           t.id === transactionId 
-            ? { ...t, status: newStatus as any }
+            ? { ...t, status: newStatus }
             : t
         )
       );

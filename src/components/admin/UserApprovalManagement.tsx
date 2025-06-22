@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,14 +6,18 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { CheckCircle, XCircle, Clock, Mail, Phone, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { Database } from '@/integrations/supabase/types';
+
+type UserType = Database['public']['Enums']['user_type'];
+type VerificationStatus = Database['public']['Enums']['verification_status'];
 
 interface PendingUser {
   id: string;
   name: string;
   email: string;
   phone: string;
-  user_type: 'user' | 'companion';
-  verification_status: 'pending' | 'verified' | 'rejected';
+  user_type: UserType;
+  verification_status: VerificationStatus;
   created_at: string;
 }
 
@@ -31,7 +34,7 @@ const UserApprovalManagement = () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, name, email, phone, user_type, verification_status, created_at')
         .eq('verification_status', 'pending')
         .order('created_at', { ascending: false });
 
@@ -51,7 +54,7 @@ const UserApprovalManagement = () => {
 
   const handleApproval = async (userId: string, approved: boolean) => {
     try {
-      const status = approved ? 'verified' : 'rejected';
+      const status: VerificationStatus = approved ? 'verified' : 'rejected';
       const { error } = await supabase
         .from('profiles')
         .update({ 
@@ -156,9 +159,9 @@ const UserApprovalManagement = () => {
                   </TableCell>
                   <TableCell>
                     <Badge 
-                      variant={user.user_type === 'companion' ? 'default' : 'secondary'}
+                      variant={user.user_type === 'companion' ? 'default' : user.user_type === 'admin' ? 'destructive' : 'secondary'}
                     >
-                      {user.user_type === 'companion' ? 'Talent' : 'User'}
+                      {user.user_type === 'companion' ? 'Talent' : user.user_type === 'admin' ? 'Admin' : 'User'}
                     </Badge>
                   </TableCell>
                   <TableCell>
