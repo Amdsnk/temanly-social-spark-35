@@ -2,6 +2,7 @@
 import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { CreditCard, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 declare global {
   interface Window {
@@ -38,7 +39,7 @@ const MidtransPayment: React.FC<MidtransPaymentProps> = ({
     // Load Midtrans Snap script
     const script = document.createElement('script');
     script.src = 'https://app.midtrans.com/snap/snap.js';
-    script.setAttribute('data-client-key', 'YOUR_CLIENT_KEY_HERE'); // Will be replaced with actual client key
+    script.setAttribute('data-client-key', 'Mid-client-t14R0G6XRLw9MLZj');
     script.onload = () => setSnapLoaded(true);
     document.head.appendChild(script);
 
@@ -56,23 +57,19 @@ const MidtransPayment: React.FC<MidtransPaymentProps> = ({
     setLoading(true);
     
     try {
-      // Create transaction via our backend
-      const response = await fetch('/api/create-payment', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      // Create transaction via Supabase edge function
+      const { data, error } = await supabase.functions.invoke('create-payment', {
+        body: {
           booking_data: bookingData,
           amount: bookingData.total,
-        }),
+        },
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to create payment');
+      if (error) {
+        throw new Error(error.message || 'Failed to create payment');
       }
 
-      const { token } = await response.json();
+      const { token } = data;
 
       // Open Midtrans payment popup
       window.snap.pay(token, {
