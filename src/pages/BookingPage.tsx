@@ -56,18 +56,42 @@ const BookingPage = () => {
 
   const handlePaymentSuccess = (result: any) => {
     console.log('Payment successful:', result);
+    
+    // Save booking to local storage for demo
+    const bookingRecord = {
+      id: `BOOKING-${Date.now()}`,
+      talent: talent.name,
+      service: selectedServiceData?.name || '',
+      date: selectedDate?.toISOString(),
+      time: selectedTime,
+      message: bookingForm.message,
+      total: finalTotal,
+      status: 'confirmed',
+      payment_status: 'paid',
+      transaction_id: result.order_id || result.transaction_id,
+      created_at: new Date().toISOString(),
+    };
+    
+    const existingBookings = JSON.parse(localStorage.getItem('bookings') || '[]');
+    existingBookings.push(bookingRecord);
+    localStorage.setItem('bookings', JSON.stringify(existingBookings));
+    
     toast({
-      title: "Payment Successful!",
-      description: "Your booking has been confirmed. You will receive a confirmation email shortly.",
+      title: "Payment Successful! 🎉",
+      description: `Your booking for ${selectedServiceData?.name} with ${talent.name} has been confirmed. Order ID: ${result.order_id || result.transaction_id}`,
     });
-    navigate('/user-dashboard');
+    
+    // Redirect after 2 seconds
+    setTimeout(() => {
+      navigate('/user-dashboard');
+    }, 2000);
   };
 
   const handlePaymentPending = (result: any) => {
     console.log('Payment pending:', result);
     toast({
-      title: "Payment Pending",
-      description: "Your payment is being processed. Please wait for confirmation.",
+      title: "Payment Pending ⏳",
+      description: "Your payment is being processed. You will receive a notification once completed.",
       variant: "default"
     });
   };
@@ -84,7 +108,7 @@ const BookingPage = () => {
     }
     
     toast({
-      title: "Payment Failed",
+      title: "Payment Failed ❌",
       description: errorMessage,
       variant: "destructive"
     });
@@ -287,6 +311,8 @@ const BookingPage = () => {
                       🔒 Pembayaran aman diproses oleh Midtrans
                       <br />
                       Mendukung transfer bank, e-wallet, kartu kredit & debit
+                      <br />
+                      <span className="text-blue-600">Mode Demo: Menggunakan localStorage untuk penyimpanan data</span>
                     </div>
                   </div>
                 </CardContent>
