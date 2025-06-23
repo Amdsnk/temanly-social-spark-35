@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { CreditCard, Loader2 } from 'lucide-react';
@@ -70,10 +69,11 @@ const MidtransPayment: React.FC<MidtransPaymentProps> = ({
       const orderId = `ORDER-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
       // Call Supabase Edge Function to create Midtrans transaction
-      const response = await fetch('/api/create-payment', {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-payment`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
         },
         body: JSON.stringify({
           booking_data: bookingData,
@@ -89,12 +89,12 @@ const MidtransPayment: React.FC<MidtransPaymentProps> = ({
       const { token, order_id } = await response.json();
       console.log('Midtrans token received:', token);
 
-      // Open Midtrans payment popup with payment method selection
+      // Open Midtrans payment popup
       window.snap.pay(token, {
         onSuccess: (result: any) => {
           console.log('Payment success:', result);
           
-          // Save transaction to local storage for demo
+          // Only save transaction when payment is actually successful
           const transactionRecord = {
             id: order_id,
             booking_data: bookingData,
@@ -114,6 +114,22 @@ const MidtransPayment: React.FC<MidtransPaymentProps> = ({
         },
         onPending: (result: any) => {
           console.log('Payment pending:', result);
+          
+          // Save as pending transaction
+          const transactionRecord = {
+            id: order_id,
+            booking_data: bookingData,
+            amount: bookingData.total,
+            status: 'pending',
+            payment_method: result.payment_type || 'midtrans',
+            created_at: new Date().toISOString(),
+            midtrans_result: result,
+          };
+          
+          const existingTransactions = JSON.parse(localStorage.getItem('transactions') || '[]');
+          existingTransactions.push(transactionRecord);
+          localStorage.setItem('transactions', JSON.stringify(existingTransactions));
+          
           onPending(result);
           setLoading(false);
         },
@@ -131,62 +147,91 @@ const MidtransPayment: React.FC<MidtransPaymentProps> = ({
     } catch (error) {
       console.error('Payment processing error:', error);
       
-      // Create demo Midtrans token for testing
-      const demoToken = `demo-${Date.now()}`;
+      // Fallback to demo mode only if there's a connection error
+      console.log('Falling back to demo mode due to connection error');
       
-      // Simulate Midtrans Snap popup with payment method selection
-      const paymentMethods = [
-        { name: 'Bank Transfer', code: 'bank_transfer' },
-        { name: 'Credit Card', code: 'credit_card' },
-        { name: 'GoPay', code: 'gopay' },
-        { name: 'ShopeePay', code: 'shopeepay' },
-        { name: 'DANA', code: 'dana' },
-        { name: 'OVO', code: 'ovo' },
-        { name: 'Indomaret', code: 'cstore' },
-        { name: 'Alfamart', code: 'alfamart' }
-      ];
+      // Show demo payment selection
+      const demoResult = await showDemoPaymentFlow();
       
-      // Show demo payment method selection
-      const selectedMethod = await showPaymentMethodSelector(paymentMethods);
-      
-      if (selectedMethod) {
-        // Simulate payment process
-        setTimeout(() => {
-          const demoResult = {
+      if (demoResult) {
+        // For demo, simulate the actual payment process
+        if (demoResult.method === 'bank_transfer') {
+          // Bank transfer should be pending, not immediate success
+          const pendingResult = {
             order_id: `DEMO-${Date.now()}`,
-            transaction_status: 'settlement',
-            payment_type: selectedMethod.code,
+            transaction_status: 'pending',
+            payment_type: 'bank_transfer',
             transaction_id: `TXN-${Date.now()}`,
             gross_amount: bookingData.total.toString(),
+            va_number: `8808${Math.random().toString().substr(2, 10)}`,
+            bank: 'bca'
           };
           
-          // Save demo transaction
           const transactionRecord = {
-            id: demoResult.order_id,
+            id: pendingResult.order_id,
             booking_data: bookingData,
             amount: bookingData.total,
-            status: 'paid',
-            payment_method: selectedMethod.code,
+            status: 'pending',
+            payment_method: 'bank_transfer',
             created_at: new Date().toISOString(),
-            midtrans_result: demoResult,
+            midtrans_result: pendingResult,
           };
           
           const existingTransactions = JSON.parse(localStorage.getItem('transactions') || '[]');
           existingTransactions.push(transactionRecord);
           localStorage.setItem('transactions', JSON.stringify(existingTransactions));
           
-          console.log('Demo payment completed with method:', selectedMethod.name);
-          onSuccess(demoResult);
-          setLoading(false);
-        }, 2000);
-      } else {
-        setLoading(false);
+          console.log('Demo bank transfer - payment pending');
+          onPending(pendingResult);
+        } else {
+          // Other payment methods can be immediate
+          const successResult = {
+            order_id: `DEMO-${Date.now()}`,
+            transaction_status: 'settlement',
+            payment_type: demoResult.method,
+            transaction_id: `TXN-${Date.now()}`,
+            gross_amount: bookingData.total.toString(),
+          };
+          
+          const transactionRecord = {
+            id: successResult.order_id,
+            booking_data: bookingData,
+            amount: bookingData.total,
+            status: 'paid',
+            payment_method: demoResult.method,
+            created_at: new Date().toISOString(),
+            midtrans_result: successResult,
+          };
+          
+          const existingTransactions = JSON.parse(localStorage.getItem('transactions') || '[]');
+          existingTransactions.push(transactionRecord);
+          localStorage.setItem('transactions', JSON.stringify(existingTransactions));
+          
+          console.log('Demo payment completed with method:', demoResult.name);
+          onSuccess(successResult);
+        }
       }
+      
+      setLoading(false);
     }
   };
 
-  const showPaymentMethodSelector = (methods: Array<{name: string, code: string}>): Promise<{name: string, code: string} | null> => {
+  const showDemoPaymentFlow = (): Promise<{name: string, method: string} | null> => {
     return new Promise((resolve) => {
+      const methods = [
+        { name: 'Bank Transfer BCA', method: 'bank_transfer' },
+        { name: 'Bank Transfer BNI', method: 'bank_transfer' },
+        { name: 'Bank Transfer BRI', method: 'bank_transfer' },
+        { name: 'Credit Card', method: 'credit_card' },
+        { name: 'GoPay', method: 'gopay' },
+        { name: 'ShopeePay', method: 'shopeepay' },
+        { name: 'DANA', method: 'dana' },
+        { name: 'OVO', method: 'ovo' },
+        { name: 'QRIS', method: 'qris' },
+        { name: 'Indomaret', method: 'cstore' },
+        { name: 'Alfamart', method: 'alfamart' }
+      ];
+
       // Create modal overlay
       const overlay = document.createElement('div');
       overlay.style.cssText = `
@@ -215,11 +260,15 @@ const MidtransPayment: React.FC<MidtransPaymentProps> = ({
       `;
 
       modal.innerHTML = `
-        <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600;">Pilih Metode Pembayaran</h3>
+        <div style="text-align: center; margin-bottom: 20px;">
+          <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600;">Demo - Pilih Metode Pembayaran</h3>
+          <p style="margin: 0; font-size: 14px; color: #666;">Total: Rp ${bookingData.total.toLocaleString()}</p>
+        </div>
         <div style="margin-bottom: 16px;">
           ${methods.map(method => `
             <button 
-              data-method="${method.code}" 
+              data-method="${method.method}" 
+              data-name="${method.name}"
               style="
                 width: 100%;
                 padding: 12px;
@@ -258,10 +307,10 @@ const MidtransPayment: React.FC<MidtransPaymentProps> = ({
 
       // Add event listeners
       methods.forEach(method => {
-        const button = modal.querySelector(`[data-method="${method.code}"]`);
+        const button = modal.querySelector(`[data-method="${method.method}"]`);
         button?.addEventListener('click', () => {
           document.body.removeChild(overlay);
-          resolve(method);
+          resolve({ name: method.name, method: method.method });
         });
       });
 

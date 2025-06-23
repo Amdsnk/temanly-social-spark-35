@@ -78,7 +78,7 @@ const BookingPage = () => {
     
     toast({
       title: "Payment Successful! 🎉",
-      description: `Your booking for ${selectedServiceData?.name} with ${talent.name} has been confirmed. Order ID: ${result.order_id || result.transaction_id}`,
+      description: `Your booking for ${selectedServiceData?.name} with ${talent.name} has been confirmed. Transaction ID: ${result.order_id || result.transaction_id}`,
     });
     
     // Redirect after 2 seconds
@@ -89,11 +89,40 @@ const BookingPage = () => {
 
   const handlePaymentPending = (result: any) => {
     console.log('Payment pending:', result);
+    
+    // Save pending booking
+    const bookingRecord = {
+      id: `BOOKING-${Date.now()}`,
+      talent: talent.name,
+      service: selectedServiceData?.name || '',
+      date: selectedDate?.toISOString(),
+      time: selectedTime,
+      message: bookingForm.message,
+      total: finalTotal,
+      status: 'pending',
+      payment_status: 'pending',
+      transaction_id: result.order_id || result.transaction_id,
+      created_at: new Date().toISOString(),
+    };
+    
+    const existingBookings = JSON.parse(localStorage.getItem('bookings') || '[]');
+    existingBookings.push(bookingRecord);
+    localStorage.setItem('bookings', JSON.stringify(existingBookings));
+    
+    let pendingMessage = "Your payment is being processed. You will receive a notification once completed.";
+    
+    // Special message for bank transfer
+    if (result.payment_type === 'bank_transfer' && result.va_number) {
+      pendingMessage = `Please complete your bank transfer payment. Virtual Account: ${result.va_number}. Your booking will be confirmed once payment is received.`;
+    }
+    
     toast({
       title: "Payment Pending ⏳",
-      description: "Your payment is being processed. You will receive a notification once completed.",
+      description: pendingMessage,
       variant: "default"
     });
+    
+    // Stay on the page for pending payments so user can see instructions
   };
 
   const handlePaymentError = (result: any) => {
