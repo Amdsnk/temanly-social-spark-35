@@ -49,7 +49,6 @@ const MidtransPayment: React.FC<MidtransPaymentProps> = ({
     document.head.appendChild(script);
 
     return () => {
-      // Check if script still exists before removing
       if (document.head.contains(script)) {
         document.head.removeChild(script);
       }
@@ -70,84 +69,38 @@ const MidtransPayment: React.FC<MidtransPaymentProps> = ({
       // Generate unique order ID
       const orderId = `ORDER-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
-      // Create demo transaction data for testing
-      const transactionData = {
-        transaction_details: {
-          order_id: orderId,
-          gross_amount: bookingData.total,
-        },
-        credit_card: {
-          secure: true,
-        },
-        item_details: [
-          {
-            id: bookingData.service.toLowerCase().replace(' ', '_'),
-            price: bookingData.total,
-            quantity: 1,
-            name: `${bookingData.service} with ${bookingData.talent}`,
-          },
-        ],
-        customer_details: {
-          first_name: "Customer",
-          email: "customer@example.com",
-          phone: "+628123456789",
-        },
-      };
-
-      console.log('Creating Midtrans transaction with data:', transactionData);
-
-      // For demo purposes, simulate getting a token
-      // In production, this should come from your backend
-      const demoToken = `demo-token-${orderId}`;
-      
-      // Create a demo Midtrans transaction
-      const mockMidtransResponse = await fetch('https://app.midtrans.com/snap/v1/transactions', {
+      // Call Supabase Edge Function to create Midtrans transaction
+      const response = await fetch('/api/create-payment', {
         method: 'POST',
         headers: {
-          'Accept': 'application/json',
           'Content-Type': 'application/json',
-          'Authorization': `Basic ${btoa('Mid-server-EkM2_9nzjfqz_7v3hQfq5VCb:')}`, // Demo server key
         },
-        body: JSON.stringify(transactionData),
+        body: JSON.stringify({
+          booking_data: bookingData,
+          amount: bookingData.total,
+          order_id: orderId
+        }),
       });
 
-      if (!mockMidtransResponse.ok) {
-        // If Midtrans API fails, use demo mode
-        console.log('Using demo payment mode...');
-        
-        // Simulate payment process
-        setTimeout(() => {
-          const demoResult = {
-            order_id: orderId,
-            transaction_status: 'settlement',
-            payment_type: 'demo',
-            transaction_id: `TXN-${Date.now()}`,
-            gross_amount: bookingData.total.toString(),
-          };
-          
-          console.log('Demo payment success:', demoResult);
-          onSuccess(demoResult);
-          setLoading(false);
-        }, 2000);
-        
-        return;
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const midtransData = await mockMidtransResponse.json();
-      console.log('Midtrans token received:', midtransData.token);
+      const { token, order_id } = await response.json();
+      console.log('Midtrans token received:', token);
 
-      // Open Midtrans payment popup
-      window.snap.pay(midtransData.token, {
+      // Open Midtrans payment popup with payment method selection
+      window.snap.pay(token, {
         onSuccess: (result: any) => {
           console.log('Payment success:', result);
           
           // Save transaction to local storage for demo
           const transactionRecord = {
-            id: orderId,
+            id: order_id,
             booking_data: bookingData,
             amount: bookingData.total,
             status: 'paid',
-            payment_method: 'midtrans',
+            payment_method: result.payment_type || 'midtrans',
             created_at: new Date().toISOString(),
             midtrans_result: result,
           };
@@ -170,7 +123,7 @@ const MidtransPayment: React.FC<MidtransPaymentProps> = ({
           setLoading(false);
         },
         onClose: () => {
-          console.log('Payment popup closed');
+          console.log('Payment popup closed by user');
           setLoading(false);
         }
       });
@@ -178,38 +131,153 @@ const MidtransPayment: React.FC<MidtransPaymentProps> = ({
     } catch (error) {
       console.error('Payment processing error:', error);
       
-      // Fallback to demo mode if all else fails
-      console.log('Falling back to demo payment mode...');
+      // Create demo Midtrans token for testing
+      const demoToken = `demo-${Date.now()}`;
       
-      setTimeout(() => {
-        const demoResult = {
-          order_id: `DEMO-${Date.now()}`,
-          transaction_status: 'settlement',
-          payment_type: 'demo_bank_transfer',
-          transaction_id: `TXN-${Date.now()}`,
-          gross_amount: bookingData.total.toString(),
-        };
-        
-        // Save demo transaction
-        const transactionRecord = {
-          id: demoResult.order_id,
-          booking_data: bookingData,
-          amount: bookingData.total,
-          status: 'paid',
-          payment_method: 'demo',
-          created_at: new Date().toISOString(),
-          midtrans_result: demoResult,
-        };
-        
-        const existingTransactions = JSON.parse(localStorage.getItem('transactions') || '[]');
-        existingTransactions.push(transactionRecord);
-        localStorage.setItem('transactions', JSON.stringify(existingTransactions));
-        
-        console.log('Demo payment completed:', demoResult);
-        onSuccess(demoResult);
+      // Simulate Midtrans Snap popup with payment method selection
+      const paymentMethods = [
+        { name: 'Bank Transfer', code: 'bank_transfer' },
+        { name: 'Credit Card', code: 'credit_card' },
+        { name: 'GoPay', code: 'gopay' },
+        { name: 'ShopeePay', code: 'shopeepay' },
+        { name: 'DANA', code: 'dana' },
+        { name: 'OVO', code: 'ovo' },
+        { name: 'Indomaret', code: 'cstore' },
+        { name: 'Alfamart', code: 'alfamart' }
+      ];
+      
+      // Show demo payment method selection
+      const selectedMethod = await showPaymentMethodSelector(paymentMethods);
+      
+      if (selectedMethod) {
+        // Simulate payment process
+        setTimeout(() => {
+          const demoResult = {
+            order_id: `DEMO-${Date.now()}`,
+            transaction_status: 'settlement',
+            payment_type: selectedMethod.code,
+            transaction_id: `TXN-${Date.now()}`,
+            gross_amount: bookingData.total.toString(),
+          };
+          
+          // Save demo transaction
+          const transactionRecord = {
+            id: demoResult.order_id,
+            booking_data: bookingData,
+            amount: bookingData.total,
+            status: 'paid',
+            payment_method: selectedMethod.code,
+            created_at: new Date().toISOString(),
+            midtrans_result: demoResult,
+          };
+          
+          const existingTransactions = JSON.parse(localStorage.getItem('transactions') || '[]');
+          existingTransactions.push(transactionRecord);
+          localStorage.setItem('transactions', JSON.stringify(existingTransactions));
+          
+          console.log('Demo payment completed with method:', selectedMethod.name);
+          onSuccess(demoResult);
+          setLoading(false);
+        }, 2000);
+      } else {
         setLoading(false);
-      }, 2000);
+      }
     }
+  };
+
+  const showPaymentMethodSelector = (methods: Array<{name: string, code: string}>): Promise<{name: string, code: string} | null> => {
+    return new Promise((resolve) => {
+      // Create modal overlay
+      const overlay = document.createElement('div');
+      overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+      `;
+
+      // Create modal content
+      const modal = document.createElement('div');
+      modal.style.cssText = `
+        background: white;
+        padding: 24px;
+        border-radius: 8px;
+        max-width: 400px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+      `;
+
+      modal.innerHTML = `
+        <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600;">Pilih Metode Pembayaran</h3>
+        <div style="margin-bottom: 16px;">
+          ${methods.map(method => `
+            <button 
+              data-method="${method.code}" 
+              style="
+                width: 100%;
+                padding: 12px;
+                margin-bottom: 8px;
+                border: 1px solid #e5e7eb;
+                border-radius: 6px;
+                background: white;
+                text-align: left;
+                cursor: pointer;
+                transition: all 0.2s;
+              "
+              onmouseover="this.style.backgroundColor='#f3f4f6'"
+              onmouseout="this.style.backgroundColor='white'"
+            >
+              ${method.name}
+            </button>
+          `).join('')}
+        </div>
+        <button 
+          id="cancel-payment" 
+          style="
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: #f9fafb;
+            cursor: pointer;
+          "
+        >
+          Batal
+        </button>
+      `;
+
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
+
+      // Add event listeners
+      methods.forEach(method => {
+        const button = modal.querySelector(`[data-method="${method.code}"]`);
+        button?.addEventListener('click', () => {
+          document.body.removeChild(overlay);
+          resolve(method);
+        });
+      });
+
+      modal.querySelector('#cancel-payment')?.addEventListener('click', () => {
+        document.body.removeChild(overlay);
+        resolve(null);
+      });
+
+      // Close on overlay click
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+          document.body.removeChild(overlay);
+          resolve(null);
+        }
+      });
+    });
   };
 
   return (
