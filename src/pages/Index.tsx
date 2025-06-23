@@ -1,15 +1,12 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Heart, MessageCircle, Phone, Video, MapPin, Calendar, Star, Search, Filter, Globe, Clock, Users } from 'lucide-react';
+import { Heart, MessageCircle, Phone, Video, MapPin, Search, Filter, Users, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Footer from '@/components/Footer';
 import TalentCard from '@/components/TalentCard';
-import ServiceSelector from '@/components/ServiceSelector';
+import MainHeader from '@/components/MainHeader';
 
 const Index = () => {
   const [selectedCity, setSelectedCity] = useState('Jakarta');
@@ -140,44 +137,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-8">
-              <div className="flex items-center gap-2">
-                <img 
-                  src="/lovable-uploads/2b715270-d5ae-4f6c-be60-2dfaf1662139.png" 
-                  alt="Temanly Logo"
-                  className="h-10 w-auto"
-                />
-              </div>
-              <nav className="hidden md:flex items-center gap-6">
-                <Link to="/services" className="text-gray-700 hover:text-gray-900 font-medium">Services</Link>
-                <Link to="/talents" className="text-gray-700 hover:text-gray-900 font-medium">Browse Talents</Link>
-                <Link to="/how-it-works" className="text-gray-700 hover:text-gray-900 font-medium">How It Works</Link>
-                <Link to="/safety" className="text-gray-700 hover:text-gray-900 font-medium">Safety</Link>
-                <Link to="/faq" className="text-gray-700 hover:text-gray-900 font-medium">FAQ</Link>
-              </nav>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 text-sm">
-                <Globe className="w-4 h-4" />
-                <span className="text-gray-700">ID</span>
-              </div>
-              <Link to="/talent-register">
-                <Button className="bg-pink-500 text-white hover:bg-pink-600 rounded-full px-6">
-                  ⭐ Jadi Talent
-                </Button>
-              </Link>
-              <Button variant="ghost" className="text-gray-700 hover:text-gray-900">
-                Masuk
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <MainHeader />
 
       <div className="container mx-auto px-4 py-8">
         {/* Hero Section */}

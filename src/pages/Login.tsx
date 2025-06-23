@@ -1,12 +1,14 @@
+
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import Header from '@/components/Header';
+import { useAuth } from '@/contexts/AuthContext';
+import MainHeader from '@/components/MainHeader';
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -14,25 +16,39 @@ const Login = () => {
     email: '',
     password: ''
   });
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const from = location.state?.from?.pathname || '/user-dashboard';
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock login logic
-    console.log('Login attempt:', formData);
-    toast({
-      title: "Login berhasil!",
-      description: "Selamat datang kembali di Temanly.",
-    });
+    setIsLoading(true);
+    
+    try {
+      await login(formData.email, formData.password);
+      toast({
+        title: "Login berhasil!",
+        description: "Selamat datang kembali di Temanly.",
+      });
+      navigate(from, { replace: true });
+    } catch (error) {
+      toast({
+        title: "Login gagal",
+        description: "Email atau password salah.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-blue-50">
-      <Header 
-        title="Masuk ke Temanly" 
-        subtitle="Selamat datang kembali!"
-        showLogo={false}
-      />
+      <MainHeader />
 
       <div className="flex items-center justify-center px-4 py-8">
         <div className="w-full max-w-md">
@@ -90,8 +106,12 @@ const Login = () => {
                   </Link>
                 </div>
 
-                <Button type="submit" className="w-full bg-pink-500 hover:bg-pink-600">
-                  Masuk
+                <Button 
+                  type="submit" 
+                  className="w-full bg-pink-500 hover:bg-pink-600"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Memproses...' : 'Masuk'}
                 </Button>
               </form>
 
