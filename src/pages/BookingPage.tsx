@@ -74,9 +74,18 @@ const BookingPage = () => {
 
   const handlePaymentError = (result: any) => {
     console.error('Payment failed:', result);
+    
+    let errorMessage = "There was an error processing your payment. Please try again.";
+    
+    if (result && result.message) {
+      errorMessage = result.message;
+    } else if (typeof result === 'string') {
+      errorMessage = result;
+    }
+    
     toast({
       title: "Payment Failed",
-      description: "There was an error processing your payment. Please try again.",
+      description: errorMessage,
       variant: "destructive"
     });
   };

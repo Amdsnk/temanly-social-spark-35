@@ -40,24 +40,36 @@ const MidtransPayment: React.FC<MidtransPaymentProps> = ({
     const script = document.createElement('script');
     script.src = 'https://app.midtrans.com/snap/snap.js';
     script.setAttribute('data-client-key', 'Mid-client-t14R0G6XRLw9MLZj');
-    script.onload = () => setSnapLoaded(true);
+    script.onload = () => {
+      console.log('Midtrans Snap script loaded successfully');
+      setSnapLoaded(true);
+    };
+    script.onerror = () => {
+      console.error('Failed to load Midtrans Snap script');
+    };
     document.head.appendChild(script);
 
     return () => {
-      document.head.removeChild(script);
+      // Check if script still exists before removing
+      if (document.head.contains(script)) {
+        document.head.removeChild(script);
+      }
     };
   }, []);
 
   const processPayment = async () => {
     if (!snapLoaded) {
       console.error('Midtrans Snap not loaded');
+      onError({ message: 'Payment system not ready. Please refresh and try again.' });
       return;
     }
 
     setLoading(true);
+    console.log('Starting payment process with booking data:', bookingData);
     
     try {
       // Create transaction via Supabase edge function
+      console.log('Calling create-payment edge function...');
       const { data, error } = await supabase.functions.invoke('create-payment', {
         body: {
           booking_data: bookingData,
@@ -65,11 +77,20 @@ const MidtransPayment: React.FC<MidtransPaymentProps> = ({
         },
       });
 
+      console.log('Edge function response:', { data, error });
+
       if (error) {
+        console.error('Edge function error:', error);
         throw new Error(error.message || 'Failed to create payment');
       }
 
+      if (!data || !data.token) {
+        console.error('No payment token received:', data);
+        throw new Error('Payment token not received from server');
+      }
+
       const { token } = data;
+      console.log('Payment token received, opening Midtrans popup...');
 
       // Open Midtrans payment popup
       window.snap.pay(token, {
@@ -95,7 +116,21 @@ const MidtransPayment: React.FC<MidtransPaymentProps> = ({
       });
     } catch (error) {
       console.error('Payment processing error:', error);
-      onError(error);
+      
+      // Provide more specific error messages
+      let errorMessage = 'There was an error processing your payment. Please try again.';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('Failed to send a request to the Edge Function')) {
+          errorMessage = 'Unable to connect to payment service. Please check your internet connection and try again.';
+        } else if (error.message.includes('not configured')) {
+          errorMessage = 'Payment system is not properly configured. Please contact support.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      onError({ message: errorMessage });
       setLoading(false);
     }
   };
@@ -111,6 +146,11 @@ const MidtransPayment: React.FC<MidtransPaymentProps> = ({
         <>
           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
           Processing Payment...
+        </>
+      ) : !snapLoaded ? (
+        <>
+          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          Loading Payment System...
         </>
       ) : (
         <>
