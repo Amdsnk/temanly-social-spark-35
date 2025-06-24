@@ -26,7 +26,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredUserT
   }
 
   // Check user type if required
-  if (requiredUserType && user?.userType !== requiredUserType) {
+  if (requiredUserType && user?.user_type !== requiredUserType) {
     return <Navigate to="/signup" replace />;
   }
 
