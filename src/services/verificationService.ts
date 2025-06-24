@@ -37,19 +37,6 @@ export const sendWhatsAppVerification = async (phone: string): Promise<{ success
     // Generate 6-digit verification code
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
     
-    // Store verification code in database
-    const { error: dbError } = await supabase
-      .from('verification_codes')
-      .insert({
-        phone,
-        code: verificationCode,
-        type: 'whatsapp',
-        expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(), // 10 minutes
-        created_at: new Date().toISOString()
-      });
-
-    if (dbError) throw dbError;
-
     // Use Supabase edge function to send WhatsApp message
     const { data, error } = await supabase.functions.invoke('send-whatsapp-verification', {
       body: { 
@@ -70,7 +57,8 @@ export const sendWhatsAppVerification = async (phone: string): Promise<{ success
 
     return {
       success: true,
-      message: `Kode verifikasi telah dikirim via WhatsApp ke ${phone}`
+      message: `Kode verifikasi telah dikirim via WhatsApp ke ${phone}`,
+      code: verificationCode // Return code for demo purposes
     };
   } catch (error) {
     console.error('WhatsApp verification error:', error);
@@ -81,34 +69,20 @@ export const sendWhatsAppVerification = async (phone: string): Promise<{ success
   }
 };
 
-export const verifyWhatsAppCode = async (phone: string, code: string): Promise<{ success: boolean; message: string }> => {
+export const verifyWhatsAppCode = async (phone: string, code: string, expectedCode: string): Promise<{ success: boolean; message: string }> => {
   try {
-    const { data, error } = await supabase
-      .from('verification_codes')
-      .select('*')
-      .eq('phone', phone)
-      .eq('code', code)
-      .eq('type', 'whatsapp')
-      .gt('expires_at', new Date().toISOString())
-      .single();
-
-    if (error || !data) {
+    // Simple code verification for demo
+    if (code === expectedCode) {
+      return {
+        success: true,
+        message: 'Nomor WhatsApp berhasil diverifikasi'
+      };
+    } else {
       return {
         success: false,
-        message: 'Kode verifikasi tidak valid atau sudah kedaluwarsa'
+        message: 'Kode verifikasi tidak valid'
       };
     }
-
-    // Mark code as used
-    await supabase
-      .from('verification_codes')
-      .update({ used_at: new Date().toISOString() })
-      .eq('id', data.id);
-
-    return {
-      success: true,
-      message: 'Nomor WhatsApp berhasil diverifikasi'
-    };
   } catch (error) {
     console.error('WhatsApp code verification error:', error);
     return {
