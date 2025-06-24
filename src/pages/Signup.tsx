@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,7 @@ import { Eye, EyeOff, Upload, Shield, Check, Phone, Mail, IdCard } from 'lucide-
 import { useAuth } from '@/contexts/AuthContext';
 import MainHeader from '@/components/MainHeader';
 import { useToast } from '@/hooks/use-toast';
+import { sendEmailVerification, sendWhatsAppVerification, verifyWhatsAppCode } from '@/services/verificationService';
 
 const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -17,6 +17,10 @@ const Signup = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isLogin, setIsLogin] = useState(false);
   const [currentStep, setCurrentStep] = useState(1); // 1: Basic Info, 2: Verification
+  const [verificationLoading, setVerificationLoading] = useState({
+    email: false,
+    whatsapp: false
+  });
   
   const [formData, setFormData] = useState({
     name: '',
@@ -30,8 +34,10 @@ const Signup = () => {
   const [verificationData, setVerificationData] = useState({
     ktpFile: null as File | null,
     emailVerified: false,
+    emailToken: '',
     whatsappCode: '',
-    whatsappVerified: false
+    whatsappVerified: false,
+    demoVerificationCode: '' // For demo purposes
   });
   
   const { signup, login } = useAuth();
@@ -90,16 +96,75 @@ const Signup = () => {
   };
 
   const handleEmailVerification = async () => {
-    setIsLoading(true);
-    // Simulate email verification
-    setTimeout(() => {
-      setVerificationData(prev => ({ ...prev, emailVerified: true }));
+    setVerificationLoading(prev => ({ ...prev, email: true }));
+    
+    try {
+      const result = await sendEmailVerification(formData.email);
+      
+      if (result.success) {
+        toast({
+          title: "Email Verifikasi Dikirim",
+          description: result.message,
+        });
+        
+        // For demo purposes, auto-verify after 2 seconds
+        setTimeout(() => {
+          setVerificationData(prev => ({ ...prev, emailVerified: true }));
+          toast({
+            title: "Email Terverifikasi",
+            description: `Email ${formData.email} telah berhasil diverifikasi.`,
+          });
+        }, 2000);
+      } else {
+        toast({
+          title: "Gagal Mengirim Email",
+          description: result.message,
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
       toast({
-        title: "Email Terverifikasi",
-        description: `Email ${formData.email} telah berhasil diverifikasi.`,
+        title: "Error",
+        description: "Gagal mengirim email verifikasi",
+        variant: "destructive"
       });
-      setIsLoading(false);
-    }, 2000);
+    } finally {
+      setVerificationLoading(prev => ({ ...prev, email: false }));
+    }
+  };
+
+  const handleSendWhatsAppCode = async () => {
+    setVerificationLoading(prev => ({ ...prev, whatsapp: true }));
+    
+    try {
+      const result = await sendWhatsAppVerification(formData.phone);
+      
+      if (result.success) {
+        toast({
+          title: "Kode WhatsApp Dikirim",
+          description: result.message,
+        });
+        
+        // Store demo code if available
+        if (result.code) {
+          setVerificationData(prev => ({ ...prev, demoVerificationCode: result.code }));
+        }
+      } else {
+        toast({
+          title: "Gagal Mengirim Kode",
+          description: result.message,
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Gagal mengirim kode WhatsApp",
+        variant: "destructive"
+      });
+    } finally {
+      setVerificationLoading(prev => ({ ...prev, whatsapp: false }));
+    }
   };
 
   const handleWhatsappVerification = async () => {
@@ -112,16 +177,33 @@ const Signup = () => {
       return;
     }
 
-    setIsLoading(true);
-    // Simulate WhatsApp verification
-    setTimeout(() => {
-      setVerificationData(prev => ({ ...prev, whatsappVerified: true }));
+    setVerificationLoading(prev => ({ ...prev, whatsapp: true }));
+    
+    try {
+      const result = await verifyWhatsAppCode(formData.phone, verificationData.whatsappCode);
+      
+      if (result.success) {
+        setVerificationData(prev => ({ ...prev, whatsappVerified: true }));
+        toast({
+          title: "WhatsApp Terverifikasi",
+          description: result.message,
+        });
+      } else {
+        toast({
+          title: "Verifikasi Gagal",
+          description: result.message,
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
       toast({
-        title: "WhatsApp Terverifikasi",
-        description: `Nomor ${formData.phone} telah berhasil diverifikasi.`,
+        title: "Error",
+        description: "Gagal memverifikasi kode WhatsApp",
+        variant: "destructive"
       });
-      setIsLoading(false);
-    }, 1500);
+    } finally {
+      setVerificationLoading(prev => ({ ...prev, whatsapp: false }));
+    }
   };
 
   const handleCompleteRegistration = async () => {
@@ -163,8 +245,10 @@ const Signup = () => {
         setVerificationData({
           ktpFile: null,
           emailVerified: false,
+          emailToken: '',
           whatsappCode: '',
-          whatsappVerified: false
+          whatsappVerified: false,
+          demoVerificationCode: ''
         });
         setCurrentStep(1);
       }
@@ -400,11 +484,16 @@ const Signup = () => {
                       </p>
                       <Button 
                         onClick={handleEmailVerification}
-                        disabled={verificationData.emailVerified || isLoading}
+                        disabled={verificationData.emailVerified || verificationLoading.email}
                         className="w-full"
                         type="button"
                       >
-                        {verificationData.emailVerified ? 'Email Terverifikasi ✓' : 'Verifikasi Email'}
+                        {verificationLoading.email 
+                          ? 'Mengirim...' 
+                          : verificationData.emailVerified 
+                            ? 'Email Terverifikasi ✓' 
+                            : 'Kirim Email Verifikasi'
+                        }
                       </Button>
                     </div>
                   </div>
@@ -421,6 +510,26 @@ const Signup = () => {
                       <p className="text-sm text-gray-600">
                         WhatsApp: {formData.phone}
                       </p>
+                      
+                      {!verificationData.whatsappVerified && (
+                        <Button 
+                          onClick={handleSendWhatsAppCode}
+                          disabled={verificationLoading.whatsapp}
+                          className="w-full mb-3"
+                          type="button"
+                        >
+                          {verificationLoading.whatsapp ? 'Mengirim...' : 'Kirim Kode Verifikasi'}
+                        </Button>
+                      )}
+                      
+                      {verificationData.demoVerificationCode && (
+                        <div className="bg-blue-50 border border-blue-200 rounded p-3 mb-3">
+                          <p className="text-sm text-blue-700">
+                            <strong>Demo Mode:</strong> Kode verifikasi Anda: <code className="bg-blue-100 px-2 py-1 rounded">{verificationData.demoVerificationCode}</code>
+                          </p>
+                        </div>
+                      )}
+                      
                       <div className="flex gap-2">
                         <Input
                           placeholder="Masukkan kode verifikasi"
@@ -430,10 +539,15 @@ const Signup = () => {
                         />
                         <Button 
                           onClick={handleWhatsappVerification}
-                          disabled={verificationData.whatsappVerified || isLoading}
+                          disabled={verificationData.whatsappVerified || verificationLoading.whatsapp}
                           type="button"
                         >
-                          {verificationData.whatsappVerified ? 'Verified ✓' : 'Verifikasi'}
+                          {verificationLoading.whatsapp 
+                            ? 'Verifying...' 
+                            : verificationData.whatsappVerified 
+                              ? 'Verified ✓' 
+                              : 'Verifikasi'
+                          }
                         </Button>
                       </div>
                     </div>
