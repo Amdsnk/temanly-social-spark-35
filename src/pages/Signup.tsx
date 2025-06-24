@@ -6,10 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Upload, Shield, Check, Phone, Mail, IdCard } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import MainHeader from '@/components/MainHeader';
-import VerificationRequiredBanner from '@/components/VerificationRequiredBanner';
 import { useToast } from '@/hooks/use-toast';
 
 const Signup = () => {
@@ -17,6 +16,8 @@ const Signup = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isLogin, setIsLogin] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1); // 1: Basic Info, 2: Verification
+  
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -25,12 +26,19 @@ const Signup = () => {
     confirmPassword: '',
     agreeTerms: false
   });
+
+  const [verificationData, setVerificationData] = useState({
+    ktpFile: null as File | null,
+    emailVerified: false,
+    whatsappCode: '',
+    whatsappVerified: false
+  });
   
   const { signup, login } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleBasicInfoSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (isLogin) {
@@ -47,7 +55,7 @@ const Signup = () => {
       return;
     }
 
-    // Handle signup
+    // Validate signup form
     if (formData.password !== formData.confirmPassword) {
       toast({
         title: "Error",
@@ -66,6 +74,66 @@ const Signup = () => {
       return;
     }
 
+    // Move to verification step
+    setCurrentStep(2);
+  };
+
+  const handleKtpUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setVerificationData(prev => ({ ...prev, ktpFile: file }));
+      toast({
+        title: "KTP berhasil diunggah",
+        description: `File ${file.name} telah dipilih untuk verifikasi.`,
+      });
+    }
+  };
+
+  const handleEmailVerification = async () => {
+    setIsLoading(true);
+    // Simulate email verification
+    setTimeout(() => {
+      setVerificationData(prev => ({ ...prev, emailVerified: true }));
+      toast({
+        title: "Email Terverifikasi",
+        description: `Email ${formData.email} telah berhasil diverifikasi.`,
+      });
+      setIsLoading(false);
+    }, 2000);
+  };
+
+  const handleWhatsappVerification = async () => {
+    if (!verificationData.whatsappCode) {
+      toast({
+        title: "Masukkan kode verifikasi",
+        description: "Silakan masukkan kode verifikasi WhatsApp.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    // Simulate WhatsApp verification
+    setTimeout(() => {
+      setVerificationData(prev => ({ ...prev, whatsappVerified: true }));
+      toast({
+        title: "WhatsApp Terverifikasi",
+        description: `Nomor ${formData.phone} telah berhasil diverifikasi.`,
+      });
+      setIsLoading(false);
+    }, 1500);
+  };
+
+  const handleCompleteRegistration = async () => {
+    if (!verificationData.ktpFile || !verificationData.emailVerified || !verificationData.whatsappVerified) {
+      toast({
+        title: "Lengkapi semua verifikasi",
+        description: "Harap selesaikan upload KTP, verifikasi email, dan verifikasi WhatsApp.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -78,10 +146,9 @@ const Signup = () => {
       });
 
       if (result.needsVerification) {
-        // Show success message and redirect to waiting page
         toast({
           title: "Pendaftaran Berhasil!",
-          description: "Akun Anda menunggu persetujuan admin. Anda akan dihubungi melalui WhatsApp.",
+          description: `Halo ${formData.name}! Akun Anda telah terdaftar dengan dokumen verifikasi. Tim kami akan menghubungi Anda melalui WhatsApp di ${formData.phone}.`,
         });
         
         // Reset form
@@ -93,6 +160,13 @@ const Signup = () => {
           confirmPassword: '',
           agreeTerms: false
         });
+        setVerificationData({
+          ktpFile: null,
+          emailVerified: false,
+          whatsappCode: '',
+          whatsappVerified: false
+        });
+        setCurrentStep(1);
       }
     } catch (error) {
       console.error('Signup failed:', error);
@@ -101,15 +175,14 @@ const Signup = () => {
     }
   };
 
+  const allVerified = verificationData.ktpFile && verificationData.emailVerified && verificationData.whatsappVerified;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-blue-50">
       <MainHeader />
       
       <div className="flex items-center justify-center px-4 py-8">
-        <div className="w-full max-w-2xl">
-          {/* Verification Banner */}
-          {!isLogin && <VerificationRequiredBanner userType="user" />}
-          
+        <div className="w-full max-w-2xl">          
           <Card className="shadow-lg">
             <CardHeader className="text-center space-y-4">
               <img 
@@ -118,145 +191,286 @@ const Signup = () => {
                 className="h-12 mx-auto"
               />
               <CardTitle className="text-2xl">
-                {isLogin ? 'Masuk ke Temanly' : 'Daftar Temanly'}
+                {isLogin ? 'Masuk ke Temanly' : (currentStep === 1 ? 'Daftar Temanly' : 'Verifikasi Identitas')}
               </CardTitle>
               <p className="text-gray-600">
                 {isLogin 
                   ? 'Selamat datang kembali! Silakan masuk ke akun Anda.' 
-                  : 'Bergabunglah dengan komunitas Temanly sekarang!'
+                  : currentStep === 1
+                    ? 'Bergabunglah dengan komunitas Temanly sekarang!'
+                    : `Halo ${formData.name}! Lengkapi verifikasi untuk mengakses semua layanan.`
                 }
               </p>
+              
+              {!isLogin && currentStep === 2 && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2 text-yellow-800 font-medium mb-2">
+                    <Shield className="w-4 h-4" />
+                    Data Pendaftar
+                  </div>
+                  <div className="text-sm text-yellow-700 space-y-1">
+                    <p><strong>Nama:</strong> {formData.name}</p>
+                    <p><strong>Email:</strong> {formData.email}</p>
+                    <p><strong>WhatsApp:</strong> {formData.phone}</p>
+                  </div>
+                </div>
+              )}
             </CardHeader>
             
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {!isLogin && (
+              {/* Step 1: Basic Registration Form */}
+              {(isLogin || currentStep === 1) && (
+                <form onSubmit={handleBasicInfoSubmit} className="space-y-4">
+                  {!isLogin && (
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Nama Lengkap</Label>
+                      <Input
+                        id="name"
+                        type="text"
+                        placeholder="Masukkan nama lengkap"
+                        value={formData.name}
+                        onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                        required
+                      />
+                    </div>
+                  )}
+
                   <div className="space-y-2">
-                    <Label htmlFor="name">Nama Lengkap</Label>
+                    <Label htmlFor="email">Email</Label>
                     <Input
-                      id="name"
-                      type="text"
-                      placeholder="Masukkan nama lengkap"
-                      value={formData.name}
-                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                      id="email"
+                      type="email"
+                      placeholder="masukkan@email.com"
+                      value={formData.email}
+                      onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                       required
                     />
                   </div>
-                )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="masukkan@email.com"
-                    value={formData.email}
-                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                    required
-                  />
-                </div>
+                  {!isLogin && (
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Nomor WhatsApp</Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        placeholder="08123456789"
+                        value={formData.phone}
+                        onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                        required
+                      />
+                    </div>
+                  )}
 
-                {!isLogin && (
                   <div className="space-y-2">
-                    <Label htmlFor="phone">Nomor WhatsApp</Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      placeholder="08123456789"
-                      value={formData.phone}
-                      onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                      required
-                    />
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder={isLogin ? "Masukkan password" : "Minimal 8 karakter"}
-                      value={formData.password}
-                      onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                      required
-                      minLength={isLogin ? 1 : 8}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </Button>
-                  </div>
-                </div>
-
-                {!isLogin && (
-                  <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Konfirmasi Password</Label>
+                    <Label htmlFor="password">Password</Label>
                     <div className="relative">
                       <Input
-                        id="confirmPassword"
-                        type={showConfirmPassword ? 'text' : 'password'}
-                        placeholder="Masukkan ulang password"
-                        value={formData.confirmPassword}
-                        onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                        id="password"
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder={isLogin ? "Masukkan password" : "Minimal 8 karakter"}
+                        value={formData.password}
+                        onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
                         required
+                        minLength={isLogin ? 1 : 8}
                       />
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
                         className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        onClick={() => setShowPassword(!showPassword)}
                       >
-                        {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </Button>
                     </div>
                   </div>
-                )}
 
-                {isLogin && (
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Lupa password?</span>
+                  {!isLogin && (
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPassword">Konfirmasi Password</Label>
+                      <div className="relative">
+                        <Input
+                          id="confirmPassword"
+                          type={showConfirmPassword ? 'text' : 'password'}
+                          placeholder="Masukkan ulang password"
+                          value={formData.confirmPassword}
+                          onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                          required
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        >
+                          {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {isLogin && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">Lupa password?</span>
+                    </div>
+                  )}
+
+                  {!isLogin && (
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="terms"
+                        checked={formData.agreeTerms}
+                        onCheckedChange={(checked) => setFormData(prev => ({ ...prev, agreeTerms: checked === true }))}
+                      />
+                      <Label htmlFor="terms" className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        Saya setuju dengan{' '}
+                        <Link to="/terms" className="text-blue-600 hover:underline">
+                          Syarat & Ketentuan
+                        </Link>
+                        {' '}dan{' '}
+                        <Link to="/privacy" className="text-blue-600 hover:underline">
+                          Kebijakan Privasi
+                        </Link>
+                      </Label>
+                    </div>
+                  )}
+
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-pink-500 hover:bg-pink-600"
+                    disabled={isLoading}
+                  >
+                    {isLoading 
+                      ? (isLogin ? 'Memproses...' : 'Memproses...') 
+                      : (isLogin ? 'Masuk' : 'Lanjut ke Verifikasi')
+                    }
+                  </Button>
+                </form>
+              )}
+
+              {/* Step 2: Verification Form */}
+              {!isLogin && currentStep === 2 && (
+                <div className="space-y-6">
+                  
+                  {/* KTP Upload */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <IdCard className="w-5 h-5" />
+                      <h3 className="font-semibold">1. Upload KTP/ID Card</h3>
+                      {verificationData.ktpFile && <Check className="w-5 h-5 text-green-600" />}
+                    </div>
+                    
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                      <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600 mb-2">Upload KTP/ID Card Anda</p>
+                      <input
+                        type="file"
+                        accept="image/*,.pdf"
+                        onChange={handleKtpUpload}
+                        className="hidden"
+                        id="ktp-upload"
+                      />
+                      <Button 
+                        type="button" 
+                        variant="outline"
+                        onClick={() => document.getElementById('ktp-upload')?.click()}
+                      >
+                        Pilih File
+                      </Button>
+                      {verificationData.ktpFile && (
+                        <p className="text-sm text-green-600 mt-2">
+                          ✓ File terpilih: {verificationData.ktpFile.name}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                )}
 
-                {!isLogin && (
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="terms"
-                      checked={formData.agreeTerms}
-                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, agreeTerms: checked === true }))}
-                    />
-                    <Label htmlFor="terms" className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      Saya setuju dengan{' '}
-                      <Link to="/terms" className="text-blue-600 hover:underline">
-                        Syarat & Ketentuan
-                      </Link>
-                      {' '}dan{' '}
-                      <Link to="/privacy" className="text-blue-600 hover:underline">
-                        Kebijakan Privasi
-                      </Link>
-                    </Label>
+                  {/* Email Verification */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-5 h-5" />
+                      <h3 className="font-semibold">2. Verifikasi Email</h3>
+                      {verificationData.emailVerified && <Check className="w-5 h-5 text-green-600" />}
+                    </div>
+                    
+                    <div className="p-4 border rounded-lg">
+                      <p className="text-sm text-gray-600 mb-3">
+                        Email: {formData.email}
+                      </p>
+                      <Button 
+                        onClick={handleEmailVerification}
+                        disabled={verificationData.emailVerified || isLoading}
+                        className="w-full"
+                        type="button"
+                      >
+                        {verificationData.emailVerified ? 'Email Terverifikasi ✓' : 'Verifikasi Email'}
+                      </Button>
+                    </div>
                   </div>
-                )}
 
-                <Button 
-                  type="submit" 
-                  className="w-full bg-pink-500 hover:bg-pink-600"
-                  disabled={isLoading}
-                >
-                  {isLoading 
-                    ? (isLogin ? 'Memproses...' : 'Mendaftar...') 
-                    : (isLogin ? 'Masuk' : 'Daftar Sekarang')
-                  }
-                </Button>
-              </form>
+                  {/* WhatsApp Verification */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-5 h-5" />
+                      <h3 className="font-semibold">3. Verifikasi WhatsApp</h3>
+                      {verificationData.whatsappVerified && <Check className="w-5 h-5 text-green-600" />}
+                    </div>
+                    
+                    <div className="p-4 border rounded-lg space-y-3">
+                      <p className="text-sm text-gray-600">
+                        WhatsApp: {formData.phone}
+                      </p>
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Masukkan kode verifikasi"
+                          value={verificationData.whatsappCode}
+                          onChange={(e) => setVerificationData(prev => ({ ...prev, whatsappCode: e.target.value }))}
+                          disabled={verificationData.whatsappVerified}
+                        />
+                        <Button 
+                          onClick={handleWhatsappVerification}
+                          disabled={verificationData.whatsappVerified || isLoading}
+                          type="button"
+                        >
+                          {verificationData.whatsappVerified ? 'Verified ✓' : 'Verifikasi'}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
 
+                  {/* Complete Registration */}
+                  <div className="pt-4 border-t space-y-4">
+                    <Button 
+                      onClick={handleCompleteRegistration}
+                      disabled={!allVerified || isLoading}
+                      className="w-full bg-pink-500 hover:bg-pink-600"
+                      size="lg"
+                      type="button"
+                    >
+                      {isLoading ? 'Mendaftarkan...' : 'Selesaikan Pendaftaran'}
+                    </Button>
+                    
+                    <Button 
+                      onClick={() => setCurrentStep(1)}
+                      variant="outline"
+                      className="w-full"
+                      type="button"
+                    >
+                      Kembali ke Data Pribadi
+                    </Button>
+                    
+                    {allVerified && (
+                      <p className="text-sm text-green-600 text-center">
+                        Semua langkah verifikasi selesai! Siap untuk mendaftar.
+                      </p>
+                    )}
+                  </div>
+
+                </div>
+              )}
+
+              {/* Toggle Login/Signup */}
               <div className="mt-6 text-center text-sm">
                 <span className="text-gray-600">
                   {isLogin ? 'Belum punya akun? ' : 'Sudah punya akun? '}
@@ -264,13 +478,17 @@ const Signup = () => {
                 <Button 
                   variant="link" 
                   className="text-blue-600 hover:underline font-medium p-0 h-auto"
-                  onClick={() => setIsLogin(!isLogin)}
+                  onClick={() => {
+                    setIsLogin(!isLogin);
+                    setCurrentStep(1);
+                  }}
+                  type="button"
                 >
                   {isLogin ? 'Daftar sekarang' : 'Masuk di sini'}
                 </Button>
               </div>
 
-              {!isLogin && (
+              {!isLogin && currentStep === 1 && (
                 <div className="mt-4 text-center">
                   <Link to="/talent-register" className="text-pink-600 hover:underline text-sm">
                     Ingin jadi Talent? Daftar di sini

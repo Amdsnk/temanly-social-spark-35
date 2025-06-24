@@ -77,7 +77,7 @@ const ServiceRestrictionNotice: React.FC<ServiceRestrictionNoticeProps> = ({
             </div>
             
             <div className="flex flex-col sm:flex-row gap-2">
-              <Link to="/user-verification" className="flex-1">
+              <Link to="/signup" className="flex-1">
                 <Button size="sm" className="bg-yellow-600 hover:bg-yellow-700 w-full">
                   <Shield className="w-4 h-4 mr-2" />
                   {content.buttonText}

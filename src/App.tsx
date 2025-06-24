@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -61,13 +60,6 @@ const App = () => (
               <Route path="/help" element={<Help />} />
               <Route path="/community" element={<Community />} />
               <Route path="/rent" element={<Rent />} />
-
-              {/* User verification page - allow unauthenticated access */}
-              <Route path="/user-verification" element={
-                <ProtectedRoute allowUnauthenticated={true}>
-                  <UserVerification />
-                </ProtectedRoute>
-              } />
 
               {/* Protected User Routes */}
               <Route path="/booking" element={
