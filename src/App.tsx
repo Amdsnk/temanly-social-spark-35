@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -29,6 +28,7 @@ import TalentRegister from "./pages/TalentRegister";
 import TalentRegisterSuccess from "./pages/TalentRegisterSuccess";
 import BrowseTalents from "./pages/BrowseTalents";
 import HowItWorks from "./pages/HowItWorks";
+import SignupSuccess from "./pages/SignupSuccess";
 
 const queryClient = new QueryClient();
 
@@ -56,6 +56,7 @@ const App = () => (
               <Route path="/talent/:id" element={<TalentProfile />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
+              <Route path="/signup-success" element={<SignupSuccess />} />
               <Route path="/talent-register" element={<TalentRegister />} />
               <Route path="/talent-register-success" element={<TalentRegisterSuccess />} />
               <Route path="/how-it-works" element={<HowItWorks />} />

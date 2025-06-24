@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Eye, EyeOff } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import MainHeader from '@/components/MainHeader';
 
@@ -17,7 +15,6 @@ const Login = () => {
     password: ''
   });
   const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -30,17 +27,9 @@ const Login = () => {
     
     try {
       await login(formData.email, formData.password);
-      toast({
-        title: "Login berhasil!",
-        description: "Selamat datang kembali di Temanly.",
-      });
       navigate(from, { replace: true });
     } catch (error) {
-      toast({
-        title: "Login gagal",
-        description: "Email atau password salah.",
-        variant: "destructive"
-      });
+      // Error handling is done in AuthContext
     } finally {
       setIsLoading(false);
     }

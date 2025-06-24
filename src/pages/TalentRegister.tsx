@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Upload, IdCard } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/Header';
+import { useAuth } from '@/contexts/AuthContext';
 
 const TalentRegister = () => {
   const [formData, setFormData] = useState({
@@ -28,7 +29,10 @@ const TalentRegister = () => {
     idVerification: null as File | null
   });
   
+  const [isLoading, setIsLoading] = useState(false);
+  const { signup } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const services = [
     { id: 'chat', name: 'Chat (25k/hari)' },
@@ -84,9 +88,7 @@ const TalentRegister = () => {
     }
   };
 
-  const navigate = useNavigate();
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.agreeTerms) {
@@ -116,10 +118,31 @@ const TalentRegister = () => {
       return;
     }
 
-    console.log('Talent registration:', formData);
-    
-    // Redirect to success page
-    navigate('/talent-register-success');
+    setIsLoading(true);
+
+    try {
+      const result = await signup({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        password: 'temp_password_' + Date.now(), // Temporary password, admin will reset
+        user_type: 'companion'
+      });
+
+      if (result.needsVerification) {
+        navigate('/talent-register-success', {
+          state: {
+            email: formData.email,
+            name: formData.name,
+            message: 'Pendaftaran talent berhasil! Dokumen Anda sedang ditinjau oleh tim admin.'
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Talent registration failed:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -372,8 +395,12 @@ const TalentRegister = () => {
                 </Label>
               </div>
 
-              <Button type="submit" className="w-full bg-purple-500 hover:bg-purple-600">
-                Daftar Sebagai Talent
+              <Button 
+                type="submit" 
+                className="w-full bg-purple-500 hover:bg-purple-600"
+                disabled={isLoading}
+              >
+                {isLoading ? 'Mendaftar...' : 'Daftar Sebagai Talent'}
               </Button>
             </form>
           </CardContent>
