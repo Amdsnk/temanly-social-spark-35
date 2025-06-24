@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertTriangle, Shield, IdCard, Mail, Phone } from 'lucide-react';
@@ -13,9 +12,13 @@ const VerificationRequiredBanner: React.FC<VerificationRequiredBannerProps> = ({
   const navigate = useNavigate();
 
   const handleVerificationClick = () => {
+    console.log('Verification button clicked, userType:', userType);
+    
     if (userType === 'user') {
+      console.log('Navigating to /user-verification');
       navigate('/user-verification');
     } else {
+      console.log('Navigating to /talent-register');
       navigate('/talent-register');
     }
   };
@@ -84,6 +87,7 @@ const VerificationRequiredBanner: React.FC<VerificationRequiredBannerProps> = ({
                 size="sm" 
                 className="bg-yellow-600 hover:bg-yellow-700"
                 onClick={handleVerificationClick}
+                type="button"
               >
                 <Shield className="w-4 h-4 mr-2" />
                 {userType === 'user' ? 'Lakukan Verifikasi' : 'Daftar Sebagai Talent'}
