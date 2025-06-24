@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import MainHeader from '@/components/MainHeader';
+import VerificationRequiredBanner from '@/components/VerificationRequiredBanner';
 import { useToast } from '@/hooks/use-toast';
 
 const Signup = () => {
@@ -105,7 +106,10 @@ const Signup = () => {
       <MainHeader />
       
       <div className="flex items-center justify-center px-4 py-8">
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-2xl">
+          {/* Verification Banner */}
+          {!isLogin && <VerificationRequiredBanner userType="user" />}
+          
           <Card className="shadow-lg">
             <CardHeader className="text-center space-y-4">
               <img 

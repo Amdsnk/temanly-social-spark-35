@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -7,9 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Upload, IdCard } from 'lucide-react';
+import { IdCard } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/Header';
+import VerificationRequiredBanner from '@/components/VerificationRequiredBanner';
 import { useAuth } from '@/contexts/AuthContext';
 
 const TalentRegister = () => {
@@ -23,8 +25,14 @@ const TalentRegister = () => {
     zodiac: '',
     loveLanguage: '',
     services: [] as string[],
+    serviceDetails: {
+      'rent-a-lover': '',
+      'offline-date': '',
+      'party-buddy': ''
+    },
     interests: [] as string[],
-    availability: '',
+    weekdayAvailability: '',
+    weekendAvailability: '',
     agreeTerms: false,
     idVerification: null as File | null
   });
@@ -35,18 +43,19 @@ const TalentRegister = () => {
   const navigate = useNavigate();
 
   const services = [
-    { id: 'chat', name: 'Chat (25k/hari)' },
-    { id: 'call', name: 'Voice Call (40k/jam)' },
-    { id: 'video', name: 'Video Call (65k/jam)' },
-    { id: 'offline-date', name: 'Offline Date (285k/3jam)' },
-    { id: 'party-buddy', name: 'Party Buddy (1M/event)' },
-    { id: 'rent-a-lover', name: 'Rent a Lover (up to 85k/hari)' }
+    { id: 'chat', name: 'Chat (25k/hari)', description: 'Layanan chat harian' },
+    { id: 'call', name: 'Voice Call (40k/jam)', description: 'Panggilan suara per jam' },
+    { id: 'video-call', name: 'Video Call (65k/jam)', description: 'Video call per jam' },
+    { id: 'rent-a-lover', name: 'Rent a Lover (up to 85k/hari)', description: 'Layanan pendamping virtual' },
+    { id: 'offline-date', name: 'Offline Date (285k/3jam)', description: 'Kencan offline 3 jam' },
+    { id: 'party-buddy', name: 'Party Buddy (1M/event)', description: 'Pendamping acara/pesta (21+ only)' }
   ];
 
   const interestOptions = [
     'sushi date', 'museum date', 'movie date', 'coffee chat', 'shopping',
     'picnic date', 'gaming', 'nightlife', 'cocktails', 'dancing',
-    'art gallery', 'yoga', 'hiking', 'golf', 'tennis'
+    'art gallery', 'yoga', 'hiking', 'golf', 'tennis', 'karaoke',
+    'photo hunting', 'culinary tour', 'city tour', 'beach activities'
   ];
 
   const zodiacSigns = [
@@ -60,6 +69,15 @@ const TalentRegister = () => {
   ];
 
   const handleServiceChange = (serviceId: string, checked: boolean) => {
+    if (serviceId === 'party-buddy' && checked && parseInt(formData.age) < 21) {
+      toast({
+        title: "Error",
+        description: "Party Buddy hanya tersedia untuk talent berusia 21+ tahun.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setFormData(prev => ({
       ...prev,
       services: checked 
@@ -118,6 +136,15 @@ const TalentRegister = () => {
       return;
     }
 
+    if (formData.services.includes('party-buddy') && parseInt(formData.age) < 21) {
+      toast({
+        title: "Error",
+        description: "Party Buddy hanya tersedia untuk talent berusia 21+ tahun.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -153,7 +180,9 @@ const TalentRegister = () => {
         showLogo={false}
       />
 
-      <div className="container mx-auto px-4 py-8 max-w-2xl">
+      <div className="container mx-auto px-4 py-8 max-w-3xl">
+        <VerificationRequiredBanner userType="companion" />
+        
         <Card className="shadow-lg">
           <CardHeader className="text-center space-y-4">
             <img 
@@ -164,11 +193,11 @@ const TalentRegister = () => {
           </CardHeader>
           
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-8">
               
               {/* Personal Information */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Informasi Pribadi</h3>
+                <h3 className="text-lg font-semibold border-b pb-2">Informasi Pribadi</h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -182,12 +211,12 @@ const TalentRegister = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="age">Usia *</Label>
+                    <Label htmlFor="age">Usia * (Min. 18 tahun)</Label>
                     <Input
                       id="age"
                       type="number"
-                      min="21"
-                      max="35"
+                      min="18"
+                      max="40"
                       value={formData.age}
                       onChange={(e) => setFormData(prev => ({ ...prev, age: e.target.value }))}
                       required
@@ -195,24 +224,26 @@ const TalentRegister = () => {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="city">Kota *</Label>
-                  <Select onValueChange={(value) => setFormData(prev => ({ ...prev, city: value }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih kota" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="jakarta">Jakarta</SelectItem>
-                      <SelectItem value="surabaya">Surabaya</SelectItem>
-                      <SelectItem value="bandung">Bandung</SelectItem>
-                      <SelectItem value="yogyakarta">Yogyakarta</SelectItem>
-                      <SelectItem value="bali">Bali</SelectItem>
-                      <SelectItem value="medan">Medan</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="city">Kota *</Label>
+                    <Select onValueChange={(value) => setFormData(prev => ({ ...prev, city: value }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Pilih kota" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="jakarta">Jakarta</SelectItem>
+                        <SelectItem value="surabaya">Surabaya</SelectItem>
+                        <SelectItem value="bandung">Bandung</SelectItem>
+                        <SelectItem value="yogyakarta">Yogyakarta</SelectItem>
+                        <SelectItem value="bali">Bali</SelectItem>
+                        <SelectItem value="medan">Medan</SelectItem>
+                        <SelectItem value="semarang">Semarang</SelectItem>
+                        <SelectItem value="makassar">Makassar</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
                   <div className="space-y-2">
                     <Label htmlFor="phone">WhatsApp *</Label>
                     <Input
@@ -224,26 +255,27 @@ const TalentRegister = () => {
                       required
                     />
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email *</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                      required
-                    />
-                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email *</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                    required
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="bio">Bio Singkat *</Label>
                   <Textarea
                     id="bio"
-                    placeholder="Ceritakan tentang diri Anda..."
+                    placeholder="Ceritakan tentang diri Anda, personality, hobi, dan hal menarik lainnya..."
                     value={formData.bio}
                     onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
+                    className="min-h-[100px]"
                     required
                   />
                 </div>
@@ -281,13 +313,16 @@ const TalentRegister = () => {
 
               {/* ID Verification */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-red-600">Verifikasi Identitas *</h3>
-                <p className="text-sm text-gray-600">Upload KTP/ID Card untuk verifikasi identitas (wajib)</p>
+                <h3 className="text-lg font-semibold text-red-600 border-b border-red-200 pb-2">
+                  🆔 Verifikasi Identitas (WAJIB)
+                </h3>
                 
-                <div className="border-2 border-dashed border-red-300 rounded-lg p-6 text-center">
-                  <IdCard className="w-12 h-12 text-red-400 mx-auto mb-4" />
-                  <p className="text-gray-600 mb-2">Upload KTP/ID Card</p>
-                  <p className="text-xs text-red-500 mb-4">* Wajib untuk verifikasi identitas</p>
+                <div className="border-2 border-dashed border-red-300 rounded-lg p-6 text-center bg-red-50">
+                  <IdCard className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                  <p className="font-medium text-red-700 mb-2">Upload KTP/ID Card</p>
+                  <p className="text-sm text-red-600 mb-4">
+                    Semua talent wajib melakukan verifikasi identitas untuk keamanan platform
+                  </p>
                   <input
                     type="file"
                     accept="image/*,.pdf"
@@ -298,14 +333,14 @@ const TalentRegister = () => {
                   <Button 
                     type="button" 
                     variant="outline" 
-                    className="border-red-300 text-red-600 hover:bg-red-50"
+                    className="border-red-400 text-red-600 hover:bg-red-100"
                     onClick={() => document.getElementById('id-upload')?.click()}
                   >
                     Pilih File KTP/ID
                   </Button>
                   {formData.idVerification && (
-                    <p className="text-sm text-green-600 mt-2">
-                      ✓ File terpilih: {formData.idVerification.name}
+                    <p className="text-sm text-green-600 mt-3 font-medium">
+                      ✅ File terpilih: {formData.idVerification.name}
                     </p>
                   )}
                 </div>
@@ -313,18 +348,50 @@ const TalentRegister = () => {
 
               {/* Services */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Layanan yang Tersedia</h3>
+                <h3 className="text-lg font-semibold border-b pb-2">Layanan yang Tersedia *</h3>
                 <p className="text-sm text-gray-600">Pilih layanan yang ingin Anda tawarkan:</p>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-3">
                   {services.map((service) => (
-                    <div key={service.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={service.id}
-                        checked={formData.services.includes(service.id)}
-                        onCheckedChange={(checked) => handleServiceChange(service.id, checked === true)}
-                      />
-                      <Label htmlFor={service.id} className="text-sm">{service.name}</Label>
+                    <div key={service.id} className="border rounded-lg p-4">
+                      <div className="flex items-start space-x-3">
+                        <Checkbox
+                          id={service.id}
+                          checked={formData.services.includes(service.id)}
+                          onCheckedChange={(checked) => handleServiceChange(service.id, checked === true)}
+                        />
+                        <div className="flex-1">
+                          <Label htmlFor={service.id} className="font-medium">{service.name}</Label>
+                          <p className="text-sm text-gray-500">{service.description}</p>
+                          
+                          {service.id === 'party-buddy' && (
+                            <p className="text-xs text-red-600 mt-1">⚠️ Hanya untuk talent berusia 21+ tahun</p>
+                          )}
+                          
+                          {/* Service Details */}
+                          {formData.services.includes(service.id) && ['rent-a-lover', 'offline-date'].includes(service.id) && (
+                            <div className="mt-3">
+                              <Label className="text-sm">Detail Layanan</Label>
+                              <Textarea
+                                placeholder={
+                                  service.id === 'rent-a-lover' 
+                                    ? "Contoh: Chat only, atau call max 1 hour per day, atau available for all services"
+                                    : "Contoh: Available untuk dinner date, museum visit, shopping companion"
+                                }
+                                value={formData.serviceDetails[service.id as keyof typeof formData.serviceDetails]}
+                                onChange={(e) => setFormData(prev => ({
+                                  ...prev,
+                                  serviceDetails: {
+                                    ...prev.serviceDetails,
+                                    [service.id]: e.target.value
+                                  }
+                                }))}
+                                className="mt-1"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -332,8 +399,8 @@ const TalentRegister = () => {
 
               {/* Interests */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Minat & Aktivitas</h3>
-                <p className="text-sm text-gray-600">Pilih aktivitas yang Anda sukai:</p>
+                <h3 className="text-lg font-semibold border-b pb-2">Minat & Aktivitas</h3>
+                <p className="text-sm text-gray-600">Pilih aktivitas yang Anda sukai (membantu user menemukan talent yang sesuai):</p>
                 
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {interestOptions.map((interest) => (
@@ -351,57 +418,63 @@ const TalentRegister = () => {
 
               {/* Availability */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Ketersediaan</h3>
-                <div className="space-y-2">
-                  <Label htmlFor="availability">Jadwal Ketersediaan</Label>
-                  <Input
-                    id="availability"
-                    placeholder="Contoh: Weekdays 5-10 PM, Weekends 2-8 PM"
-                    value={formData.availability}
-                    onChange={(e) => setFormData(prev => ({ ...prev, availability: e.target.value }))}
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Photo Upload */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Upload Foto</h3>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                  <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600 mb-2">Upload foto profil (minimal 3 foto)</p>
-                  <Button type="button" variant="outline">
-                    Pilih Foto
-                  </Button>
+                <h3 className="text-lg font-semibold border-b pb-2">Jadwal Ketersediaan</h3>
+                <p className="text-sm text-gray-600">
+                  Tentukan jadwal untuk layanan Offline Date dan Party Buddy
+                </p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="weekdayAvailability">Weekdays (Senin-Jumat)</Label>
+                    <Input
+                      id="weekdayAvailability"
+                      placeholder="Contoh: 17:00 - 22:00 WIB"
+                      value={formData.weekdayAvailability}
+                      onChange={(e) => setFormData(prev => ({ ...prev, weekdayAvailability: e.target.value }))}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="weekendAvailability">Weekend (Sabtu-Minggu)</Label>
+                    <Input
+                      id="weekendAvailability"
+                      placeholder="Contoh: 14:00 - 20:00 WIB"
+                      value={formData.weekendAvailability}
+                      onChange={(e) => setFormData(prev => ({ ...prev, weekendAvailability: e.target.value }))}
+                    />
+                  </div>
                 </div>
               </div>
 
               {/* Terms */}
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="terms"
-                  checked={formData.agreeTerms}
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, agreeTerms: checked === true }))}
-                />
-                <Label htmlFor="terms" className="text-sm">
-                  Saya setuju dengan{' '}
-                  <Link to="/terms" className="text-blue-600 hover:underline">
-                    Syarat & Ketentuan Talent
-                  </Link>
-                  {' '}dan{' '}
-                  <Link to="/privacy" className="text-blue-600 hover:underline">
-                    Kebijakan Privasi
-                  </Link>
-                </Label>
-              </div>
+              <div className="space-y-4">
+                <div className="flex items-start space-x-3">
+                  <Checkbox
+                    id="terms"
+                    checked={formData.agreeTerms}
+                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, agreeTerms: checked === true }))}
+                  />
+                  <Label htmlFor="terms" className="text-sm leading-relaxed">
+                    Saya setuju dengan{' '}
+                    <Link to="/terms" className="text-blue-600 hover:underline">
+                      Syarat & Ketentuan Talent
+                    </Link>
+                    {' '}dan{' '}
+                    <Link to="/privacy" className="text-blue-600 hover:underline">
+                      Kebijakan Privasi
+                    </Link>
+                    {' '}serta memahami bahwa semua informasi akan diverifikasi oleh tim Temanly.
+                  </Label>
+                </div>
 
-              <Button 
-                type="submit" 
-                className="w-full bg-purple-500 hover:bg-purple-600"
-                disabled={isLoading}
-              >
-                {isLoading ? 'Mendaftar...' : 'Daftar Sebagai Talent'}
-              </Button>
+                <Button 
+                  type="submit" 
+                  className="w-full bg-purple-500 hover:bg-purple-600 py-3 text-lg font-medium"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Mengirim Pendaftaran...' : 'Daftar Sebagai Talent'}
+                </Button>
+              </div>
             </form>
           </CardContent>
         </Card>
