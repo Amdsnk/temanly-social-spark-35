@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -17,7 +16,6 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/use-toast";
 import { sendEmailVerification, sendWhatsAppVerification, verifyWhatsAppCode } from '@/services/verificationService';
-import { useAuth } from '@/contexts/AuthContext';
 import { Mail, MessageSquare, Shield, User, Lock } from 'lucide-react';
 
 const formSchema = z.object({
@@ -148,16 +146,16 @@ const Signup = () => {
   };
 
   const handleSubmit = (values: z.infer<typeof formSchema>) => {
-    console.log(values);
+    console.log('Form submitted with values:', values);
     toast({
       title: "Success",
       description: "Pendaftaran berhasil!",
-    })
+    });
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-12 px-4">
-      <div className="container mx-auto max-w-lg">
+      <div className="container mx-auto py-10 max-w-lg">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
             <Shield className="w-8 h-8 text-blue-600" />
@@ -184,9 +182,10 @@ const Signup = () => {
                       </FormLabel>
                       <FormControl>
                         <Input 
+                          {...field}
                           placeholder="Masukkan nama lengkap Anda" 
-                          {...field} 
                           className="h-12 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
+                          autoComplete="name"
                         />
                       </FormControl>
                       <FormMessage />
@@ -205,10 +204,11 @@ const Signup = () => {
                       </FormLabel>
                       <FormControl>
                         <Input 
-                          placeholder="contoh@email.com" 
-                          {...field} 
+                          {...field}
                           type="email"
+                          placeholder="contoh@email.com" 
                           className="h-12 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
+                          autoComplete="email"
                         />
                       </FormControl>
                       <FormMessage />
@@ -227,10 +227,11 @@ const Signup = () => {
                       </FormLabel>
                       <FormControl>
                         <Input 
-                          placeholder="08123456789" 
-                          {...field} 
+                          {...field}
                           type="tel"
+                          placeholder="08123456789" 
                           className="h-12 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
+                          autoComplete="tel"
                         />
                       </FormControl>
                       <FormMessage />
@@ -249,10 +250,11 @@ const Signup = () => {
                       </FormLabel>
                       <FormControl>
                         <Input 
-                          placeholder="Minimal 8 karakter" 
-                          {...field} 
+                          {...field}
                           type="password"
+                          placeholder="Minimal 8 karakter" 
                           className="h-12 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
+                          autoComplete="new-password"
                         />
                       </FormControl>
                       <FormMessage />
