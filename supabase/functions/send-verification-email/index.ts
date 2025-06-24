@@ -19,23 +19,16 @@ serve(async (req) => {
     }
 
     // Generate verification token
-    const verificationToken = crypto.randomUUID();
+    const verificationToken = crypto.randomUUID().replace(/-/g, '').substring(0, 8).toUpperCase();
 
-    // For demo purposes, we'll just log the verification email
-    // In production, you would integrate with an email service like Resend, SendGrid, etc.
-    const emailContent = {
-      to: email,
-      subject: "Verifikasi Email Temanly",
-      html: getVerificationEmailTemplate(email, verificationToken)
-    };
-
-    console.log('Verification email would be sent:', emailContent);
-
-    // Here you would integrate with your email service
-    // Example with Resend (uncomment and add RESEND_API_KEY to secrets):
-    /*
+    // Get environment variables for email service
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    const fromEmail = Deno.env.get("FROM_EMAIL") || "noreply@temanly.com";
+
+    console.log('Email verification request:', { email, type, hasApiKey: !!resendApiKey });
+
     if (resendApiKey) {
+      // Send real email using Resend
       const response = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
@@ -43,32 +36,58 @@ serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: "noreply@temanly.com",
+          from: fromEmail,
           to: email,
-          subject: emailContent.subject,
-          html: emailContent.html,
+          subject: "Verifikasi Email Temanly",
+          html: getVerificationEmailTemplate(email, verificationToken),
         }),
       });
 
       if (!response.ok) {
+        const errorData = await response.text();
+        console.error('Resend API error:', errorData);
         throw new Error(`Email service error: ${response.statusText}`);
       }
-    }
-    */
 
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: "Verification email sent successfully",
-        token: verificationToken // In demo mode, return token for testing
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+      const result = await response.json();
+      console.log('Email sent successfully via Resend:', result);
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: "Email verifikasi telah dikirim",
+          token: verificationToken,
+          provider: "resend"
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    } else {
+      // Development mode - log the email content
+      console.log('DEVELOPMENT MODE - Email would be sent:', {
+        to: email,
+        subject: "Verifikasi Email Temanly",
+        token: verificationToken
+      });
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: `Development mode: Kode verifikasi email: ${verificationToken}`,
+          token: verificationToken,
+          provider: "development"
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
   } catch (error) {
     console.error('Error sending verification email:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        success: false,
+        error: error.message,
+        message: "Gagal mengirim email verifikasi"
+      }),
       { 
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" }
@@ -84,37 +103,64 @@ function getVerificationEmailTemplate(email: string, token: string): string {
     <head>
       <meta charset="utf-8">
       <title>Verifikasi Email Temanly</title>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .logo { color: #e91e63; font-size: 24px; font-weight: bold; }
+        .verification-code { 
+          background: #f8f9fa; 
+          border: 2px dashed #e91e63; 
+          padding: 20px; 
+          text-align: center; 
+          margin: 20px 0;
+          border-radius: 8px;
+        }
+        .code { 
+          font-size: 24px; 
+          font-weight: bold; 
+          color: #e91e63; 
+          letter-spacing: 3px;
+          font-family: monospace;
+        }
+        .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; }
+        .small { font-size: 12px; color: #666; }
+      </style>
     </head>
-    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-      <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="color: #e91e63;">Temanly</h1>
+    <body>
+      <div class="container">
+        <div class="header">
+          <div class="logo">🤝 Temanly</div>
         </div>
         
         <h2 style="color: #4caf50;">Verifikasi Email Anda</h2>
         
         <p>Halo,</p>
         
-        <p>Terima kasih telah mendaftar di Temanly. Untuk melanjutkan proses pendaftaran, silakan verifikasi email Anda dengan mengklik tombol di bawah ini:</p>
+        <p>Terima kasih telah mendaftar di Temanly. Untuk melanjutkan proses pendaftaran, masukkan kode verifikasi berikut di halaman pendaftaran:</p>
         
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="#" onclick="alert('Token verifikasi: ${token}')" style="background: #e91e63; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
-            Verifikasi Email
-          </a>
+        <div class="verification-code">
+          <div>Kode Verifikasi Anda:</div>
+          <div class="code">${token}</div>
         </div>
         
-        <p style="font-size: 12px; color: #666;">
-          Atau salin kode verifikasi ini: <strong>${token}</strong>
-        </p>
+        <p><strong>Petunjuk:</strong></p>
+        <ul>
+          <li>Masukkan kode di atas pada form verifikasi email</li>
+          <li>Kode berlaku selama 15 menit</li>
+          <li>Jangan bagikan kode ini kepada siapa pun</li>
+        </ul>
         
         <p>Jika Anda tidak mendaftar di Temanly, abaikan email ini.</p>
         
         <p>Salam hangat,<br>Tim Temanly</p>
         
-        <hr style="margin: 30px 0;">
-        <p style="font-size: 12px; color: #666;">
-          Email ini dikirim secara otomatis. Mohon tidak membalas email ini.
-        </p>
+        <div class="footer">
+          <p class="small">
+            Email ini dikirim secara otomatis. Mohon tidak membalas email ini.<br>
+            © 2024 Temanly. All rights reserved.
+          </p>
+        </div>
       </div>
     </body>
     </html>

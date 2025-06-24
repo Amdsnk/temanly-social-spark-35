@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -18,6 +19,7 @@ import { toast } from "@/components/ui/use-toast";
 import { Mail, MessageSquare, Shield, User, Lock, Upload, Check, AlertCircle } from 'lucide-react';
 import MainHeader from '@/components/MainHeader';
 import Footer from '@/components/Footer';
+import { sendEmailVerification, sendWhatsAppVerification, verifyWhatsAppCode, verifyEmailToken } from '@/services/verificationService';
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -100,19 +102,22 @@ const Signup = () => {
 
     setIsEmailSending(true);
     try {
-      // Generate 6-digit verification code
-      const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-      setExpectedEmailCode(verificationCode);
+      const result = await sendEmailVerification(watchedValues.email);
       
-      // Simulate email sending (in production, this would call actual email service)
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      setIsEmailSent(true);
-      toast({
-        title: "Email Verifikasi Terkirim",
-        description: `Kode verifikasi telah dikirim ke ${watchedValues.email}. Kode: ${verificationCode} (Demo)`,
-        className: "bg-green-50 border-green-200"
-      });
+      if (result.success) {
+        setIsEmailSent(true);
+        toast({
+          title: "Email Verifikasi Terkirim",
+          description: result.message,
+          className: "bg-green-50 border-green-200"
+        });
+      } else {
+        toast({
+          title: "Gagal Mengirim Email",
+          description: result.message,
+          variant: "destructive"
+        });
+      }
     } catch (error) {
       toast({
         title: "Gagal Mengirim Email",
@@ -134,17 +139,27 @@ const Signup = () => {
       return;
     }
 
-    if (emailVerificationCode === expectedEmailCode) {
-      setIsEmailVerified(true);
+    try {
+      const result = await verifyEmailToken(watchedValues.email, emailVerificationCode);
+      
+      if (result.success) {
+        setIsEmailVerified(true);
+        toast({
+          title: "Email Terverifikasi",
+          description: result.message,
+          className: "bg-green-50 border-green-200"
+        });
+      } else {
+        toast({
+          title: "Kode Salah",
+          description: result.message,
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
       toast({
-        title: "Email Terverifikasi",
-        description: "Email Anda berhasil diverifikasi",
-        className: "bg-green-50 border-green-200"
-      });
-    } else {
-      toast({
-        title: "Kode Salah",
-        description: "Kode verifikasi email tidak valid",
+        title: "Verifikasi Gagal",
+        description: "Terjadi kesalahan saat memverifikasi email",
         variant: "destructive"
       });
     }
@@ -163,19 +178,23 @@ const Signup = () => {
 
     setIsWhatsappSending(true);
     try {
-      // Generate 6-digit verification code
-      const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-      setExpectedWhatsappCode(verificationCode);
+      const result = await sendWhatsAppVerification(watchedValues.phone);
       
-      // Simulate WhatsApp sending (in production, this would call actual WhatsApp API)
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      setIsWhatsappSent(true);
-      toast({
-        title: "Kode WhatsApp Terkirim",
-        description: `Kode verifikasi telah dikirim ke ${watchedValues.phone}. Kode: ${verificationCode} (Demo)`,
-        className: "bg-green-50 border-green-200"
-      });
+      if (result.success) {
+        setIsWhatsappSent(true);
+        setExpectedWhatsappCode(result.code || '');
+        toast({
+          title: "Kode WhatsApp Terkirim",
+          description: result.message,
+          className: "bg-green-50 border-green-200"
+        });
+      } else {
+        toast({
+          title: "Gagal Mengirim Kode WhatsApp",
+          description: result.message,
+          variant: "destructive"
+        });
+      }
     } catch (error) {
       toast({
         title: "Gagal Mengirim Kode WhatsApp",
@@ -197,17 +216,27 @@ const Signup = () => {
       return;
     }
 
-    if (whatsappCode === expectedWhatsappCode) {
-      setIsWhatsappVerified(true);
+    try {
+      const result = await verifyWhatsAppCode(watchedValues.phone, whatsappCode, expectedWhatsappCode);
+      
+      if (result.success) {
+        setIsWhatsappVerified(true);
+        toast({
+          title: "WhatsApp Terverifikasi",
+          description: result.message,
+          className: "bg-green-50 border-green-200"
+        });
+      } else {
+        toast({
+          title: "Kode Salah",
+          description: result.message,
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
       toast({
-        title: "WhatsApp Terverifikasi",
-        description: "Nomor WhatsApp Anda berhasil diverifikasi",
-        className: "bg-green-50 border-green-200"
-      });
-    } else {
-      toast({
-        title: "Kode Salah",
-        description: "Kode verifikasi WhatsApp tidak valid",
+        title: "Verifikasi Gagal",
+        description: "Terjadi kesalahan saat memverifikasi WhatsApp",
         variant: "destructive"
       });
     }
@@ -466,11 +495,10 @@ const Signup = () => {
                         <div className="space-y-3">
                           <Input 
                             type="text" 
-                            placeholder="Masukkan 6 digit kode verifikasi" 
+                            placeholder="Masukkan kode verifikasi dari email" 
                             value={emailVerificationCode}
                             onChange={(e) => setEmailVerificationCode(e.target.value)}
                             className="h-11 text-center text-lg font-mono tracking-wider"
-                            maxLength={6}
                           />
                           <Button 
                             onClick={handleVerifyEmail} 
