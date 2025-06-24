@@ -76,7 +76,7 @@ const MainHeader = () => {
               </DropdownMenu>
             ) : (
               <div className="flex gap-2">
-                <Link to="/login">
+                <Link to="/signup">
                   <Button variant="ghost">Masuk</Button>
                 </Link>
                 <Link to="/signup">
