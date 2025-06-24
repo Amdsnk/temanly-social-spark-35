@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,6 +17,7 @@ import BookingPage from "./pages/BookingPage";
 import HowItWorks from "./pages/HowItWorks";
 import Safety from "./pages/Safety";
 import FAQ from "./pages/FAQ";
+import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import TalentRegister from "./pages/TalentRegister";
 import TalentRegisterSuccess from "./pages/TalentRegisterSuccess";
@@ -51,6 +53,7 @@ const App = () => (
               <Route path="/how-it-works" element={<HowItWorks />} />
               <Route path="/safety" element={<Safety />} />
               <Route path="/faq" element={<FAQ />} />
+              <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/talent-register" element={<TalentRegister />} />
               <Route path="/talent-register-success" element={<TalentRegisterSuccess />} />
