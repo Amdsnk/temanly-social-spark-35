@@ -6,10 +6,15 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Star, MapPin, Clock, Heart, MessageCircle, Phone, Video, Users, ArrowLeft, Calendar, Shield } from 'lucide-react';
 import Footer from '@/components/Footer';
+import VerificationStatus from '@/components/VerificationStatus';
+import ServiceRestrictionNotice from '@/components/ServiceRestrictionNotice';
+import { useAuth } from '@/contexts/AuthContext';
+import { getServiceRestrictions } from '@/utils/serviceCalculations';
 
 const TalentProfile = () => {
   const { id } = useParams();
   const [isBookmarked, setIsBookmarked] = useState(false);
+  const { user, isAuthenticated } = useAuth();
   
   // Mock talent data - in real app, fetch based on ID
   const talent = {
@@ -57,6 +62,9 @@ const TalentProfile = () => {
     ]
   };
 
+  const isVerified = user?.verified || false;
+  const restrictedServices = getServiceRestrictions(isVerified);
+
   const getServiceIcon = (service: string) => {
     switch (service) {
       case 'chat': return <MessageCircle className="w-4 h-4" />;
@@ -99,9 +107,11 @@ const TalentProfile = () => {
               >
                 <Heart className={`w-5 h-5 ${isBookmarked ? 'text-red-500 fill-current' : ''}`} />
               </Button>
-              <Link to="/signup">
-                <Button variant="ghost">Masuk</Button>
-              </Link>
+              {!isAuthenticated && (
+                <Link to="/signup">
+                  <Button variant="ghost">Masuk</Button>
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -112,6 +122,14 @@ const TalentProfile = () => {
           
           {/* Main Profile */}
           <div className="lg:col-span-2 space-y-6">
+            
+            {/* Service Restriction Notice */}
+            {isAuthenticated && (
+              <ServiceRestrictionNotice 
+                isVerified={isVerified}
+                restrictedServices={restrictedServices}
+              />
+            )}
             
             {/* Hero Section */}
             <Card>
@@ -293,6 +311,14 @@ const TalentProfile = () => {
                 <CardTitle>Book {talent.name}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                
+                {/* User Status */}
+                {isAuthenticated && user && (
+                  <div className="text-center pb-4 border-b">
+                    <VerificationStatus user={user} />
+                  </div>
+                )}
+                
                 <div className="text-center">
                   <p className="text-sm text-gray-600 mb-2">Mulai dari</p>
                   <p className="text-2xl font-bold text-blue-600">Rp 25.000</p>
@@ -300,12 +326,21 @@ const TalentProfile = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Link to="/signup" className="w-full">
-                    <Button className="w-full bg-pink-500 hover:bg-pink-600 text-white">
-                      <Calendar className="w-4 h-4 mr-2" />
-                      Book Sekarang
-                    </Button>
-                  </Link>
+                  {isAuthenticated ? (
+                    <Link to={`/booking?talent=${talent.id}`} className="w-full">
+                      <Button className="w-full bg-pink-500 hover:bg-pink-600 text-white">
+                        <Calendar className="w-4 h-4 mr-2" />
+                        Book Sekarang
+                      </Button>
+                    </Link>
+                  ) : (
+                    <Link to="/signup" className="w-full">
+                      <Button className="w-full bg-pink-500 hover:bg-pink-600 text-white">
+                        <Calendar className="w-4 h-4 mr-2" />
+                        Login to Book
+                      </Button>
+                    </Link>
+                  )}
                   <Button variant="outline" className="w-full">
                     <MessageCircle className="w-4 h-4 mr-2" />
                     Chat Dulu

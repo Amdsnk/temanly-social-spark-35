@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,24 +7,35 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Star, Clock, DollarSign } from 'lucide-react';
+import { CalendarIcon, Star } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/Header';
 import MidtransPayment from '@/components/payment/MidtransPayment';
+import MultiServiceSelector from '@/components/MultiServiceSelector';
+import ServiceRestrictionNotice from '@/components/ServiceRestrictionNotice';
+import VerificationStatus from '@/components/VerificationStatus';
+import { useAuth } from '@/contexts/AuthContext';
+import { calculateTotalPrice, getServiceRestrictions, hasRestrictedServices } from '@/utils/serviceCalculations';
+
+interface ServiceSelection {
+  id: string;
+  duration: number;
+  durationUnit: string;
+  datePlan?: string;
+  location?: string;
+}
 
 const BookingPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [selectedDate, setSelectedDate] = useState<Date>();
-  const [selectedService, setSelectedService] = useState('');
-  const [selectedTime, setSelectedTime] = useState('');
+  const [selectedServices, setSelectedServices] = useState<ServiceSelection[]>([]);
   const [bookingForm, setBookingForm] = useState({
     message: '',
-    duration: 1
   });
 
   // Mock talent data
@@ -37,20 +49,11 @@ const BookingPage = () => {
     isOnline: true
   };
 
-  const services = [
-    { id: 'chat', name: 'Chat', price: 25000, unit: 'per day' },
-    { id: 'call', name: 'Voice Call', price: 40000, unit: 'per hour' },
-    { id: 'video-call', name: 'Video Call', price: 65000, unit: 'per hour' },
-    { id: 'offline-date', name: 'Offline Date', price: 285000, unit: 'per 3 hours' }
-  ];
-
-  const timeSlots = [
-    '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', 
-    '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'
-  ];
-
-  const selectedServiceData = services.find(s => s.id === selectedService);
-  const totalPrice = selectedServiceData ? selectedServiceData.price : 0;
+  const isVerified = user?.verified || false;
+  const restrictedServices = getServiceRestrictions(isVerified);
+  const hasRestricted = hasRestrictedServices(selectedServices, isVerified);
+  
+  const totalPrice = calculateTotalPrice(selectedServices);
   const platformFee = Math.round(totalPrice * 0.1);
   const finalTotal = totalPrice + platformFee;
 
@@ -61,9 +64,8 @@ const BookingPage = () => {
     const bookingRecord = {
       id: `BOOKING-${Date.now()}`,
       talent: talent.name,
-      service: selectedServiceData?.name || '',
+      services: selectedServices,
       date: selectedDate?.toISOString(),
-      time: selectedTime,
       message: bookingForm.message,
       total: finalTotal,
       status: 'confirmed',
@@ -78,7 +80,7 @@ const BookingPage = () => {
     
     toast({
       title: "Payment Successful! 🎉",
-      description: `Your booking for ${selectedServiceData?.name} with ${talent.name} has been confirmed. Transaction ID: ${result.order_id || result.transaction_id}`,
+      description: `Your booking with ${talent.name} has been confirmed. Transaction ID: ${result.order_id || result.transaction_id}`,
     });
     
     // Redirect after 2 seconds
@@ -94,9 +96,8 @@ const BookingPage = () => {
     const bookingRecord = {
       id: `BOOKING-${Date.now()}`,
       talent: talent.name,
-      service: selectedServiceData?.name || '',
+      services: selectedServices,
       date: selectedDate?.toISOString(),
-      time: selectedTime,
       message: bookingForm.message,
       total: finalTotal,
       status: 'pending',
@@ -121,8 +122,6 @@ const BookingPage = () => {
       description: pendingMessage,
       variant: "default"
     });
-    
-    // Stay on the page for pending payments so user can see instructions
   };
 
   const handlePaymentError = (result: any) => {
@@ -145,14 +144,21 @@ const BookingPage = () => {
 
   const bookingData = {
     talent: talent.name,
-    service: selectedServiceData?.name || '',
+    services: selectedServices,
     date: selectedDate!,
-    time: selectedTime,
     message: bookingForm.message,
     total: finalTotal
   };
 
-  const isFormValid = selectedService && selectedDate && selectedTime;
+  const isFormValid = selectedServices.length > 0 && selectedDate && !hasRestricted;
+
+  if (hasRestricted) {
+    toast({
+      title: "Verification Required",
+      description: "Some selected services require user verification.",
+      variant: "destructive"
+    });
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -186,6 +192,11 @@ const BookingPage = () => {
                     <div className={`w-3 h-3 rounded-full ${talent.isOnline ? 'bg-green-500' : 'bg-gray-300'}`} />
                     <span className="text-sm text-gray-600">{talent.isOnline ? 'Online' : 'Offline'}</span>
                   </div>
+                  
+                  {/* User Verification Status */}
+                  <div className="mt-3">
+                    <VerificationStatus user={user} />
+                  </div>
                 </div>
 
                 <div className="space-y-4">
@@ -201,81 +212,51 @@ const BookingPage = () => {
           {/* Booking Form */}
           <div className="lg:col-span-2 space-y-6">
             
-            {/* Service Selection */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Select Service</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {services.map((service) => (
-                    <div 
-                      key={service.id}
-                      className={`border rounded-lg p-4 cursor-pointer transition-all ${
-                        selectedService === service.id 
-                          ? 'border-blue-500 bg-blue-50' 
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                      onClick={() => setSelectedService(service.id)}
-                    >
-                      <h3 className="font-medium">{service.name}</h3>
-                      <p className="text-sm text-gray-600 mt-1">
-                        Rp {service.price.toLocaleString()} {service.unit}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            {/* Service Restriction Notice */}
+            <ServiceRestrictionNotice 
+              isVerified={isVerified}
+              restrictedServices={restrictedServices}
+            />
+            
+            {/* Multi Service Selection */}
+            <MultiServiceSelector
+              selectedServices={selectedServices}
+              onServiceChange={setSelectedServices}
+              isVerified={isVerified}
+            />
 
-            {/* Date & Time Selection */}
-            {selectedService && (
+            {/* Date Selection */}
+            {selectedServices.length > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Select Date & Time</CardTitle>
+                  <CardTitle>Select Date</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label>Select Date</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button variant="outline" className="w-full justify-start text-left">
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                          <Calendar
-                            mode="single"
-                            selected={selectedDate}
-                            onSelect={setSelectedDate}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Select Time</Label>
-                      <Select value={selectedTime} onValueChange={setSelectedTime}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Choose time" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {timeSlots.map((time) => (
-                            <SelectItem key={time} value={time}>{time}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                <CardContent>
+                  <div className="space-y-2">
+                    <Label>Select Date</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="w-full justify-start text-left">
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={selectedDate}
+                          onSelect={setSelectedDate}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </CardContent>
               </Card>
             )}
 
             {/* Message */}
-            {selectedService && (
+            {selectedServices.length > 0 && (
               <Card>
                 <CardHeader>
                   <CardTitle>Special Message (Optional)</CardTitle>
@@ -295,7 +276,7 @@ const BookingPage = () => {
             )}
 
             {/* Order Summary & Payment */}
-            {selectedService && (
+            {selectedServices.length > 0 && totalPrice > 0 && (
               <Card>
                 <CardHeader>
                   <CardTitle>Order Summary & Payment</CardTitle>
@@ -303,10 +284,14 @@ const BookingPage = () => {
                 <CardContent>
                   <div className="space-y-4">
                     <div className="space-y-3">
-                      <div className="flex justify-between">
-                        <span>{selectedServiceData?.name}</span>
-                        <span>Rp {totalPrice.toLocaleString()}</span>
-                      </div>
+                      {selectedServices.map((service, index) => (
+                        <div key={index} className="flex justify-between text-sm">
+                          <span>
+                            {service.id.replace('-', ' ')} ({service.duration} {service.durationUnit})
+                          </span>
+                          <span>Rp {calculateTotalPrice([service]).toLocaleString()}</span>
+                        </div>
+                      ))}
                       
                       <div className="border-t pt-2">
                         <div className="flex justify-between">
