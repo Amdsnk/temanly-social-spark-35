@@ -144,8 +144,10 @@ const BookingPage = () => {
 
   const bookingData = {
     talent: talent.name,
+    service: selectedServices.map(s => s.id).join(', '),
     services: selectedServices,
     date: selectedDate!,
+    time: '00:00', // Default time, could be made configurable
     message: bookingForm.message,
     total: finalTotal
   };

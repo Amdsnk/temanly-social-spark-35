@@ -6,10 +6,11 @@ import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
+  requiredUserType?: 'user' | 'companion';
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredUserType }) => {
+  const { isAuthenticated, isLoading, user } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
@@ -21,7 +22,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/signup" state={{ from: location }} replace />;
+  }
+
+  // Check user type if required
+  if (requiredUserType && user?.userType !== requiredUserType) {
+    return <Navigate to="/signup" replace />;
   }
 
   return <>{children}</>;
