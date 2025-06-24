@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertTriangle, Shield, IdCard, Mail, Phone } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
 interface VerificationRequiredBannerProps {
@@ -10,6 +10,16 @@ interface VerificationRequiredBannerProps {
 }
 
 const VerificationRequiredBanner: React.FC<VerificationRequiredBannerProps> = ({ userType }) => {
+  const navigate = useNavigate();
+
+  const handleVerificationClick = () => {
+    if (userType === 'user') {
+      navigate('/user-verification');
+    } else {
+      navigate('/talent-register');
+    }
+  };
+
   return (
     <Card className="border-yellow-200 bg-yellow-50 mb-6">
       <CardContent className="p-6">
@@ -70,12 +80,14 @@ const VerificationRequiredBanner: React.FC<VerificationRequiredBannerProps> = ({
             )}
             
             <div className="mt-4">
-              <Link to={userType === 'user' ? "/user-verification" : "/talent-register"}>
-                <Button size="sm" className="bg-yellow-600 hover:bg-yellow-700">
-                  <Shield className="w-4 h-4 mr-2" />
-                  {userType === 'user' ? 'Lakukan Verifikasi' : 'Daftar Sebagai Talent'}
-                </Button>
-              </Link>
+              <Button 
+                size="sm" 
+                className="bg-yellow-600 hover:bg-yellow-700"
+                onClick={handleVerificationClick}
+              >
+                <Shield className="w-4 h-4 mr-2" />
+                {userType === 'user' ? 'Lakukan Verifikasi' : 'Daftar Sebagai Talent'}
+              </Button>
             </div>
           </div>
         </div>
