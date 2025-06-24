@@ -7,9 +7,14 @@ import { Loader2 } from 'lucide-react';
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requiredUserType?: 'user' | 'companion';
+  allowUnauthenticated?: boolean;
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredUserType }) => {
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
+  children, 
+  requiredUserType, 
+  allowUnauthenticated = false 
+}) => {
   const { isAuthenticated, isLoading, user } = useAuth();
   const location = useLocation();
 
@@ -19,6 +24,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredUserT
         <Loader2 className="w-8 h-8 animate-spin" />
       </div>
     );
+  }
+
+  // Allow unauthenticated access for certain pages (like user-verification preview)
+  if (allowUnauthenticated) {
+    return <>{children}</>;
   }
 
   if (!isAuthenticated) {

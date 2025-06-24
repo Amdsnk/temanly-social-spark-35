@@ -62,6 +62,13 @@ const App = () => (
               <Route path="/community" element={<Community />} />
               <Route path="/rent" element={<Rent />} />
 
+              {/* User verification page - allow unauthenticated access */}
+              <Route path="/user-verification" element={
+                <ProtectedRoute allowUnauthenticated={true}>
+                  <UserVerification />
+                </ProtectedRoute>
+              } />
+
               {/* Protected User Routes */}
               <Route path="/booking" element={
                 <ProtectedRoute>
@@ -71,11 +78,6 @@ const App = () => (
               <Route path="/user-dashboard" element={
                 <ProtectedRoute>
                   <UserDashboard />
-                </ProtectedRoute>
-              } />
-              <Route path="/user-verification" element={
-                <ProtectedRoute>
-                  <UserVerification />
                 </ProtectedRoute>
               } />
               <Route path="/talent-dashboard" element={

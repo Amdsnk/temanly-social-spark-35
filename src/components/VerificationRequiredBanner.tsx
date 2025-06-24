@@ -18,19 +18,12 @@ const VerificationRequiredBanner: React.FC<VerificationRequiredBannerProps> = ({
     console.log('Verification button clicked, userType:', userType);
     console.log('Is authenticated:', isAuthenticated);
     
-    // If not authenticated, redirect to signup first
-    if (!isAuthenticated) {
-      console.log('User not authenticated, redirecting to signup');
-      navigate('/signup');
-      return;
-    }
-    
     if (userType === 'user') {
       console.log('Navigating to /user-verification');
-      navigate('/user-verification', { replace: true });
+      navigate('/user-verification');
     } else {
       console.log('Navigating to /talent-register');
-      navigate('/talent-register', { replace: true });
+      navigate('/talent-register');
     }
   };
 
