@@ -1,8 +1,10 @@
+
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertTriangle, Shield, IdCard, Mail, Phone } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface VerificationRequiredBannerProps {
   userType: 'user' | 'companion';
@@ -10,16 +12,25 @@ interface VerificationRequiredBannerProps {
 
 const VerificationRequiredBanner: React.FC<VerificationRequiredBannerProps> = ({ userType }) => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
   const handleVerificationClick = () => {
     console.log('Verification button clicked, userType:', userType);
+    console.log('Is authenticated:', isAuthenticated);
+    
+    // If not authenticated, redirect to signup first
+    if (!isAuthenticated) {
+      console.log('User not authenticated, redirecting to signup');
+      navigate('/signup');
+      return;
+    }
     
     if (userType === 'user') {
       console.log('Navigating to /user-verification');
-      navigate('/user-verification');
+      navigate('/user-verification', { replace: true });
     } else {
       console.log('Navigating to /talent-register');
-      navigate('/talent-register');
+      navigate('/talent-register', { replace: true });
     }
   };
 
