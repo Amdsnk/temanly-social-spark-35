@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -100,7 +99,7 @@ const TalentProfile = () => {
               >
                 <Heart className={`w-5 h-5 ${isBookmarked ? 'text-red-500 fill-current' : ''}`} />
               </Button>
-              <Link to="/login">
+              <Link to="/signup">
                 <Button variant="ghost">Masuk</Button>
               </Link>
             </div>
@@ -301,7 +300,7 @@ const TalentProfile = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Link to={`/booking?talent=${talent.id}`} className="w-full">
+                  <Link to="/signup" className="w-full">
                     <Button className="w-full bg-pink-500 hover:bg-pink-600 text-white">
                       <Calendar className="w-4 h-4 mr-2" />
                       Book Sekarang
