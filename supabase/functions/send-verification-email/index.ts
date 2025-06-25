@@ -7,6 +7,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -23,7 +24,7 @@ serve(async (req) => {
 
     // Get environment variables for email service
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
-    const fromEmail = Deno.env.get("FROM_EMAIL") || "noreply@temanly.com";
+    const fromEmail = Deno.env.get("FROM_EMAIL") || "onboarding@resend.dev";
 
     console.log('Email verification request:', { email, type, hasApiKey: !!resendApiKey });
 
