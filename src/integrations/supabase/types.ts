@@ -9,6 +9,44 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      availability_slots: {
+        Row: {
+          created_at: string | null
+          day_of_week: number
+          end_time: string
+          id: string
+          service_type: Database["public"]["Enums"]["service_type"]
+          start_time: string
+          talent_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          day_of_week: number
+          end_time: string
+          id?: string
+          service_type: Database["public"]["Enums"]["service_type"]
+          start_time: string
+          talent_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          day_of_week?: number
+          end_time?: string
+          id?: string
+          service_type?: Database["public"]["Enums"]["service_type"]
+          start_time?: string
+          talent_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "availability_slots_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookings: {
         Row: {
           booking_status: Database["public"]["Enums"]["booking_status"] | null
@@ -18,15 +56,19 @@ export type Database = {
           customer_name: string
           customer_phone: string
           date: string
+          date_plan: string | null
           duration: number
           id: string
+          location: string | null
           notes: string | null
           payment_method: string | null
           payment_reference: string | null
           payment_status: Database["public"]["Enums"]["payment_status"] | null
           service_name: string
+          service_type: Database["public"]["Enums"]["service_type"] | null
           time: string
           total_price: number
+          transport_fee: number | null
           updated_at: string | null
           user_id: string | null
         }
@@ -38,15 +80,19 @@ export type Database = {
           customer_name: string
           customer_phone: string
           date: string
+          date_plan?: string | null
           duration: number
           id?: string
+          location?: string | null
           notes?: string | null
           payment_method?: string | null
           payment_reference?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
           service_name: string
+          service_type?: Database["public"]["Enums"]["service_type"] | null
           time: string
           total_price: number
+          transport_fee?: number | null
           updated_at?: string | null
           user_id?: string | null
         }
@@ -58,15 +104,19 @@ export type Database = {
           customer_name?: string
           customer_phone?: string
           date?: string
+          date_plan?: string | null
           duration?: number
           id?: string
+          location?: string | null
           notes?: string | null
           payment_method?: string | null
           payment_reference?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
           service_name?: string
+          service_type?: Database["public"]["Enums"]["service_type"] | null
           time?: string
           total_price?: number
+          transport_fee?: number | null
           updated_at?: string | null
           user_id?: string | null
         }
@@ -87,63 +137,193 @@ export type Database = {
           },
         ]
       }
+      commission_rates: {
+        Row: {
+          commission_percentage: number
+          created_at: string | null
+          id: string
+          talent_level: Database["public"]["Enums"]["talent_level"]
+        }
+        Insert: {
+          commission_percentage: number
+          created_at?: string | null
+          id?: string
+          talent_level: Database["public"]["Enums"]["talent_level"]
+        }
+        Update: {
+          commission_percentage?: number
+          created_at?: string | null
+          id?: string
+          talent_level?: Database["public"]["Enums"]["talent_level"]
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
+          age: number | null
           bio: string | null
+          city: string | null
           created_at: string | null
           email: string
           full_name: string | null
           hourly_rate: number | null
           id: string
+          is_available: boolean | null
           location: string | null
+          love_language: string | null
           name: string
+          party_buddy_eligible: boolean | null
           phone: string | null
           profile_image: string | null
           rating: number | null
           status: Database["public"]["Enums"]["user_status"]
+          talent_level: Database["public"]["Enums"]["talent_level"] | null
           total_bookings: number | null
           total_earnings: number | null
           updated_at: string | null
           user_type: Database["public"]["Enums"]["user_type"]
           verification_status: Database["public"]["Enums"]["verification_status"]
+          zodiac: string | null
         }
         Insert: {
+          age?: number | null
           bio?: string | null
+          city?: string | null
           created_at?: string | null
           email: string
           full_name?: string | null
           hourly_rate?: number | null
           id: string
+          is_available?: boolean | null
           location?: string | null
+          love_language?: string | null
           name: string
+          party_buddy_eligible?: boolean | null
           phone?: string | null
           profile_image?: string | null
           rating?: number | null
           status?: Database["public"]["Enums"]["user_status"]
+          talent_level?: Database["public"]["Enums"]["talent_level"] | null
           total_bookings?: number | null
           total_earnings?: number | null
           updated_at?: string | null
           user_type?: Database["public"]["Enums"]["user_type"]
           verification_status?: Database["public"]["Enums"]["verification_status"]
+          zodiac?: string | null
         }
         Update: {
+          age?: number | null
           bio?: string | null
+          city?: string | null
           created_at?: string | null
           email?: string
           full_name?: string | null
           hourly_rate?: number | null
           id?: string
+          is_available?: boolean | null
           location?: string | null
+          love_language?: string | null
           name?: string
+          party_buddy_eligible?: boolean | null
           phone?: string | null
           profile_image?: string | null
           rating?: number | null
           status?: Database["public"]["Enums"]["user_status"]
+          talent_level?: Database["public"]["Enums"]["talent_level"] | null
           total_bookings?: number | null
           total_earnings?: number | null
           updated_at?: string | null
           user_type?: Database["public"]["Enums"]["user_type"]
           verification_status?: Database["public"]["Enums"]["verification_status"]
+          zodiac?: string | null
+        }
+        Relationships: []
+      }
+      reviews: {
+        Row: {
+          admin_notes: string | null
+          booking_id: string | null
+          comment: string | null
+          created_at: string | null
+          id: string
+          is_verified: boolean | null
+          rating: number
+          reviewee_id: string | null
+          reviewer_id: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          booking_id?: string | null
+          comment?: string | null
+          created_at?: string | null
+          id?: string
+          is_verified?: boolean | null
+          rating: number
+          reviewee_id?: string | null
+          reviewer_id?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          booking_id?: string | null
+          comment?: string | null
+          created_at?: string | null
+          id?: string
+          is_verified?: boolean | null
+          rating?: number
+          reviewee_id?: string | null
+          reviewer_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_reviewee_id_fkey"
+            columns: ["reviewee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_rates: {
+        Row: {
+          additional_rate: number | null
+          base_rate: number
+          created_at: string | null
+          id: string
+          service_type: Database["public"]["Enums"]["service_type"]
+          unit: string
+          updated_at: string | null
+        }
+        Insert: {
+          additional_rate?: number | null
+          base_rate: number
+          created_at?: string | null
+          id?: string
+          service_type: Database["public"]["Enums"]["service_type"]
+          unit: string
+          updated_at?: string | null
+        }
+        Update: {
+          additional_rate?: number | null
+          base_rate?: number
+          created_at?: string | null
+          id?: string
+          service_type?: Database["public"]["Enums"]["service_type"]
+          unit?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -206,6 +386,76 @@ export type Database = {
           value?: Json
         }
         Relationships: []
+      }
+      talent_interests: {
+        Row: {
+          created_at: string | null
+          id: string
+          interest: string
+          talent_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          interest: string
+          talent_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          interest?: string
+          talent_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_interests_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      talent_services: {
+        Row: {
+          created_at: string | null
+          custom_rate: number | null
+          description: string | null
+          id: string
+          is_available: boolean | null
+          max_duration: number | null
+          service_type: Database["public"]["Enums"]["service_type"]
+          talent_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          custom_rate?: number | null
+          description?: string | null
+          id?: string
+          is_available?: boolean | null
+          max_duration?: number | null
+          service_type: Database["public"]["Enums"]["service_type"]
+          talent_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          custom_rate?: number | null
+          description?: string | null
+          id?: string
+          is_available?: boolean | null
+          max_duration?: number | null
+          service_type?: Database["public"]["Enums"]["service_type"]
+          talent_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_services_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       transactions: {
         Row: {
@@ -280,6 +530,47 @@ export type Database = {
           },
         ]
       }
+      verification_documents: {
+        Row: {
+          admin_notes: string | null
+          created_at: string | null
+          document_type: string
+          document_url: string
+          id: string
+          status: Database["public"]["Enums"]["verification_status"] | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string | null
+          document_type: string
+          document_url: string
+          id?: string
+          status?: Database["public"]["Enums"]["verification_status"] | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string | null
+          document_type?: string
+          document_url?: string
+          id?: string
+          status?: Database["public"]["Enums"]["verification_status"] | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "verification_documents_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -301,6 +592,14 @@ export type Database = {
         | "failed"
         | "refunded"
         | "pending_verification"
+      service_type:
+        | "chat"
+        | "call"
+        | "video_call"
+        | "offline_date"
+        | "party_buddy"
+        | "rent_lover"
+      talent_level: "fresh" | "elite" | "vip"
       user_status: "active" | "suspended" | "pending" | "banned"
       user_type: "user" | "companion" | "admin"
       verification_status: "verified" | "pending" | "rejected"
@@ -434,6 +733,15 @@ export const Constants = {
         "refunded",
         "pending_verification",
       ],
+      service_type: [
+        "chat",
+        "call",
+        "video_call",
+        "offline_date",
+        "party_buddy",
+        "rent_lover",
+      ],
+      talent_level: ["fresh", "elite", "vip"],
       user_status: ["active", "suspended", "pending", "banned"],
       user_type: ["user", "companion", "admin"],
       verification_status: ["verified", "pending", "rejected"],
