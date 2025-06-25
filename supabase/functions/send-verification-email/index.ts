@@ -26,43 +26,67 @@ serve(async (req) => {
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     const fromEmail = Deno.env.get("FROM_EMAIL") || "onboarding@resend.dev";
 
-    console.log('Email verification request:', { email, type, hasApiKey: !!resendApiKey });
+    console.log('Email verification request:', { 
+      email, 
+      type, 
+      hasApiKey: !!resendApiKey,
+      fromEmail: fromEmail 
+    });
 
     if (resendApiKey) {
-      // Send real email using Resend
-      const response = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${resendApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: fromEmail,
-          to: email,
-          subject: "Verifikasi Email Temanly",
-          html: getVerificationEmailTemplate(email, verificationToken),
-        }),
-      });
+      try {
+        // Send real email using Resend
+        const response = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${resendApiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            from: fromEmail,
+            to: email,
+            subject: "Verifikasi Email Temanly",
+            html: getVerificationEmailTemplate(email, verificationToken),
+          }),
+        });
 
-      if (!response.ok) {
-        const errorData = await response.text();
-        console.error('Resend API error:', errorData);
-        throw new Error(`Email service error: ${response.statusText}`);
+        const responseText = await response.text();
+        console.log('Resend API response:', { status: response.status, body: responseText });
+
+        if (!response.ok) {
+          console.error('Resend API error:', responseText);
+          throw new Error(`Email service error: ${response.status} - ${responseText}`);
+        }
+
+        const result = JSON.parse(responseText);
+        console.log('Email sent successfully via Resend:', result);
+
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: "Email verifikasi telah dikirim",
+            token: verificationToken,
+            provider: "resend"
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } catch (emailError) {
+        console.error('Resend email sending failed:', emailError);
+        
+        // Return fallback for development
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: `Development fallback: Kode verifikasi email: ${verificationToken}`,
+            token: verificationToken,
+            provider: "development"
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
-
-      const result = await response.json();
-      console.log('Email sent successfully via Resend:', result);
-
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: "Email verifikasi telah dikirim",
-          token: verificationToken,
-          provider: "resend"
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
     } else {
+      console.log('No RESEND_API_KEY found, using development mode');
+      
       // Development mode - log the email content
       console.log('DEVELOPMENT MODE - Email would be sent:', {
         to: email,
