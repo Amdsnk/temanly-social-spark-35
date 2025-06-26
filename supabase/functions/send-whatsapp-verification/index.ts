@@ -19,59 +19,55 @@ serve(async (req) => {
     }
 
     // Format phone number (remove leading 0 and add +62 for Indonesia)
-    const formattedPhone = phone.startsWith('0') ? '+62' + phone.slice(1) : phone;
+    const formattedPhone = phone.startsWith('0') ? '62' + phone.slice(1) : phone.replace('+', '');
 
     const message = `Kode verifikasi Temanly Anda: ${code}\n\nJangan bagikan kode ini kepada siapa pun.\n\nKode berlaku selama 10 menit.`;
 
-    // Get environment variables for WhatsApp service
-    const twilioAccountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
-    const twilioAuthToken = Deno.env.get("TWILIO_AUTH_TOKEN");
-    const twilioWhatsAppNumber = Deno.env.get("TWILIO_WHATSAPP_NUMBER");
+    // Get TextMeBot API credentials
+    const textmebotApiUrl = Deno.env.get("TEXTMEBOT_API_URL");
+    const textmebotApiKey = Deno.env.get("TEXTMEBOT_API_KEY");
 
     console.log('WhatsApp verification request:', { 
       phone: formattedPhone, 
       code,
-      hasTwilioCredentials: !!(twilioAccountSid && twilioAuthToken && twilioWhatsAppNumber),
-      twilioWhatsAppNumber: twilioWhatsAppNumber
+      hasTextMeBotCredentials: !!(textmebotApiUrl && textmebotApiKey)
     });
 
-    if (twilioAccountSid && twilioAuthToken && twilioWhatsAppNumber) {
+    if (textmebotApiUrl && textmebotApiKey) {
       try {
-        // Send real WhatsApp message using Twilio
-        const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`, {
+        // Send WhatsApp message using TextMeBot
+        const response = await fetch(`${textmebotApiUrl}/send-message`, {
           method: "POST",
           headers: {
-            "Authorization": `Basic ${btoa(`${twilioAccountSid}:${twilioAuthToken}`)}`,
-            "Content-Type": "application/x-www-form-urlencoded",
+            "Authorization": `Bearer ${textmebotApiKey}`,
+            "Content-Type": "application/json",
           },
-          body: new URLSearchParams({
-            From: `whatsapp:${twilioWhatsAppNumber}`,
-            To: `whatsapp:${formattedPhone}`,
-            Body: message,
+          body: JSON.stringify({
+            phone: formattedPhone,
+            message: message,
           }),
         });
 
-        const responseText = await response.text();
-        console.log('Twilio API response:', { status: response.status, body: responseText });
+        const responseData = await response.json();
+        console.log('TextMeBot API response:', { status: response.status, data: responseData });
 
         if (!response.ok) {
-          console.error('Twilio API error:', responseText);
-          throw new Error(`WhatsApp service error: ${response.status} - ${responseText}`);
+          console.error('TextMeBot API error:', responseData);
+          throw new Error(`WhatsApp service error: ${response.status} - ${JSON.stringify(responseData)}`);
         }
 
-        const result = JSON.parse(responseText);
-        console.log('WhatsApp message sent successfully via Twilio:', result);
+        console.log('WhatsApp message sent successfully via TextMeBot:', responseData);
 
         return new Response(
           JSON.stringify({ 
             success: true, 
-            message: `Kode verifikasi telah dikirim via WhatsApp ke ${formattedPhone}`,
-            provider: "twilio"
+            message: `Kode verifikasi telah dikirim via WhatsApp ke ${phone}`,
+            provider: "textmebot"
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       } catch (whatsappError) {
-        console.error('Twilio WhatsApp sending failed:', whatsappError);
+        console.error('TextMeBot WhatsApp sending failed:', whatsappError);
         
         // For development, return the code in the message
         return new Response(
@@ -85,7 +81,7 @@ serve(async (req) => {
         );
       }
     } else {
-      console.log('Missing Twilio credentials, using development mode');
+      console.log('Missing TextMeBot credentials, using development mode');
       
       // Development mode - log the WhatsApp message
       console.log('DEVELOPMENT MODE - WhatsApp message would be sent:', {

@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface VerificationRequest {
@@ -11,7 +10,24 @@ export const sendEmailVerification = async (email: string): Promise<{ success: b
   try {
     console.log('Sending email verification to:', email);
     
-    // Use Supabase edge function to send verification email
+    // Try EmailJS first (easier setup with Gmail)
+    const { data: emailjsData, error: emailjsError } = await supabase.functions.invoke('send-email-emailjs', {
+      body: { 
+        email,
+        type: 'signup_verification'
+      }
+    });
+
+    if (!emailjsError && emailjsData && emailjsData.success) {
+      return {
+        success: true,
+        message: emailjsData.message,
+        token: emailjsData.token
+      };
+    }
+
+    // Fallback to Gmail SMTP
+    console.log('EmailJS failed, trying Gmail SMTP...');
     const { data, error } = await supabase.functions.invoke('send-verification-email', {
       body: { 
         email,
@@ -62,7 +78,7 @@ export const sendWhatsAppVerification = async (phone: string): Promise<{ success
     
     console.log('Sending WhatsApp verification to:', phone);
     
-    // Use Supabase edge function to send WhatsApp message
+    // Use Supabase edge function with TextMeBot
     const { data, error } = await supabase.functions.invoke('send-whatsapp-verification', {
       body: { 
         phone,
@@ -82,7 +98,7 @@ export const sendWhatsAppVerification = async (phone: string): Promise<{ success
 
     return {
       success: true,
-      message: `Kode verifikasi telah dikirim via WhatsApp ke ${phone}`,
+      message: data.message || `Kode verifikasi telah dikirim via WhatsApp ke ${phone}`,
       code: verificationCode
     };
   } catch (error) {
