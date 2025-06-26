@@ -1,29 +1,32 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Star, Calendar, DollarSign, User, CheckCircle, AlertTriangle, Heart } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Star, Calendar, DollarSign, User, CheckCircle, AlertTriangle, Heart, TrendingUp, Clock, Award } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import { useAuth } from '@/contexts/AuthContext';
+import { useSearchParams } from 'react-router-dom';
+import DashboardHeader from '@/components/DashboardHeader';
+import TransactionHistory from '@/components/TransactionHistory';
+import ProfileSettings from '@/components/ProfileSettings';
 
 const UserDashboard = () => {
-  const [profileData, setProfileData] = useState({
-    name: 'John Doe',
-    email: 'john.doe@email.com',
-    phone: '+62812345678',
-    verified: false
-  });
-
-  // Mock data
+  const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const defaultTab = searchParams.get('tab') || 'overview';
+  
+  // Mock data - would come from API
   const stats = {
     totalSpent: 1500000,
     completedBookings: 12,
     favoriteCount: 5,
-    verificationStatus: 'pending'
+    verificationStatus: user?.verification_status || 'verified',
+    activeBookings: 2,
+    averageRating: 4.8,
+    memberSince: '2024-01-01'
   };
 
   const recentBookings = [
@@ -34,7 +37,8 @@ const UserDashboard = () => {
       date: '2024-01-15', 
       amount: 25000, 
       status: 'completed',
-      rating: 5
+      rating: 5,
+      duration: '1 day'
     },
     { 
       id: 'ORD002', 
@@ -43,7 +47,8 @@ const UserDashboard = () => {
       date: '2024-01-14', 
       amount: 65000, 
       status: 'in-progress',
-      rating: null
+      rating: null,
+      duration: '1 hour'
     },
     { 
       id: 'ORD003', 
@@ -52,7 +57,8 @@ const UserDashboard = () => {
       date: '2024-01-13', 
       amount: 285000, 
       status: 'confirmed',
-      rating: null
+      rating: null,
+      duration: '3 hours'
     }
   ];
 
@@ -63,7 +69,9 @@ const UserDashboard = () => {
       rating: 4.9, 
       specialties: ['Chat', 'Video Call', 'Rent a Lover'],
       image: '/placeholder.svg',
-      isOnline: true
+      isOnline: true,
+      responseTime: '< 5 min',
+      totalBookings: 15
     },
     { 
       id: 2, 
@@ -71,116 +79,157 @@ const UserDashboard = () => {
       rating: 4.8, 
       specialties: ['Offline Date', 'Party Buddy'],
       image: '/placeholder.svg',
-      isOnline: false
+      isOnline: false,
+      responseTime: '< 10 min',
+      totalBookings: 8
     }
-  ];
-
-  const verificationSteps = [
-    { step: 'Email Verification', completed: true, required: true },
-    { step: 'Phone Verification', completed: true, required: true },
-    { step: 'KTP Verification', completed: false, required: true },
-    { step: 'WhatsApp Verification', completed: false, required: false }
   ];
 
   const handleRating = (bookingId: string, rating: number) => {
     console.log(`Rating ${rating} for booking ${bookingId}`);
-    // Implementation here
   };
 
   const handleBookAgain = (talentName: string) => {
     console.log(`Book again with ${talentName}`);
-    // Implementation here
   };
 
   const getVerificationProgress = () => {
-    const completed = verificationSteps.filter(step => step.completed).length;
-    return (completed / verificationSteps.length) * 100;
+    const steps = ['email', 'phone', 'ktp', 'whatsapp'];
+    const completed = 3; // Mock completed steps
+    return (completed / steps.length) * 100;
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b border-gray-200">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">My Dashboard</h1>
-              <p className="text-gray-600">Welcome back, {profileData.name}!</p>
-            </div>
-            <div className="flex items-center gap-4">
-              {stats.verificationStatus !== 'verified' && (
-                <Badge className="bg-yellow-100 text-yellow-600">
-                  <AlertTriangle className="w-3 h-3 mr-1" />
-                  Verification Pending
-                </Badge>
-              )}
-              {stats.verificationStatus === 'verified' && (
-                <Badge className="bg-green-100 text-green-600">
-                  <CheckCircle className="w-3 h-3 mr-1" />
-                  Verified User
-                </Badge>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+      <DashboardHeader 
+        title="User Dashboard" 
+        subtitle={`Welcome back, ${user?.name}!`}
+        userType="user"
+        notificationCount={3}
+      />
 
       <div className="container mx-auto px-4 py-8">
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">Rp {(stats.totalSpent / 1000000).toFixed(1)}M</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Completed Bookings</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.completedBookings}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Favorite Talents</CardTitle>
-              <Heart className="h-4 w-4 text-red-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.favoriteCount}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Profile Completion</CardTitle>
-              <User className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{Math.round(getVerificationProgress())}%</div>
-              <Progress value={getVerificationProgress()} className="mt-2" />
-            </CardContent>
-          </Card>
-        </div>
-
-        <Tabs defaultValue="bookings" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+        <Tabs value={defaultTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="bookings">My Bookings</TabsTrigger>
             <TabsTrigger value="favorites">Favorites</TabsTrigger>
-            <TabsTrigger value="profile">Profile</TabsTrigger>
-            <TabsTrigger value="verification">Verification</TabsTrigger>
+            <TabsTrigger value="transactions">Transactions</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="overview">
+            {/* Enhanced Stats Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <Card className="hover:shadow-lg transition-shadow">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">Rp {(stats.totalSpent / 1000000).toFixed(1)}M</div>
+                  <p className="text-xs text-muted-foreground">
+                    <TrendingUp className="w-3 h-3 inline mr-1" />
+                    +12% from last month
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-shadow">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Active Bookings</CardTitle>
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.activeBookings}</div>
+                  <p className="text-xs text-muted-foreground">Currently ongoing</p>
+                </CardContent>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-shadow">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Favorite Talents</CardTitle>
+                  <Heart className="h-4 w-4 text-red-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.favoriteCount}</div>
+                  <p className="text-xs text-muted-foreground">Saved for quick booking</p>
+                </CardContent>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-shadow">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Average Rating</CardTitle>
+                  <Award className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.averageRating}</div>
+                  <p className="text-xs text-muted-foreground">Based on {stats.completedBookings} bookings</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Recent Activity */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Bookings</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {recentBookings.slice(0, 3).map((booking) => (
+                      <div key={booking.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div>
+                          <p className="font-medium">{booking.talent}</p>
+                          <p className="text-sm text-gray-500">{booking.service} • {booking.duration}</p>
+                          <p className="text-xs text-gray-400">{booking.date}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold">Rp {booking.amount.toLocaleString()}</p>
+                          <Badge className={
+                            booking.status === 'completed' ? 'bg-green-100 text-green-600' :
+                            booking.status === 'in-progress' ? 'bg-blue-100 text-blue-600' :
+                            'bg-yellow-100 text-yellow-600'
+                          }>
+                            {booking.status}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Account Status</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span>Profile Completion</span>
+                    <div className="flex items-center gap-2">
+                      <Progress value={getVerificationProgress()} className="w-20" />
+                      <span className="text-sm">{Math.round(getVerificationProgress())}%</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <span>Verification Status</span>
+                    <Badge className={stats.verificationStatus === 'verified' ? 'bg-green-100 text-green-600' : 'bg-yellow-100 text-yellow-600'}>
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      {stats.verificationStatus === 'verified' ? 'Verified' : 'Pending'}
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
 
           <TabsContent value="bookings">
             <Card>
               <CardHeader>
                 <CardTitle>Booking History</CardTitle>
+                <p className="text-sm text-gray-600">Track all your bookings and their status</p>
               </CardHeader>
               <CardContent>
                 <Table>
@@ -189,6 +238,7 @@ const UserDashboard = () => {
                       <TableHead>Order ID</TableHead>
                       <TableHead>Talent</TableHead>
                       <TableHead>Service</TableHead>
+                      <TableHead>Duration</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead>Amount</TableHead>
                       <TableHead>Status</TableHead>
@@ -202,6 +252,7 @@ const UserDashboard = () => {
                         <TableCell className="font-medium">{booking.id}</TableCell>
                         <TableCell>{booking.talent}</TableCell>
                         <TableCell>{booking.service}</TableCell>
+                        <TableCell>{booking.duration}</TableCell>
                         <TableCell>{booking.date}</TableCell>
                         <TableCell>Rp {booking.amount.toLocaleString()}</TableCell>
                         <TableCell>
@@ -283,6 +334,10 @@ const UserDashboard = () => {
                           </Badge>
                         ))}
                       </div>
+                      <div className="text-sm text-gray-600">
+                        <p>Response time: {talent.responseTime}</p>
+                        <p>Total bookings: {talent.totalBookings}</p>
+                      </div>
                       <Button className="w-full" onClick={() => handleBookAgain(talent.name)}>
                         Book Now
                       </Button>
@@ -293,91 +348,12 @@ const UserDashboard = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="profile">
-            <Card>
-              <CardHeader>
-                <CardTitle>Profile Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Full Name</Label>
-                    <Input 
-                      id="name"
-                      value={profileData.name} 
-                      onChange={(e) => setProfileData(prev => ({...prev, name: e.target.value}))} 
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input 
-                      id="email"
-                      type="email"
-                      value={profileData.email} 
-                      onChange={(e) => setProfileData(prev => ({...prev, email: e.target.value}))} 
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input 
-                    id="phone"
-                    value={profileData.phone} 
-                    onChange={(e) => setProfileData(prev => ({...prev, phone: e.target.value}))} 
-                  />
-                </div>
-
-                <Button className="w-full md:w-auto">Save Profile</Button>
-              </CardContent>
-            </Card>
+          <TabsContent value="transactions">
+            <TransactionHistory userType="user" />
           </TabsContent>
 
-          <TabsContent value="verification">
-            <Card>
-              <CardHeader>
-                <CardTitle>Account Verification</CardTitle>
-                <p className="text-sm text-gray-600">
-                  Complete verification to access all services including Offline Date and Party Buddy
-                </p>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {verificationSteps.map((step, index) => (
-                    <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        {step.completed ? (
-                          <CheckCircle className="w-5 h-5 text-green-500" />
-                        ) : (
-                          <div className="w-5 h-5 border-2 border-gray-300 rounded-full" />
-                        )}
-                        <div>
-                          <span className="font-medium">{step.step}</span>
-                          {step.required && (
-                            <Badge className="ml-2 bg-red-100 text-red-600 text-xs">Required</Badge>
-                          )}
-                        </div>
-                      </div>
-                      {!step.completed && (
-                        <Button size="sm" variant="outline">
-                          Complete
-                        </Button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                
-                <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                  <h3 className="font-semibold text-blue-900 mb-2">Verification Benefits</h3>
-                  <ul className="text-sm text-blue-700 space-y-1">
-                    <li>• Access to Offline Date services</li>
-                    <li>• Access to Party Buddy services (21+ only)</li>
-                    <li>• Higher booking priority</li>
-                    <li>• Enhanced security features</li>
-                  </ul>
-                </div>
-              </CardContent>
-            </Card>
+          <TabsContent value="settings">
+            <ProfileSettings userType="user" />
           </TabsContent>
         </Tabs>
       </div>
