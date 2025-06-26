@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -32,7 +32,7 @@ const formSchema = z.object({
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, isAuthenticated, user } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +45,25 @@ const Login = () => {
     },
   });
 
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      console.log('User already authenticated, redirecting to dashboard');
+      
+      // Navigate based on user type
+      if (user.user_type === 'companion') {
+        navigate('/talent-dashboard');
+      } else if (user.user_type === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/user-dashboard');
+      }
+    }
+  }, [isAuthenticated, user, navigate]);
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    if (isLoading) return; // Prevent multiple submissions
+    
     setIsLoading(true);
     setError(null);
     
@@ -53,8 +71,8 @@ const Login = () => {
     
     try {
       await login(values.email, values.password);
-      console.log('Login successful, navigating to dashboard');
-      navigate('/user-dashboard');
+      console.log('Login successful');
+      // Navigation will be handled by the useEffect above
     } catch (error: any) {
       console.error('Login failed with error:', error);
       
@@ -79,9 +97,17 @@ const Login = () => {
         description: errorMessage,
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
+      
+      setIsLoading(false); // Reset loading state on error
     }
+  };
+
+  const handleResetPassword = () => {
+    // TODO: Implement password reset functionality
+    toast({
+      title: "Reset Password",
+      description: "Fitur reset password akan segera tersedia.",
+    });
   };
 
   return (
@@ -177,7 +203,11 @@ const Login = () => {
               <div className="mt-4 text-center">
                 <p className="text-sm text-gray-600">
                   Lupa password?{' '}
-                  <button className="text-blue-600 hover:text-blue-700 font-medium hover:underline">
+                  <button 
+                    onClick={handleResetPassword}
+                    className="text-blue-600 hover:text-blue-700 font-medium hover:underline"
+                    type="button"
+                  >
                     Reset password
                   </button>
                 </p>
