@@ -19,11 +19,18 @@ serve(async (req) => {
     }
 
     // Format phone number (remove leading 0 and add +62 for Indonesia)
-    const formattedPhone = phone.startsWith('0') ? '62' + phone.slice(1) : phone.replace('+', '');
+    let formattedPhone = phone;
+    if (phone.startsWith('0')) {
+      formattedPhone = '62' + phone.slice(1);
+    } else if (phone.startsWith('+62')) {
+      formattedPhone = phone.slice(1);
+    } else if (!phone.startsWith('62')) {
+      formattedPhone = '62' + phone;
+    }
 
     const message = `Kode verifikasi Temanly Anda: ${code}\n\nJangan bagikan kode ini kepada siapa pun.\n\nKode berlaku selama 10 menit.`;
 
-    // Get TextMeBot API key dari environment variables
+    // Get TextMeBot API key from environment variables
     const textmebotApiKey = Deno.env.get("TEXTMEBOT_API_KEY");
 
     console.log('WhatsApp verification request:', { 
@@ -37,11 +44,11 @@ serve(async (req) => {
       throw new Error("TextMeBot API key tidak dikonfigurasi");
     }
 
-    // TextMeBot menggunakan GET request dengan parameter di URL
+    // TextMeBot API endpoint
     const encodedMessage = encodeURIComponent(message);
-    const textmebotUrl = `http://api.textmebot.com/send.php?recipient=${formattedPhone}&apikey=${textmebotApiKey}&text=${encodedMessage}`;
+    const textmebotUrl = `https://api.textmebot.com/send.php?recipient=${formattedPhone}&apikey=${textmebotApiKey}&text=${encodedMessage}`;
 
-    console.log('Sending to TextMeBot URL:', textmebotUrl.replace(textmebotApiKey, '[HIDDEN]'));
+    console.log('Sending to TextMeBot:', { recipient: formattedPhone, hasApiKey: !!textmebotApiKey });
 
     const response = await fetch(textmebotUrl, {
       method: "GET",
@@ -61,13 +68,24 @@ serve(async (req) => {
       throw new Error(`WhatsApp service error: ${response.status} - ${responseText}`);
     }
 
+    // Parse response to check if it's successful
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch (e) {
+      // If response is not JSON, treat as success if status is OK
+      responseData = { status: 'sent', message: responseText };
+    }
+
     console.log('WhatsApp message sent successfully via TextMeBot');
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         message: `Kode verifikasi telah dikirim via WhatsApp ke ${phone}`,
-        provider: "textmebot"
+        code: code,
+        provider: "textmebot",
+        response: responseData
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
