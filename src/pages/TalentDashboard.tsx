@@ -12,9 +12,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useToast } from '@/hooks/use-toast';
+import DashboardHeader from '@/components/DashboardHeader';
 
 const TalentDashboard = () => {
   const [isAvailable, setIsAvailable] = useState(true);
+  const { toast } = useToast();
   const [profileData, setProfileData] = useState({
     name: 'Sarah Jakarta',
     bio: 'Friendly and outgoing person who loves meeting new people!',
@@ -71,36 +74,62 @@ const TalentDashboard = () => {
     );
   };
 
+  const handleSaveProfile = () => {
+    toast({
+      title: "Profile Saved",
+      description: "Your profile has been updated successfully.",
+    });
+  };
+
+  const handleSaveSchedule = () => {
+    toast({
+      title: "Schedule Saved",
+      description: "Your availability schedule has been updated.",
+    });
+  };
+
+  const handleAvailabilityToggle = (checked: boolean) => {
+    setIsAvailable(checked);
+    toast({
+      title: checked ? "You're now available" : "You're now unavailable",
+      description: checked ? "Users can now book your services." : "Users cannot book your services.",
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b border-gray-200">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Talent Dashboard</h1>
-              <p className="text-gray-600">Welcome back, {profileData.name}!</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="availability">Available for bookings</Label>
-                <Switch 
-                  id="availability"
-                  checked={isAvailable} 
-                  onCheckedChange={setIsAvailable} 
-                />
-              </div>
-              <Badge className={stats.level === 'VIP Talent' ? 'bg-purple-100 text-purple-600' : 'bg-green-100 text-green-600'}>
-                {stats.level}
-              </Badge>
-            </div>
-          </div>
-        </div>
-      </div>
+      <DashboardHeader 
+        title="Talent Dashboard" 
+        subtitle={`Welcome back, ${profileData.name}!`}
+        userType="companion"
+        notificationCount={5}
+      />
 
       <div className="container mx-auto px-4 py-8">
+        {/* Availability Toggle */}
+        <div className="mb-6 flex items-center justify-between p-4 bg-white rounded-lg border">
+          <div>
+            <h3 className="font-semibold">Availability Status</h3>
+            <p className="text-sm text-gray-600">Toggle your availability for new bookings</p>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="availability">Available for bookings</Label>
+              <Switch 
+                id="availability"
+                checked={isAvailable} 
+                onCheckedChange={handleAvailabilityToggle} 
+              />
+            </div>
+            <Badge className={stats.level === 'VIP Talent' ? 'bg-purple-100 text-purple-600' : 'bg-green-100 text-green-600'}>
+              {stats.level}
+            </Badge>
+          </div>
+        </div>
+
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
+          <Card className="hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Earnings</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -110,7 +139,7 @@ const TalentDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Completed Orders</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
@@ -120,7 +149,7 @@ const TalentDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Rating</CardTitle>
               <Star className="h-4 w-4 text-yellow-500" />
@@ -130,7 +159,7 @@ const TalentDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Next Level Progress</CardTitle>
               <Settings className="h-4 w-4 text-muted-foreground" />
@@ -268,7 +297,9 @@ const TalentDashboard = () => {
                   </div>
                 </div>
 
-                <Button className="w-full md:w-auto">Save Profile</Button>
+                <Button className="w-full md:w-auto" onClick={handleSaveProfile}>
+                  Save Profile
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>
@@ -351,7 +382,7 @@ const TalentDashboard = () => {
                     </div>
                   </div>
                   
-                  <Button>Save Schedule</Button>
+                  <Button onClick={handleSaveSchedule}>Save Schedule</Button>
                 </div>
               </CardContent>
             </Card>

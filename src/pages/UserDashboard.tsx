@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,7 @@ import { Star, Calendar, DollarSign, User, CheckCircle, AlertTriangle, Heart, Tr
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
 import DashboardHeader from '@/components/DashboardHeader';
 import TransactionHistory from '@/components/TransactionHistory';
 import ProfileSettings from '@/components/ProfileSettings';
@@ -16,10 +18,11 @@ const UserDashboard = () => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const defaultTab = searchParams.get('tab') || 'overview';
   
   const handleTabChange = (value: string) => {
-    navigate(`/user-dashboard?tab=${value}`);
+    navigate(`/user-dashboard?tab=${value}`, { replace: true });
   };
   
   const stats = {
@@ -90,16 +93,50 @@ const UserDashboard = () => {
 
   const handleRating = (bookingId: string, rating: number) => {
     console.log(`Rating ${rating} for booking ${bookingId}`);
+    toast({
+      title: "Rating Submitted",
+      description: `You rated booking ${bookingId} with ${rating} stars.`,
+    });
   };
 
   const handleBookAgain = (talentName: string) => {
     console.log(`Book again with ${talentName}`);
+    navigate('/talents');
+    toast({
+      title: "Redirecting to Browse Talents",
+      description: `Looking for ${talentName} to book again.`,
+    });
+  };
+
+  const handleViewBookingDetails = (bookingId: string) => {
+    console.log(`View details for booking ${bookingId}`);
+    toast({
+      title: "Booking Details",
+      description: `Viewing details for booking ${bookingId}`,
+    });
+  };
+
+  const handleBookNow = (talentName: string) => {
+    console.log(`Book now with ${talentName}`);
+    navigate('/booking', { state: { talent: talentName } });
+    toast({
+      title: "Booking Process Started",
+      description: `Starting booking process with ${talentName}`,
+    });
   };
 
   const getVerificationProgress = () => {
     const steps = ['email', 'phone', 'ktp', 'whatsapp'];
     const completed = 3;
     return (completed / steps.length) * 100;
+  };
+
+  const handleCompleteVerification = () => {
+    navigate('/verification');
+    toast({
+      title: "Complete Verification",
+      description: "Redirecting to verification page",
+    });
   };
 
   return (
@@ -123,7 +160,7 @@ const UserDashboard = () => {
 
           <TabsContent value="overview">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <Card className="hover:shadow-lg transition-shadow">
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => handleTabChange('transactions')}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -137,7 +174,7 @@ const UserDashboard = () => {
                 </CardContent>
               </Card>
 
-              <Card className="hover:shadow-lg transition-shadow">
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => handleTabChange('bookings')}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Active Bookings</CardTitle>
                   <Clock className="h-4 w-4 text-muted-foreground" />
@@ -148,7 +185,7 @@ const UserDashboard = () => {
                 </CardContent>
               </Card>
 
-              <Card className="hover:shadow-lg transition-shadow">
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => handleTabChange('favorites')}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Favorite Talents</CardTitle>
                   <Heart className="h-4 w-4 text-red-500" />
@@ -179,7 +216,7 @@ const UserDashboard = () => {
                 <CardContent>
                   <div className="space-y-4">
                     {recentBookings.slice(0, 3).map((booking) => (
-                      <div key={booking.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div key={booking.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors">
                         <div>
                           <p className="font-medium">{booking.talent}</p>
                           <p className="text-sm text-gray-500">{booking.service} • {booking.duration}</p>
@@ -197,6 +234,15 @@ const UserDashboard = () => {
                         </div>
                       </div>
                     ))}
+                  </div>
+                  <div className="mt-4">
+                    <Button 
+                      variant="outline" 
+                      className="w-full" 
+                      onClick={() => handleTabChange('bookings')}
+                    >
+                      View All Bookings
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -221,6 +267,15 @@ const UserDashboard = () => {
                       {stats.verificationStatus === 'verified' ? 'Verified' : 'Pending'}
                     </Badge>
                   </div>
+
+                  {stats.verificationStatus !== 'verified' && (
+                    <Button 
+                      onClick={handleCompleteVerification}
+                      className="w-full mt-4"
+                    >
+                      Complete Verification
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -286,14 +341,23 @@ const UserDashboard = () => {
                           )}
                         </TableCell>
                         <TableCell>
-                          {booking.status === 'completed' && (
+                          <div className="flex gap-2">
                             <Button 
                               size="sm"
-                              onClick={() => handleBookAgain(booking.talent)}
+                              variant="outline"
+                              onClick={() => handleViewBookingDetails(booking.id)}
                             >
-                              Book Again
+                              Details
                             </Button>
-                          )}
+                            {booking.status === 'completed' && (
+                              <Button 
+                                size="sm"
+                                onClick={() => handleBookAgain(booking.talent)}
+                              >
+                                Book Again
+                              </Button>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -339,7 +403,10 @@ const UserDashboard = () => {
                         <p>Response time: {talent.responseTime}</p>
                         <p>Total bookings: {talent.totalBookings}</p>
                       </div>
-                      <Button className="w-full" onClick={() => handleBookAgain(talent.name)}>
+                      <Button 
+                        className="w-full" 
+                        onClick={() => handleBookNow(talent.name)}
+                      >
                         Book Now
                       </Button>
                     </div>
