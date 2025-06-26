@@ -23,33 +23,46 @@ serve(async (req) => {
 
     const message = `Kode verifikasi Temanly Anda: ${code}\n\nJangan bagikan kode ini kepada siapa pun.\n\nKode berlaku selama 10 menit.`;
 
-    // Get TextMeBot API credentials
+    // Get TextMeBot API credentials dari environment variables
     const textmebotApiUrl = Deno.env.get("TEXTMEBOT_API_URL");
     const textmebotApiKey = Deno.env.get("TEXTMEBOT_API_KEY");
 
     console.log('WhatsApp verification request:', { 
       phone: formattedPhone, 
       code,
-      hasTextMeBotCredentials: !!(textmebotApiUrl && textmebotApiKey)
+      hasTextMeBotCredentials: !!(textmebotApiUrl && textmebotApiKey),
+      textmebotUrl: textmebotApiUrl ? 'configured' : 'missing',
+      textmebotKey: textmebotApiKey ? 'configured' : 'missing'
     });
 
     if (textmebotApiUrl && textmebotApiKey) {
       try {
         // Send WhatsApp message using TextMeBot
+        const textmebotPayload = {
+          phone: `+${formattedPhone}`,
+          message: message,
+          type: "text" // Tambahan parameter yang mungkin diperlukan
+        };
+
+        console.log('Sending to TextMeBot:', { 
+          url: textmebotApiUrl,
+          payload: textmebotPayload 
+        });
+
         const response = await fetch(`${textmebotApiUrl}/send-message`, {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${textmebotApiKey}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            phone: formattedPhone,
-            message: message,
-          }),
+          body: JSON.stringify(textmebotPayload),
         });
 
         const responseData = await response.json();
-        console.log('TextMeBot API response:', { status: response.status, data: responseData });
+        console.log('TextMeBot API response:', { 
+          status: response.status, 
+          data: responseData 
+        });
 
         if (!response.ok) {
           console.error('TextMeBot API error:', responseData);
@@ -62,7 +75,8 @@ serve(async (req) => {
           JSON.stringify({ 
             success: true, 
             message: `Kode verifikasi telah dikirim via WhatsApp ke ${phone}`,
-            provider: "textmebot"
+            provider: "textmebot",
+            details: responseData
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
@@ -75,17 +89,21 @@ serve(async (req) => {
             success: true,
             message: `Development fallback: Kode verifikasi WhatsApp: ${code}`,
             code: code,
-            provider: "development"
+            provider: "development",
+            error: whatsappError.message
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
     } else {
       console.log('Missing TextMeBot credentials, using development mode');
+      console.log('Required environment variables:');
+      console.log('- TEXTMEBOT_API_URL:', textmebotApiUrl ? 'SET' : 'MISSING');
+      console.log('- TEXTMEBOT_API_KEY:', textmebotApiKey ? 'SET' : 'MISSING');
       
       // Development mode - log the WhatsApp message
       console.log('DEVELOPMENT MODE - WhatsApp message would be sent:', {
-        to: formattedPhone,
+        to: `+${formattedPhone}`,
         message: message
       });
 
@@ -94,7 +112,8 @@ serve(async (req) => {
           success: true, 
           message: `Development mode: Kode WhatsApp untuk testing: ${code}`,
           code: code,
-          provider: "development"
+          provider: "development",
+          note: "Tambahkan TEXTMEBOT_API_URL dan TEXTMEBOT_API_KEY ke Supabase Environment Variables"
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );

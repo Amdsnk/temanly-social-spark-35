@@ -21,32 +21,36 @@ serve(async (req) => {
     // Generate verification token
     const verificationToken = crypto.randomUUID().replace(/-/g, '').substring(0, 8).toUpperCase();
 
-    // EmailJS credentials - using your provided values
-    const emailjsServiceId = "service_l21gt56";
-    const emailjsTemplateId = "template_vnxelok";
-    const emailjsPublicKey = "vBw5YkSScmsVPjq24";
-    const emailjsPrivateKey = "r6NoH8wv1QtFRvJX6Gy9B";
+    // EmailJS credentials dari environment variables
+    const emailjsServiceId = Deno.env.get("EMAILJS_SERVICE_ID") || "service_l21gt56";
+    const emailjsTemplateId = Deno.env.get("EMAILJS_TEMPLATE_ID") || "template_vnxelok";
+    const emailjsPublicKey = Deno.env.get("EMAILJS_PUBLIC_KEY") || "vBw5YkSScmsVPjq24";
+    const emailjsPrivateKey = Deno.env.get("EMAILJS_PRIVATE_KEY");
 
     console.log('EmailJS verification request:', { 
       email, 
       type, 
       verificationToken,
-      serviceId: emailjsServiceId
+      serviceId: emailjsServiceId,
+      hasPrivateKey: !!emailjsPrivateKey
     });
 
-    // Send email using EmailJS
+    // Send email using EmailJS - parameter disesuaikan dengan template
     const emailPayload = {
       service_id: emailjsServiceId,
       template_id: emailjsTemplateId,
       user_id: emailjsPublicKey,
-      accessToken: emailjsPrivateKey,
+      ...(emailjsPrivateKey && { accessToken: emailjsPrivateKey }),
       template_params: {
         to_email: email,
+        user_email: email, // Parameter tambahan untuk kompatibilitas
         to_name: email.split('@')[0],
         verification_code: verificationToken,
         app_name: "Temanly",
         message: `Kode verifikasi Anda: ${verificationToken}. Kode berlaku selama 15 menit.`,
-        subject: "Verifikasi Email Temanly"
+        subject: "Verifikasi Email Temanly",
+        from_name: "Temanly",
+        reply_to: "noreply@temanly.com"
       }
     };
 

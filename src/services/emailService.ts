@@ -12,18 +12,22 @@ export const sendEmailVerificationDirect = async (email: string): Promise<{ succ
     const templateId = "template_vnxelok";
     const publicKey = "vBw5YkSScmsVPjq24";
     
-    // EmailJS payload
+    // EmailJS payload - menggunakan parameter yang sesuai dengan template EmailJS
     const emailPayload = {
       service_id: serviceId,
       template_id: templateId,
       user_id: publicKey,
       template_params: {
         to_email: email,
+        user_email: email, // Tambahan parameter untuk kompatibilitas
         to_name: email.split('@')[0],
         verification_code: verificationToken,
         app_name: "Temanly",
         message: `Kode verifikasi Anda: ${verificationToken}. Kode berlaku selama 15 menit.`,
-        subject: "Verifikasi Email Temanly"
+        subject: "Verifikasi Email Temanly",
+        // Parameter tambahan yang mungkin diperlukan template
+        from_name: "Temanly",
+        reply_to: "noreply@temanly.com"
       }
     };
 
