@@ -37,47 +37,40 @@ serve(async (req) => {
       throw new Error("TextMeBot API key tidak dikonfigurasi");
     }
 
-    try {
-      // TextMeBot menggunakan GET request dengan parameter di URL
-      const encodedMessage = encodeURIComponent(message);
-      const textmebotUrl = `http://api.textmebot.com/send.php?recipient=${formattedPhone}&apikey=${textmebotApiKey}&text=${encodedMessage}`;
+    // TextMeBot menggunakan GET request dengan parameter di URL
+    const encodedMessage = encodeURIComponent(message);
+    const textmebotUrl = `http://api.textmebot.com/send.php?recipient=${formattedPhone}&apikey=${textmebotApiKey}&text=${encodedMessage}`;
 
-      console.log('Sending to TextMeBot URL:', textmebotUrl);
+    console.log('Sending to TextMeBot URL:', textmebotUrl.replace(textmebotApiKey, '[HIDDEN]'));
 
-      const response = await fetch(textmebotUrl, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        }
-      });
-
-      const responseText = await response.text();
-      console.log('TextMeBot API response:', { 
-        status: response.status, 
-        body: responseText 
-      });
-
-      if (!response.ok) {
-        console.error('TextMeBot API error:', responseText);
-        throw new Error(`WhatsApp service error: ${response.status} - ${responseText}`);
+    const response = await fetch(textmebotUrl, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
       }
+    });
 
-      console.log('WhatsApp message sent successfully via TextMeBot:', responseText);
+    const responseText = await response.text();
+    console.log('TextMeBot API response:', { 
+      status: response.status, 
+      body: responseText 
+    });
 
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: `Kode verifikasi telah dikirim via WhatsApp ke ${phone}`,
-          provider: "textmebot",
-          details: responseText
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-
-    } catch (whatsappError) {
-      console.error('TextMeBot WhatsApp sending failed:', whatsappError);
-      throw new Error(`Gagal mengirim WhatsApp: ${whatsappError.message}`);
+    if (!response.ok) {
+      console.error('TextMeBot API error:', responseText);
+      throw new Error(`WhatsApp service error: ${response.status} - ${responseText}`);
     }
+
+    console.log('WhatsApp message sent successfully via TextMeBot');
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        message: `Kode verifikasi telah dikirim via WhatsApp ke ${phone}`,
+        provider: "textmebot"
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
 
   } catch (error) {
     console.error('Error sending WhatsApp verification:', error);
