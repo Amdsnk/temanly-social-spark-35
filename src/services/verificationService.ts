@@ -10,25 +10,8 @@ export const sendEmailVerification = async (email: string): Promise<{ success: b
   try {
     console.log('Sending email verification to:', email);
     
-    // Try EmailJS first (easier setup with Gmail)
-    const { data: emailjsData, error: emailjsError } = await supabase.functions.invoke('send-email-emailjs', {
-      body: { 
-        email,
-        type: 'signup_verification'
-      }
-    });
-
-    if (!emailjsError && emailjsData && emailjsData.success) {
-      return {
-        success: true,
-        message: emailjsData.message,
-        token: emailjsData.token
-      };
-    }
-
-    // Fallback to Gmail SMTP
-    console.log('EmailJS failed, trying Gmail SMTP...');
-    const { data, error } = await supabase.functions.invoke('send-verification-email', {
+    // Use EmailJS for email verification
+    const { data, error } = await supabase.functions.invoke('send-email-emailjs', {
       body: { 
         email,
         type: 'signup_verification'
@@ -37,15 +20,7 @@ export const sendEmailVerification = async (email: string): Promise<{ success: b
 
     if (error) {
       console.error('Email service error:', error);
-      
-      // For development, provide a fallback token
-      const fallbackToken = Math.random().toString(36).substring(2, 10).toUpperCase();
-      
-      return {
-        success: true,
-        message: `Development mode: Kode verifikasi untuk testing: ${fallbackToken}`,
-        token: fallbackToken
-      };
+      throw new Error(error.message || 'Failed to send email verification');
     }
 
     if (data && data.success) {
@@ -60,13 +35,9 @@ export const sendEmailVerification = async (email: string): Promise<{ success: b
   } catch (error) {
     console.error('Email verification error:', error);
     
-    // Provide fallback for development
-    const fallbackToken = Math.random().toString(36).substring(2, 10).toUpperCase();
-    
     return {
-      success: true,
-      message: `Development mode: Kode verifikasi untuk testing: ${fallbackToken}`,
-      token: fallbackToken
+      success: false,
+      message: 'Gagal mengirim email verifikasi. Silakan coba lagi.'
     };
   }
 };
