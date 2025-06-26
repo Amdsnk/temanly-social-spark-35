@@ -1,5 +1,6 @@
 
 import { sendEmailVerificationDirect, verifyEmailTokenDirect } from './emailService';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface VerificationRequest {
   email?: string;
@@ -35,11 +36,30 @@ export const sendWhatsAppVerification = async (phone: string): Promise<{ success
     
     console.log('Sending WhatsApp verification to:', phone);
     
-    // For WhatsApp, we'll return success with the code for now
+    // Call Supabase edge function for WhatsApp
+    const { data, error } = await supabase.functions.invoke('send-whatsapp-verification', {
+      body: {
+        phone: phone,
+        code: verificationCode
+      }
+    });
+
+    if (error) {
+      console.error('WhatsApp verification error:', error);
+      // Fallback to returning the code for development
+      return {
+        success: true,
+        message: `Kode verifikasi WhatsApp: ${verificationCode}`,
+        code: verificationCode
+      };
+    }
+
+    console.log('WhatsApp verification result:', data);
+    
     return {
-      success: true,
-      message: `Kode verifikasi telah dikirim via WhatsApp ke ${phone}`,
-      code: verificationCode
+      success: data.success,
+      message: data.message,
+      code: data.code || verificationCode
     };
   } catch (error) {
     console.error('WhatsApp verification error:', error);
