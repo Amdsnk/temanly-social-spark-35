@@ -30,38 +30,51 @@ serve(async (req) => {
     console.log('EmailJS verification request:', { 
       email, 
       type, 
-      verificationToken
+      verificationToken,
+      serviceId: emailjsServiceId
     });
 
     try {
       // Send email using EmailJS
+      const emailPayload = {
+        service_id: emailjsServiceId,
+        template_id: emailjsTemplateId,
+        user_id: emailjsPublicKey,
+        accessToken: emailjsPrivateKey,
+        template_params: {
+          to_email: email,
+          to_name: email.split('@')[0],
+          verification_code: verificationToken,
+          app_name: "Temanly",
+          message: `Kode verifikasi Anda: ${verificationToken}. Kode berlaku selama 15 menit.`,
+          subject: "Verifikasi Email Temanly"
+        }
+      };
+
+      console.log('Sending to EmailJS with payload:', JSON.stringify(emailPayload, null, 2));
+
       const response = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          service_id: emailjsServiceId,
-          template_id: emailjsTemplateId,
-          user_id: emailjsPublicKey,
-          accessToken: emailjsPrivateKey,
-          template_params: {
-            to_email: email,
-            to_name: email.split('@')[0],
-            verification_code: verificationToken,
-            app_name: "Temanly",
-            message: `Kode verifikasi Anda: ${verificationToken}. Kode berlaku selama 15 menit.`,
-            subject: "Verifikasi Email Temanly"
-          }
-        }),
+        body: JSON.stringify(emailPayload),
       });
 
       const responseText = await response.text();
-      console.log('EmailJS API response:', { status: response.status, body: responseText });
+      console.log('EmailJS API response:', { 
+        status: response.status, 
+        statusText: response.statusText,
+        body: responseText 
+      });
 
       if (!response.ok) {
-        console.error('EmailJS API error:', responseText);
-        throw new Error(`Email service error: ${response.status} - ${responseText}`);
+        console.error('EmailJS API error:', {
+          status: response.status,
+          statusText: response.statusText,
+          body: responseText
+        });
+        throw new Error(`EmailJS error: ${response.status} - ${responseText}`);
       }
 
       console.log('Email sent successfully via EmailJS');
@@ -75,15 +88,15 @@ serve(async (req) => {
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+
     } catch (emailError) {
       console.error('EmailJS sending failed:', emailError);
       
-      // Return error instead of fallback
       return new Response(
         JSON.stringify({ 
           success: false, 
           error: emailError.message,
-          message: "Gagal mengirim email verifikasi"
+          message: "Gagal mengirim email verifikasi via EmailJS"
         }),
         { 
           status: 500,
@@ -93,7 +106,7 @@ serve(async (req) => {
     }
 
   } catch (error) {
-    console.error('Error sending verification email:', error);
+    console.error('Error in send-email-emailjs function:', error);
     return new Response(
       JSON.stringify({ 
         success: false,
