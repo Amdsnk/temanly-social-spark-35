@@ -18,10 +18,15 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const { isAuthenticated, isLoading, user } = useAuth();
   const location = useLocation();
 
+  console.log('ProtectedRoute check:', { isAuthenticated, isLoading, user: user?.email });
+
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
+          <p className="text-gray-600">Loading...</p>
+        </div>
       </div>
     );
   }
@@ -32,12 +37,14 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/signup" state={{ from: location }} replace />;
+    console.log('User not authenticated, redirecting to login');
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   // Check user type if required
   if (requiredUserType && user?.user_type !== requiredUserType) {
-    return <Navigate to="/signup" replace />;
+    console.log('User type mismatch, redirecting to login');
+    return <Navigate to="/login" replace />;
   }
 
   return <>{children}</>;

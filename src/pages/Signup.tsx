@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -70,7 +69,6 @@ const Signup = () => {
 
   const watchedValues = form.watch();
 
-  // KTP Upload Handler
   const handleKtpUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -257,8 +255,10 @@ const Signup = () => {
 
     setIsSubmitting(true);
     try {
+      console.log('Starting registration with AuthContext');
+      
       // Use the AuthContext signup method
-      const result = await signup({
+      await signup({
         name: values.name,
         email: values.email,
         phone: values.phone,
@@ -266,19 +266,10 @@ const Signup = () => {
         user_type: 'user'
       });
 
-      if (result.needsVerification) {
-        // User created but needs admin verification
-        toast({
-          title: "Pendaftaran Berhasil!",
-          description: "Akun Anda telah dibuat dan menunggu verifikasi admin.",
-          className: "bg-green-50 border-green-200"
-        });
-        
-        // Redirect to dashboard after short delay
-        setTimeout(() => {
-          navigate('/user-dashboard');
-        }, 2000);
-      }
+      console.log('Registration completed successfully');
+      
+      // Redirect to dashboard immediately
+      navigate('/user-dashboard');
       
     } catch (error: any) {
       console.error('Registration error:', error);
@@ -309,7 +300,6 @@ const Signup = () => {
             <p className="text-gray-600">Lengkapi data dan verifikasi untuk bergabung</p>
           </div>
 
-          {/* Progress Steps */}
           <div className="flex items-center justify-center mb-8">
             <div className="flex items-center space-x-4">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${currentStep >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'}`}>
@@ -336,7 +326,6 @@ const Signup = () => {
             </CardHeader>
             
             <CardContent className="space-y-6">
-              {/* Step 1: Personal Data */}
               {currentStep === 1 && (
                 <Form {...form}>
                   <form className="space-y-5">
@@ -444,10 +433,8 @@ const Signup = () => {
                 </Form>
               )}
 
-              {/* Step 2: Verification */}
               {currentStep === 2 && (
                 <div className="space-y-6">
-                  {/* KTP Upload */}
                   <Card className="border border-orange-100 bg-orange-50/30">
                     <CardContent className="p-6">
                       <div className="flex items-center gap-2 mb-4">
@@ -484,7 +471,6 @@ const Signup = () => {
                     </CardContent>
                   </Card>
 
-                  {/* Email Verification */}
                   <Card className="border border-blue-100 bg-blue-50/30">
                     <CardContent className="p-6">
                       <div className="flex items-center gap-2 mb-4">
@@ -530,7 +516,6 @@ const Signup = () => {
                     </CardContent>
                   </Card>
 
-                  {/* WhatsApp Verification */}
                   <Card className="border border-green-100 bg-green-50/30">
                     <CardContent className="p-6">
                       <div className="flex items-center gap-2 mb-4">
@@ -598,7 +583,6 @@ const Signup = () => {
                 </div>
               )}
 
-              {/* Step 3: Final Registration */}
               {currentStep === 3 && (
                 <div className="space-y-6">
                   <div className="text-center">

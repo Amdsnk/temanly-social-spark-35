@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -21,7 +20,7 @@ import MainHeader from '@/components/MainHeader';
 import Footer from '@/components/Footer';
 import WhatsAppVerification from '@/components/WhatsAppVerification';
 import EmailVerification from '@/components/EmailVerification';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -40,6 +39,7 @@ const formSchema = z.object({
 
 const SignupNew = () => {
   const navigate = useNavigate();
+  const { signup } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   
   // Verification states
@@ -94,68 +94,21 @@ const SignupNew = () => {
 
     setIsSubmitting(true);
     try {
-      const { data, error } = await supabase.auth.signUp({
+      console.log('Starting registration process');
+      
+      // Use the AuthContext signup method
+      await signup({
+        name: values.name,
         email: values.email,
+        phone: values.phone,
         password: values.password,
-        options: {
-          data: {
-            full_name: values.name,
-            user_type: 'user',
-            phone: values.phone
-          }
-        }
+        user_type: 'user'
       });
 
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      if (data.user) {
-        // Insert to profiles table
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .upsert({
-            id: data.user.id,
-            email: values.email,
-            name: values.name,
-            full_name: values.name,
-            phone: values.phone,
-            user_type: 'user',
-            status: 'active',
-            verification_status: 'verified'
-          });
-
-        if (profileError) {
-          console.error('Profile creation error:', profileError);
-        }
-
-        // Auto login after successful registration
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email: values.email,
-          password: values.password,
-        });
-
-        if (signInError) {
-          console.error('Auto login error:', signInError);
-          // Still show success but redirect to login
-          toast({
-            title: "Pendaftaran Berhasil!",
-            description: "Akun Anda telah berhasil dibuat. Silakan login.",
-            className: "bg-green-50 border-green-200"
-          });
-          navigate('/login');
-          return;
-        }
-
-        toast({
-          title: "Pendaftaran Berhasil!",
-          description: "Akun Anda telah berhasil dibuat dan Anda telah login otomatis.",
-          className: "bg-green-50 border-green-200"
-        });
-        
-        // Redirect to dashboard immediately
-        navigate('/user-dashboard');
-      }
+      console.log('Registration completed, redirecting to dashboard');
+      
+      // Redirect to dashboard immediately
+      navigate('/user-dashboard');
       
     } catch (error: any) {
       console.error('Registration error:', error);
@@ -311,7 +264,6 @@ const SignupNew = () => {
                 </Form>
               )}
 
-              {/* Step 2: Verification */}
               {currentStep === 2 && (
                 <div className="space-y-6">
                   {/* KTP Upload */}
