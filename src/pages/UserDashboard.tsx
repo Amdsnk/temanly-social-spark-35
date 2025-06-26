@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Star, Calendar, DollarSign, User, CheckCircle, AlertTriangle, Heart, TrendingUp, Clock, Award } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import DashboardHeader from '@/components/DashboardHeader';
 import TransactionHistory from '@/components/TransactionHistory';
 import ProfileSettings from '@/components/ProfileSettings';
@@ -16,9 +15,13 @@ import ProfileSettings from '@/components/ProfileSettings';
 const UserDashboard = () => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const defaultTab = searchParams.get('tab') || 'overview';
   
-  // Mock data - would come from API
+  const handleTabChange = (value: string) => {
+    navigate(`/user-dashboard?tab=${value}`);
+  };
+  
   const stats = {
     totalSpent: 1500000,
     completedBookings: 12,
@@ -95,7 +98,7 @@ const UserDashboard = () => {
 
   const getVerificationProgress = () => {
     const steps = ['email', 'phone', 'ktp', 'whatsapp'];
-    const completed = 3; // Mock completed steps
+    const completed = 3;
     return (completed / steps.length) * 100;
   };
 
@@ -109,7 +112,7 @@ const UserDashboard = () => {
       />
 
       <div className="container mx-auto px-4 py-8">
-        <Tabs value={defaultTab} className="space-y-6">
+        <Tabs value={defaultTab} onValueChange={handleTabChange} className="space-y-6">
           <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="bookings">My Bookings</TabsTrigger>
@@ -119,7 +122,6 @@ const UserDashboard = () => {
           </TabsList>
 
           <TabsContent value="overview">
-            {/* Enhanced Stats Overview */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               <Card className="hover:shadow-lg transition-shadow">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -169,7 +171,6 @@ const UserDashboard = () => {
               </Card>
             </div>
 
-            {/* Recent Activity */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
