@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -49,6 +50,7 @@ const Login = () => {
   useEffect(() => {
     if (isAuthenticated && user) {
       console.log('User already authenticated, redirecting to dashboard');
+      setIsLoading(false); // Reset loading state before navigation
       
       // Navigate based on user type
       if (user.user_type === 'companion') {
@@ -73,6 +75,7 @@ const Login = () => {
       await login(values.email, values.password);
       console.log('Login successful');
       // Navigation will be handled by the useEffect above
+      // Don't set loading to false here, let the useEffect handle it
     } catch (error: any) {
       console.error('Login failed with error:', error);
       
@@ -232,3 +235,4 @@ const Login = () => {
 };
 
 export default Login;
+
