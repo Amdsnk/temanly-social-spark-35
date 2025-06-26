@@ -46,31 +46,26 @@ export const sendWhatsAppVerification = async (phone: string): Promise<{ success
 
     if (error) {
       console.error('WhatsApp verification error:', error);
-      // Fallback to returning the code for development
-      return {
-        success: true,
-        message: `Kode verifikasi WhatsApp: ${verificationCode}`,
-        code: verificationCode
-      };
+      throw new Error(error.message || 'Gagal mengirim kode WhatsApp');
     }
 
     console.log('WhatsApp verification result:', data);
     
+    if (!data.success) {
+      throw new Error(data.message || 'Gagal mengirim kode WhatsApp');
+    }
+    
     return {
-      success: data.success,
+      success: true,
       message: data.message,
-      code: data.code || verificationCode
+      code: verificationCode
     };
   } catch (error) {
     console.error('WhatsApp verification error:', error);
     
-    // Provide fallback
-    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-    
     return {
-      success: true,
-      message: `Kode verifikasi WhatsApp: ${verificationCode}`,
-      code: verificationCode
+      success: false,
+      message: error.message || 'Gagal mengirim kode WhatsApp'
     };
   }
 };
