@@ -15,8 +15,9 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, Lock, Shield } from 'lucide-react';
+import { Mail, Lock, Shield, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 import MainHeader from '@/components/MainHeader';
 import Footer from '@/components/Footer';
 
@@ -32,7 +33,9 @@ const formSchema = z.object({
 const Login = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -44,11 +47,38 @@ const Login = () => {
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
+    setError(null);
+    
+    console.log('Login attempt started for:', values.email);
+    
     try {
       await login(values.email, values.password);
+      console.log('Login successful, navigating to dashboard');
       navigate('/user-dashboard');
-    } catch (error) {
-      console.error('Login failed:', error);
+    } catch (error: any) {
+      console.error('Login failed with error:', error);
+      
+      let errorMessage = 'Login gagal. Silakan coba lagi.';
+      
+      if (error?.message) {
+        if (error.message.includes('Invalid login credentials')) {
+          errorMessage = 'Email atau password salah. Silakan periksa kembali.';
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMessage = 'Email belum terverifikasi. Silakan cek email Anda.';
+        } else if (error.message.includes('Too many requests')) {
+          errorMessage = 'Terlalu banyak percobaan login. Silakan tunggu sebentar.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      setError(errorMessage);
+      
+      toast({
+        title: "Login Gagal",
+        description: errorMessage,
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -77,6 +107,13 @@ const Login = () => {
             </CardHeader>
             
             <CardContent>
+              {error && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md flex items-center gap-2 text-red-700 text-sm">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
+
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
                   <FormField
@@ -95,6 +132,7 @@ const Login = () => {
                             placeholder="contoh@email.com" 
                             className="h-12 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
                             autoComplete="email"
+                            disabled={isLoading}
                           />
                         </FormControl>
                         <FormMessage />
@@ -118,6 +156,7 @@ const Login = () => {
                             placeholder="Masukkan password Anda" 
                             className="h-12 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
                             autoComplete="current-password"
+                            disabled={isLoading}
                           />
                         </FormControl>
                         <FormMessage />
@@ -134,6 +173,15 @@ const Login = () => {
                   </Button>
                 </form>
               </Form>
+
+              <div className="mt-4 text-center">
+                <p className="text-sm text-gray-600">
+                  Lupa password?{' '}
+                  <button className="text-blue-600 hover:text-blue-700 font-medium hover:underline">
+                    Reset password
+                  </button>
+                </p>
+              </div>
             </CardContent>
           </Card>
 
