@@ -20,6 +20,7 @@ import { Mail, MessageSquare, Shield, User, Lock, Upload, Check, AlertCircle } f
 import MainHeader from '@/components/MainHeader';
 import Footer from '@/components/Footer';
 import { sendEmailVerification, sendWhatsAppVerification, verifyWhatsAppCode, verifyEmailToken } from '@/services/verificationService';
+import { useAuth } from '@/contexts/AuthContext';
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -38,6 +39,7 @@ const formSchema = z.object({
 
 const Signup = () => {
   const navigate = useNavigate();
+  const { signup } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   
   // Verification states
@@ -255,24 +257,34 @@ const Signup = () => {
 
     setIsSubmitting(true);
     try {
-      // Simulate registration process
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      toast({
-        title: "Pendaftaran Berhasil!",
-        description: "Akun Anda telah berhasil dibuat dan diverifikasi",
-        className: "bg-green-50 border-green-200"
+      // Use the AuthContext signup method
+      const result = await signup({
+        name: values.name,
+        email: values.email,
+        phone: values.phone,
+        password: values.password,
+        user_type: 'user'
       });
+
+      if (result.needsVerification) {
+        // User created but needs admin verification
+        toast({
+          title: "Pendaftaran Berhasil!",
+          description: "Akun Anda telah dibuat dan menunggu verifikasi admin.",
+          className: "bg-green-50 border-green-200"
+        });
+        
+        // Redirect to dashboard after short delay
+        setTimeout(() => {
+          navigate('/user-dashboard');
+        }, 2000);
+      }
       
-      // Redirect to dashboard or login
-      setTimeout(() => {
-        navigate('/user-dashboard');
-      }, 2000);
-      
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Registration error:', error);
       toast({
         title: "Pendaftaran Gagal",
-        description: "Terjadi kesalahan saat mendaftar. Silakan coba lagi.",
+        description: error.message || "Terjadi kesalahan saat mendaftar. Silakan coba lagi.",
         variant: "destructive"
       });
     } finally {

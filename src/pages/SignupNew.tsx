@@ -102,8 +102,7 @@ const SignupNew = () => {
             full_name: values.name,
             user_type: 'user',
             phone: values.phone
-          },
-          emailRedirectTo: `${window.location.origin}/`
+          }
         }
       });
 
@@ -130,15 +129,32 @@ const SignupNew = () => {
           console.error('Profile creation error:', profileError);
         }
 
+        // Auto login after successful registration
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: values.email,
+          password: values.password,
+        });
+
+        if (signInError) {
+          console.error('Auto login error:', signInError);
+          // Still show success but redirect to login
+          toast({
+            title: "Pendaftaran Berhasil!",
+            description: "Akun Anda telah berhasil dibuat. Silakan login.",
+            className: "bg-green-50 border-green-200"
+          });
+          navigate('/login');
+          return;
+        }
+
         toast({
           title: "Pendaftaran Berhasil!",
-          description: "Akun Anda telah berhasil dibuat dan diverifikasi",
+          description: "Akun Anda telah berhasil dibuat dan Anda telah login otomatis.",
           className: "bg-green-50 border-green-200"
         });
         
-        setTimeout(() => {
-          navigate('/user-dashboard');
-        }, 2000);
+        // Redirect to dashboard immediately
+        navigate('/user-dashboard');
       }
       
     } catch (error: any) {
