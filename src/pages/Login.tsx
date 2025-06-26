@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -33,7 +32,7 @@ const formSchema = z.object({
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login, isAuthenticated, user } = useAuth();
+  const { login, isAuthenticated, user, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,23 +47,24 @@ const Login = () => {
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated && user) {
-      console.log('User already authenticated, redirecting to dashboard');
-      setIsLoading(false); // Reset loading state before navigation
+    console.log('Auth state check:', { isAuthenticated, user, authLoading });
+    
+    if (!authLoading && isAuthenticated && user) {
+      console.log('User authenticated, navigating to dashboard for user type:', user.user_type);
       
       // Navigate based on user type
       if (user.user_type === 'companion') {
-        navigate('/talent-dashboard');
+        navigate('/talent-dashboard', { replace: true });
       } else if (user.user_type === 'admin') {
-        navigate('/admin');
+        navigate('/admin', { replace: true });
       } else {
-        navigate('/user-dashboard');
+        navigate('/user-dashboard', { replace: true });
       }
     }
-  }, [isAuthenticated, user, navigate]);
+  }, [isAuthenticated, user, authLoading, navigate]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    if (isLoading) return; // Prevent multiple submissions
+    if (isLoading || authLoading) return;
     
     setIsLoading(true);
     setError(null);
@@ -73,9 +73,8 @@ const Login = () => {
     
     try {
       await login(values.email, values.password);
-      console.log('Login successful');
-      // Navigation will be handled by the useEffect above
-      // Don't set loading to false here, let the useEffect handle it
+      console.log('Login successful, waiting for redirect...');
+      // Don't set loading to false here - let the useEffect handle navigation
     } catch (error: any) {
       console.error('Login failed with error:', error);
       
@@ -101,17 +100,28 @@ const Login = () => {
         variant: "destructive",
       });
       
-      setIsLoading(false); // Reset loading state on error
+      setIsLoading(false);
     }
   };
 
   const handleResetPassword = () => {
-    // TODO: Implement password reset functionality
     toast({
       title: "Reset Password",
       description: "Fitur reset password akan segera tersedia.",
     });
   };
+
+  // Show loading state while auth is initializing
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Memuat...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex flex-col">
@@ -198,7 +208,14 @@ const Login = () => {
                     disabled={isLoading}
                     className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-lg transition-all duration-200"
                   >
-                    {isLoading ? 'Masuk...' : 'Masuk'}
+                    {isLoading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Masuk...
+                      </div>
+                    ) : (
+                      'Masuk'
+                    )}
                   </Button>
                 </form>
               </Form>
@@ -235,4 +252,3 @@ const Login = () => {
 };
 
 export default Login;
-
