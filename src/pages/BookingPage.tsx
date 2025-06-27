@@ -67,20 +67,23 @@ const BookingPage = () => {
         throw new Error('User not authenticated');
       }
 
-      // Create booking record in Supabase
+      // Create booking record in Supabase with correct field names
       const { data: booking, error: bookingError } = await supabase
         .from('bookings')
         .insert({
-          user_id: user.id,
           companion_id: talent.id.toString(),
-          service: selectedServices.map(s => s.id).join(', '),
-          booking_date: selectedDate?.toISOString().split('T')[0],
-          booking_time: '00:00',
-          message: bookingForm.message,
+          customer_name: user.name || 'Customer',
+          customer_email: user.email || 'customer@example.com',
+          customer_phone: user.phone || '08123456789',
+          service_name: selectedServices.map(s => s.id).join(', '),
+          date: selectedDate?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
+          time: '00:00',
+          duration: selectedServices.reduce((total, service) => total + service.duration, 0),
           total_price: finalTotal,
           payment_status: 'paid',
-          status: 'confirmed',
-          transaction_id: result.order_id || result.transaction_id,
+          booking_status: 'confirmed',
+          notes: bookingForm.message,
+          payment_reference: result.order_id || result.transaction_id,
         })
         .select()
         .single();
@@ -118,20 +121,23 @@ const BookingPage = () => {
         throw new Error('User not authenticated');
       }
 
-      // Create pending booking record
+      // Create pending booking record with correct field names
       const { data: booking, error: bookingError } = await supabase
         .from('bookings')
         .insert({
-          user_id: user.id,
           companion_id: talent.id.toString(),
-          service: selectedServices.map(s => s.id).join(', '),
-          booking_date: selectedDate?.toISOString().split('T')[0],
-          booking_time: '00:00',
-          message: bookingForm.message,
+          customer_name: user.name || 'Customer',
+          customer_email: user.email || 'customer@example.com',
+          customer_phone: user.phone || '08123456789',
+          service_name: selectedServices.map(s => s.id).join(', '),
+          date: selectedDate?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
+          time: '00:00',
+          duration: selectedServices.reduce((total, service) => total + service.duration, 0),
           total_price: finalTotal,
           payment_status: 'pending',
-          status: 'pending',
-          transaction_id: result.order_id || result.transaction_id,
+          booking_status: 'pending',
+          notes: bookingForm.message,
+          payment_reference: result.order_id || result.transaction_id,
         })
         .select()
         .single();
