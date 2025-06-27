@@ -10,6 +10,7 @@ import UserDashboard from './pages/UserDashboard';
 import Contact from './pages/Contact';
 import TalentRegister from './pages/TalentRegister';
 import TalentRegisterSuccess from './pages/TalentRegisterSuccess';
+import TalentProfile from './pages/TalentProfile';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminApp from './components/AdminApp';
 import { AuthProvider } from './contexts/AuthContext';
@@ -27,6 +28,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Signup />} />
             <Route path="/talents" element={<BrowseTalents />} />
+            <Route path="/talent/:id" element={<TalentProfile />} />
             <Route path="/booking" element={<BookingPage />} />
             <Route path="/user-dashboard" element={<UserDashboard />} />
             <Route path="/contact" element={<Contact />} />
