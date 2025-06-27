@@ -185,7 +185,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data: profiles, error: profileError } = await supabase
         .from('profiles')
         .select('email, phone')
-        .or(`email.eq.${email},phone.eq.${phone}`);
+        .or(`email.eq.${email},phone.eq.${phone}`)
+        .returns<ProfileData[]>();
 
       if (profileError) {
         console.error('Error checking existing users:', profileError);
@@ -193,7 +194,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (profiles && profiles.length > 0) {
-        const existingProfile = profiles[0] as ProfileData;
+        const existingProfile = profiles[0];
         if (existingProfile.email === email) {
           return { exists: true, type: 'email' };
         }
