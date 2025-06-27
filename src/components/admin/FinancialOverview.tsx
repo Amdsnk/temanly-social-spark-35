@@ -1,236 +1,282 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { TrendingUp, TrendingDown, DollarSign, CreditCard, Wallet, PiggyBank, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { TrendingUp, DollarSign, Users, CreditCard } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { supabase } from '@/integrations/supabase/client';
 
 const FinancialOverview = () => {
-  const [timeframe, setTimeframe] = useState('30days');
+  const [financialData, setFinancialData] = useState({
+    totalRevenue: 0,
+    monthlyRevenue: 0,
+    totalTransactions: 0,
+    averageTransaction: 0,
+    platformFees: 0,
+    talentEarnings: 0
+  });
+  
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [serviceData, setServiceData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock financial data - replace with real Supabase queries
-  const financialStats = {
-    totalRevenue: 156000000, // IDR 156M
-    monthlyGrowth: 18.5,
-    platformFees: 31200000, // 20% of revenue
-    talentEarnings: 124800000, // 80% of revenue
-    pendingPayouts: 8500000,
-    completedPayouts: 116300000,
-    refunds: 2400000,
-    chargebacks: 650000,
-    averageTransactionValue: 175000,
-    transactionCount: 892,
-    topServices: [
-      { service: 'Chat', revenue: 65000000, transactions: 456, growth: 25 },
-      { service: 'Video Call', revenue: 45000000, transactions: 234, growth: 15 },
-      { service: 'Offline Date', revenue: 32000000, transactions: 156, growth: -5 },
-      { service: 'Call', revenue: 14000000, transactions: 46, growth: 8 }
-    ],
-    monthlyTrend: [
-      { month: 'Jan', revenue: 98000000, fees: 19600000 },
-      { month: 'Feb', revenue: 112000000, fees: 22400000 },
-      { month: 'Mar', revenue: 125000000, fees: 25000000 },
-      { month: 'Apr', revenue: 139000000, fees: 27800000 },
-      { month: 'May', revenue: 147000000, fees: 29400000 },
-      { month: 'Jun', revenue: 156000000, fees: 31200000 }
-    ]
+  useEffect(() => {
+    fetchFinancialData();
+    fetchChartData();
+    fetchServiceData();
+  }, []);
+
+  const fetchFinancialData = async () => {
+    try {
+      const { data: transactions, error } = await supabase
+        .from('transactions')
+        .select('amount, platform_fee, companion_earnings, created_at, status');
+
+      if (error) throw error;
+
+      const totalRevenue = transactions.reduce((sum, t) => sum + (t.amount || 0), 0);
+      const totalTransactions = transactions.length;
+      const averageTransaction = totalTransactions > 0 ? totalRevenue / totalTransactions : 0;
+      const platformFees = transactions.reduce((sum, t) => sum + (t.platform_fee || 0), 0);
+      const talentEarnings = transactions.reduce((sum, t) => sum + (t.companion_earnings || 0), 0);
+
+      // Calculate monthly revenue (current month)
+      const currentMonth = new Date().getMonth();
+      const currentYear = new Date().getFullYear();
+      const monthlyRevenue = transactions
+        .filter(t => {
+          const transactionDate = new Date(t.created_at);
+          return transactionDate.getMonth() === currentMonth && transactionDate.getFullYear() === currentYear;
+        })
+        .reduce((sum, t) => sum + (t.amount || 0), 0);
+
+      setFinancialData({
+        totalRevenue,
+        monthlyRevenue,
+        totalTransactions,
+        averageTransaction,
+        platformFees,
+        talentEarnings
+      });
+    } catch (error) {
+      console.error('Error fetching financial data:', error);
+    }
   };
 
-  const formatCurrency = (amount: number) => {
-    return `Rp ${(amount / 1000000).toFixed(1)}M`;
+  const fetchChartData = async () => {
+    try {
+      const { data: transactions, error } = await supabase
+        .from('transactions')
+        .select('amount, created_at')
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      // Group transactions by month for the last 6 months
+      const monthlyData: { [key: string]: number } = {};
+      const last6Months = [];
+      
+      for (let i = 5; i >= 0; i--) {
+        const date = new Date();
+        date.setMonth(date.getMonth() - i);
+        const monthKey = date.toISOString().slice(0, 7); // YYYY-MM format
+        monthlyData[monthKey] = 0;
+        last6Months.push({
+          month: date.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' }),
+          revenue: 0
+        });
+      }
+
+      // Aggregate transaction data by month
+      transactions.forEach(transaction => {
+        const transactionMonth = transaction.created_at.slice(0, 7);
+        if (monthlyData.hasOwnProperty(transactionMonth)) {
+          monthlyData[transactionMonth] += transaction.amount || 0;
+        }
+      });
+
+      // Map data to chart format
+      Object.keys(monthlyData).forEach((monthKey, index) => {
+        if (last6Months[index]) {
+          last6Months[index].revenue = monthlyData[monthKey];
+        }
+      });
+
+      setChartData(last6Months);
+    } catch (error) {
+      console.error('Error fetching chart data:', error);
+    }
   };
 
-  const formatGrowth = (growth: number) => {
-    const isPositive = growth > 0;
+  const fetchServiceData = async () => {
+    try {
+      const { data: transactions, error } = await supabase
+        .from('transactions')
+        .select('service, amount');
+
+      if (error) throw error;
+
+      // Aggregate by service
+      const serviceRevenue: { [key: string]: number } = {};
+      transactions.forEach(transaction => {
+        if (serviceRevenue[transaction.service]) {
+          serviceRevenue[transaction.service] += transaction.amount || 0;
+        } else {
+          serviceRevenue[transaction.service] = transaction.amount || 0;
+        }
+      });
+
+      const serviceArray = Object.entries(serviceRevenue).map(([service, revenue]) => ({
+        service,
+        revenue
+      }));
+
+      setServiceData(serviceArray);
+    } catch (error) {
+      console.error('Error fetching service data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
     return (
-      <div className={`flex items-center gap-1 ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
-        {isPositive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-        <span className="text-xs font-medium">{Math.abs(growth)}%</span>
-      </div>
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span className="ml-2">Loading financial data...</span>
+          </div>
+        </CardContent>
+      </Card>
     );
-  };
+  }
 
   return (
     <div className="space-y-6">
-      {/* Financial Summary Cards */}
+      {/* Financial KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-l-4 border-l-green-500">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">Rp {financialData.totalRevenue.toLocaleString('id-ID')}</div>
+            <p className="text-xs text-muted-foreground">All time</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">Rp {financialData.monthlyRevenue.toLocaleString('id-ID')}</div>
+            <p className="text-xs text-muted-foreground">This month</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Transactions</CardTitle>
+            <CreditCard className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{financialData.totalTransactions}</div>
+            <p className="text-xs text-muted-foreground">All time</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Average Transaction</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">Rp {Math.round(financialData.averageTransaction).toLocaleString('id-ID')}</div>
+            <p className="text-xs text-muted-foreground">Per transaction</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Revenue Breakdown */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Platform Fees</CardTitle>
             <DollarSign className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {formatCurrency(financialStats.totalRevenue)}
+              Rp {financialData.platformFees.toLocaleString('id-ID')}
             </div>
-            <div className="flex items-center justify-between mt-1">
-              <p className="text-xs text-muted-foreground">Bulan ini</p>
-              {formatGrowth(financialStats.monthlyGrowth)}
-            </div>
+            <p className="text-xs text-muted-foreground">Platform earnings</p>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-blue-500">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Platform Fees</CardTitle>
-            <Wallet className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {formatCurrency(financialStats.platformFees)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {((financialStats.platformFees / financialStats.totalRevenue) * 100).toFixed(1)}% dari total revenue
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-purple-500">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Talent Earnings</CardTitle>
-            <PiggyBank className="h-4 w-4 text-purple-600" />
+            <Users className="h-4 w-4 text-purple-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-purple-600">
-              {formatCurrency(financialStats.talentEarnings)}
+              Rp {financialData.talentEarnings.toLocaleString('id-ID')}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Dibayar ke {financialStats.transactionCount} transaksi
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-yellow-500">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Payouts</CardTitle>
-            <CreditCard className="h-4 w-4 text-yellow-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">
-              {formatCurrency(financialStats.pendingPayouts)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Menunggu pembayaran
-            </p>
+            <p className="text-xs text-muted-foreground">Paid to talents</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Service Performance */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Service Performance & Revenue</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {financialStats.topServices.map((service, index) => (
-              <div key={service.service} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center gap-4">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold ${
-                    index === 0 ? 'bg-yellow-500' :
-                    index === 1 ? 'bg-gray-400' :
-                    index === 2 ? 'bg-orange-500' : 'bg-blue-500'
-                  }`}>
-                    {index + 1}
-                  </div>
-                  <div>
-                    <h4 className="font-semibold">{service.service}</h4>
-                    <p className="text-sm text-gray-600">{service.transactions} transaksi</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="font-bold text-lg">{formatCurrency(service.revenue)}</div>
-                  {formatGrowth(service.growth)}
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Financial Health Indicators */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Payment Health</CardTitle>
+            <CardTitle>Revenue Trend (Last 6 Months)</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-sm">Completed Payouts</span>
-                <div className="flex items-center gap-2">
-                  <Badge className="bg-green-100 text-green-600">Healthy</Badge>
-                  <span className="font-semibold">{formatCurrency(financialStats.completedPayouts)}</span>
-                </div>
+            {chartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis tickFormatter={(value) => `Rp ${(value / 1000).toFixed(0)}K`} />
+                  <Tooltip formatter={(value: number) => [`Rp ${value.toLocaleString('id-ID')}`, 'Revenue']} />
+                  <Line type="monotone" dataKey="revenue" stroke="#3b82f6" strokeWidth={2} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[300px] text-gray-500">
+                No revenue data available
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm">Refunds</span>
-                <div className="flex items-center gap-2">
-                  <Badge className="bg-yellow-100 text-yellow-600">Monitor</Badge>
-                  <span className="font-semibold">{formatCurrency(financialStats.refunds)}</span>
-                </div>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm">Chargebacks</span>
-                <div className="flex items-center gap-2">
-                  <Badge className="bg-red-100 text-red-600">Watch</Badge>
-                  <span className="font-semibold">{formatCurrency(financialStats.chargebacks)}</span>
-                </div>
-              </div>
-            </div>
+            )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Transaction Insights</CardTitle>
+            <CardTitle>Revenue by Service</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-sm">Average Transaction Value</span>
-                <span className="font-semibold">Rp {financialStats.averageTransactionValue.toLocaleString('id-ID')}</span>
+            {serviceData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={serviceData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="service" />
+                  <YAxis tickFormatter={(value) => `Rp ${(value / 1000).toFixed(0)}K`} />
+                  <Tooltip formatter={(value: number) => [`Rp ${value.toLocaleString('id-ID')}`, 'Revenue']} />
+                  <Bar dataKey="revenue" fill="#8b5cf6" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[300px] text-gray-500">
+                No service data available
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm">Total Transactions</span>
-                <span className="font-semibold">{financialStats.transactionCount}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm">Success Rate</span>
-                <div className="flex items-center gap-2">
-                  <Badge className="bg-green-100 text-green-600">97.8%</Badge>
-                  <span className="text-sm text-green-600">Excellent</span>
-                </div>
-              </div>
-            </div>
+            )}
           </CardContent>
         </Card>
       </div>
-
-      {/* Monthly Revenue Trend */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Monthly Revenue Trend</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-6 gap-4">
-            {financialStats.monthlyTrend.map((month) => (
-              <div key={month.month} className="text-center">
-                <div className="text-xs text-gray-600 mb-2">{month.month}</div>
-                <div className="bg-blue-100 rounded-lg p-3">
-                  <div className="text-sm font-bold text-blue-600">
-                    {formatCurrency(month.revenue)}
-                  </div>
-                  <div className="text-xs text-gray-600 mt-1">
-                    Fee: {formatCurrency(month.fees)}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };

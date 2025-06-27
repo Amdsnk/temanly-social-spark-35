@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { LogOut, Shield, TrendingUp, CreditCard, Settings, Users, DollarSign, Star, Activity } from 'lucide-react';
+import { LogOut, Shield, TrendingUp, CreditCard, Settings, Users, DollarSign, Star, Activity, UserCog } from 'lucide-react';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
 import UserApprovalManagement from '@/components/admin/UserApprovalManagement';
 import PaymentManagement from '@/components/admin/PaymentManagement';
@@ -13,6 +13,7 @@ import TalentLevelManagement from '@/components/admin/TalentLevelManagement';
 import ServiceAnalytics from '@/components/admin/ServiceAnalytics';
 import RealTimeActivityMonitor from '@/components/admin/RealTimeActivityMonitor';
 import SystemStats from '@/components/admin/SystemStats';
+import UserManagement from '@/components/admin/UserManagement';
 
 const AdminDashboard = () => {
   const [selectedTimeframe, setSelectedTimeframe] = useState('7days');
@@ -40,9 +41,9 @@ const AdminDashboard = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="7days">7 Hari</SelectItem>
-                  <SelectItem value="30days">30 Hari</SelectItem>
-                  <SelectItem value="90days">90 Hari</SelectItem>
+                  <SelectItem value="7days">7 Days</SelectItem>
+                  <SelectItem value="30days">30 Days</SelectItem>
+                  <SelectItem value="90days">90 Days</SelectItem>
                 </SelectContent>
               </Select>
               <Button 
@@ -66,10 +67,14 @@ const AdminDashboard = () => {
         </div>
 
         <Tabs defaultValue="monitor" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-7 gap-2 h-auto p-2 bg-muted">
+          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 gap-2 h-auto p-2 bg-muted">
             <TabsTrigger value="monitor" className="flex items-center gap-2">
               <Activity className="w-4 h-4" />
               Live Monitor
+            </TabsTrigger>
+            <TabsTrigger value="users" className="flex items-center gap-2">
+              <UserCog className="w-4 h-4" />
+              All Users
             </TabsTrigger>
             <TabsTrigger value="financial" className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4" />
@@ -99,6 +104,10 @@ const AdminDashboard = () => {
 
           <TabsContent value="monitor">
             <RealTimeActivityMonitor />
+          </TabsContent>
+
+          <TabsContent value="users">
+            <UserManagement />
           </TabsContent>
 
           <TabsContent value="financial">

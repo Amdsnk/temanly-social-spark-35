@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -5,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { TrendingUp, DollarSign, Filter, Download, Search, Eye } from 'lucide-react';
+import { TrendingUp, DollarSign, Download, Search, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Database } from '@/integrations/supabase/types';
@@ -55,8 +56,8 @@ const TransactionManagement = () => {
         .from('transactions')
         .select(`
           *,
-          profiles!transactions_user_id_fkey(name),
-          profiles!transactions_companion_id_fkey(name)
+          user_profile:profiles!user_id(name),
+          companion_profile:profiles!companion_id(name)
         `)
         .order('created_at', { ascending: false });
 
@@ -77,8 +78,8 @@ const TransactionManagement = () => {
 
       const enrichedData = data?.map(transaction => ({
         ...transaction,
-        user_name: transaction.profiles?.name || 'Unknown User',
-        companion_name: transaction.profiles?.name || 'Unknown Talent'
+        user_name: transaction.user_profile?.name || 'Unknown User',
+        companion_name: transaction.companion_profile?.name || 'Unknown Talent'
       })) || [];
 
       setTransactions(enrichedData);
@@ -86,7 +87,7 @@ const TransactionManagement = () => {
       console.error('Error fetching transactions:', error);
       toast({
         title: "Error",
-        description: "Gagal memuat data transaksi",
+        description: "Failed to load transaction data",
         variant: "destructive"
       });
     } finally {
@@ -114,7 +115,7 @@ const TransactionManagement = () => {
         platformFees,
         companionEarnings,
         pendingPayments,
-        monthlyGrowth: 12.5 // Mock data - would calculate from historical data
+        monthlyGrowth: 0 // Real calculation would need historical data
       });
     } catch (error) {
       console.error('Error calculating stats:', error);
@@ -122,6 +123,15 @@ const TransactionManagement = () => {
   };
 
   const exportTransactions = () => {
+    if (transactions.length === 0) {
+      toast({
+        title: "No Data",
+        description: "No transactions to export",
+        variant: "destructive"
+      });
+      return;
+    }
+
     const csvData = transactions.map(t => ({
       ID: t.id,
       User: t.user_name,
@@ -180,7 +190,7 @@ const TransactionManagement = () => {
           <CardContent>
             <div className="text-2xl font-bold">Rp {stats.totalRevenue.toLocaleString('id-ID')}</div>
             <p className="text-xs text-muted-foreground">
-              +{stats.monthlyGrowth}% dari bulan lalu
+              All time revenue
             </p>
           </CardContent>
         </Card>
@@ -193,7 +203,7 @@ const TransactionManagement = () => {
           <CardContent>
             <div className="text-2xl font-bold">Rp {stats.platformFees.toLocaleString('id-ID')}</div>
             <p className="text-xs text-muted-foreground">
-              Pendapatan platform
+              Platform earnings
             </p>
           </CardContent>
         </Card>
@@ -206,7 +216,7 @@ const TransactionManagement = () => {
           <CardContent>
             <div className="text-2xl font-bold">Rp {stats.companionEarnings.toLocaleString('id-ID')}</div>
             <p className="text-xs text-muted-foreground">
-              Total dibayar ke talent
+              Paid to talents
             </p>
           </CardContent>
         </Card>
@@ -219,7 +229,7 @@ const TransactionManagement = () => {
           <CardContent>
             <div className="text-2xl font-bold text-yellow-600">Rp {stats.pendingPayments.toLocaleString('id-ID')}</div>
             <p className="text-xs text-muted-foreground">
-              Menunggu verifikasi
+              Awaiting verification
             </p>
           </CardContent>
         </Card>
@@ -268,84 +278,84 @@ const TransactionManagement = () => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="7days">7 Hari</SelectItem>
-                <SelectItem value="30days">30 Hari</SelectItem>
-                <SelectItem value="90days">90 Hari</SelectItem>
-                <SelectItem value="all">Semua</SelectItem>
+                <SelectItem value="7days">7 Days</SelectItem>
+                <SelectItem value="30days">30 Days</SelectItem>
+                <SelectItem value="90days">90 Days</SelectItem>
+                <SelectItem value="all">All Time</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {/* Transaction Table */}
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Transaction ID</TableHead>
-                <TableHead>User</TableHead>
-                <TableHead>Talent</TableHead>
-                <TableHead>Service</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Platform Fee</TableHead>
-                <TableHead>Talent Earnings</TableHead>
-                <TableHead>Payment Method</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredTransactions.map((transaction) => (
-                <TableRow key={transaction.id}>
-                  <TableCell className="font-mono text-sm">
-                    {transaction.id.slice(0, 8)}...
-                  </TableCell>
-                  <TableCell>{transaction.user_name}</TableCell>
-                  <TableCell>{transaction.companion_name}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{transaction.service}</Badge>
-                  </TableCell>
-                  <TableCell className="font-semibold">
-                    Rp {transaction.amount.toLocaleString('id-ID')}
-                  </TableCell>
-                  <TableCell className="text-blue-600">
-                    Rp {(transaction.platform_fee || 0).toLocaleString('id-ID')}
-                  </TableCell>
-                  <TableCell className="text-green-600">
-                    Rp {(transaction.companion_earnings || 0).toLocaleString('id-ID')}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{transaction.payment_method}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge 
-                      className={
-                        transaction.status === 'paid' ? 'bg-green-100 text-green-600' :
-                        transaction.status === 'pending_verification' ? 'bg-yellow-100 text-yellow-600' :
-                        transaction.status === 'failed' ? 'bg-red-100 text-red-600' :
-                        'bg-gray-100 text-gray-600'
-                      }
-                    >
-                      {transaction.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {new Date(transaction.created_at).toLocaleDateString('id-ID')}
-                  </TableCell>
-                  <TableCell>
-                    <Button size="sm" variant="outline">
-                      <Eye className="w-3 h-3 mr-1" />
-                      Detail
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-
-          {filteredTransactions.length === 0 && (
+          {filteredTransactions.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              No transactions found matching your criteria.
+              {transactions.length === 0 ? "No transactions found." : "No transactions match your search criteria."}
             </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Transaction ID</TableHead>
+                  <TableHead>User</TableHead>
+                  <TableHead>Talent</TableHead>
+                  <TableHead>Service</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Platform Fee</TableHead>
+                  <TableHead>Talent Earnings</TableHead>
+                  <TableHead>Payment Method</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredTransactions.map((transaction) => (
+                  <TableRow key={transaction.id}>
+                    <TableCell className="font-mono text-sm">
+                      {transaction.id.slice(0, 8)}...
+                    </TableCell>
+                    <TableCell>{transaction.user_name}</TableCell>
+                    <TableCell>{transaction.companion_name}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{transaction.service}</Badge>
+                    </TableCell>
+                    <TableCell className="font-semibold">
+                      Rp {transaction.amount.toLocaleString('id-ID')}
+                    </TableCell>
+                    <TableCell className="text-blue-600">
+                      Rp {(transaction.platform_fee || 0).toLocaleString('id-ID')}
+                    </TableCell>
+                    <TableCell className="text-green-600">
+                      Rp {(transaction.companion_earnings || 0).toLocaleString('id-ID')}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">{transaction.payment_method}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge 
+                        className={
+                          transaction.status === 'paid' ? 'bg-green-100 text-green-600' :
+                          transaction.status === 'pending_verification' ? 'bg-yellow-100 text-yellow-600' :
+                          transaction.status === 'failed' ? 'bg-red-100 text-red-600' :
+                          'bg-gray-100 text-gray-600'
+                        }
+                      >
+                        {transaction.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {new Date(transaction.created_at).toLocaleDateString('id-ID')}
+                    </TableCell>
+                    <TableCell>
+                      <Button size="sm" variant="outline">
+                        <Eye className="w-3 h-3 mr-1" />
+                        Detail
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>
