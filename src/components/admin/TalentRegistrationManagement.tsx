@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,16 +42,27 @@ const TalentRegistrationManagement = () => {
 
   const fetchTalentApplications = async () => {
     try {
+      console.log('Fetching talent applications...');
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('user_type', 'companion')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching talent applications:', error);
+        throw error;
+      }
       
       console.log('Talent applications fetched:', data);
       setApplications(data || []);
+      
+      if (data && data.length > 0) {
+        console.log(`Found ${data.length} talent applications`);
+      } else {
+        console.log('No talent applications found');
+      }
     } catch (error) {
       console.error('Error fetching talent applications:', error);
       toast({
@@ -89,12 +99,14 @@ const TalentRegistrationManagement = () => {
 
   const handleApproval = async (applicationId: string, approved: boolean) => {
     try {
-      const status = approved ? 'verified' : 'rejected';
+      const verificationStatus = approved ? 'verified' : 'rejected';
+      const profileStatus = approved ? 'active' : 'suspended';
+      
       const { error } = await supabase
         .from('profiles')
         .update({ 
-          verification_status: status,
-          status: approved ? 'active' : 'rejected',
+          verification_status: verificationStatus,
+          status: profileStatus,
           updated_at: new Date().toISOString()
         })
         .eq('id', applicationId);
@@ -107,7 +119,7 @@ const TalentRegistrationManagement = () => {
       setApplications(prev => 
         prev.map(app => 
           app.id === applicationId 
-            ? { ...app, verification_status: status as any, status: approved ? 'active' : 'rejected' }
+            ? { ...app, verification_status: verificationStatus as any, status: profileStatus }
             : app
         )
       );
@@ -206,6 +218,28 @@ const TalentRegistrationManagement = () => {
         </Card>
       </div>
 
+      {/* Debug Information */}
+      <Card className="bg-blue-50 border-blue-200">
+        <CardHeader>
+          <CardTitle className="text-sm font-medium text-blue-800">Debug Info</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-sm text-blue-700 space-y-1">
+            <p>Total applications loaded: {allApplications.length}</p>
+            <p>Pending applications: {pendingApplications.length}</p>
+            <p>Loading state: {loading ? 'Loading...' : 'Loaded'}</p>
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={fetchTalentApplications}
+              className="mt-2"
+            >
+              Refresh Data
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Applications Table */}
       <Card>
         <CardHeader>
@@ -217,7 +251,13 @@ const TalentRegistrationManagement = () => {
         <CardContent>
           {allApplications.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              Belum ada pendaftaran talent.
+              <p>Belum ada pendaftaran talent.</p>
+              <p className="text-sm mt-2">Jika seharusnya ada data, silakan periksa:</p>
+              <ul className="text-sm mt-2 space-y-1">
+                <li>- Apakah user_type di database = 'companion'</li>
+                <li>- Apakah data tersimpan di table 'profiles'</li>
+                <li>- Refresh halaman atau klik tombol Refresh Data</li>
+              </ul>
             </div>
           ) : (
             <Table>
@@ -300,6 +340,7 @@ const TalentRegistrationManagement = () => {
                             </DialogHeader>
                             {selectedApplication && (
                               <div className="space-y-4">
+                                
                                 <div className="grid grid-cols-2 gap-4">
                                   <div>
                                     <label className="text-sm font-medium">Nama Lengkap</label>

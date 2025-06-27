@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -125,7 +124,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               .from('profiles')
               .insert({
                 id: userId,
-                email: authUser.user.email,
+                email: authUser.user.email || '',
                 name: authUser.user.user_metadata?.full_name || 'User',
                 full_name: authUser.user.user_metadata?.full_name || 'User',
                 phone: authUser.user.user_metadata?.phone || '',
@@ -152,7 +151,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser({
         id: data.id,
         name: data.name || data.full_name || 'User',
-        email: data.email,
+        email: data.email || '',
         phone: data.phone,
         verified: data.verification_status === 'verified',
         user_type: data.user_type || 'user',
@@ -227,6 +226,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // For talent registration, we'll create a special flow
       if (userData.user_type === 'companion') {
+        console.log('Creating talent user with type:', userData.user_type);
+        
         // Sign up with Supabase Auth first
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email: userData.email,
@@ -247,32 +248,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (authData.user) {
           console.log('Talent user created in auth:', authData.user.id);
+          console.log('Attempting to create talent profile with user_type: companion');
           
-          // For talents, we'll try to create the profile with service role or let admin handle it
+          // Try to create the profile - this is critical for admin visibility
           try {
-            const { error: profileError } = await supabase
+            const profileData = {
+              id: authData.user.id,
+              email: userData.email,
+              name: userData.name,
+              full_name: userData.name,
+              phone: userData.phone,
+              user_type: 'companion' as const,
+              verification_status: 'pending' as const,
+              status: 'pending',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            };
+            
+            console.log('Inserting profile with data:', profileData);
+            
+            const { data: profileResult, error: profileError } = await supabase
               .from('profiles')
-              .insert({
-                id: authData.user.id,
-                email: userData.email,
-                name: userData.name,
-                full_name: userData.name,
-                phone: userData.phone,
-                user_type: 'companion',
-                verification_status: 'pending',
-                status: 'pending',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-              });
+              .insert(profileData)
+              .select()
+              .single();
 
             if (profileError) {
-              console.log('Profile creation failed, but continuing with talent registration flow:', profileError);
+              console.error('Profile creation failed:', profileError);
+              // Log the specific error for debugging
+              console.error('Profile error details:', {
+                code: profileError.code,
+                message: profileError.message,
+                details: profileError.details,
+                hint: profileError.hint
+              });
             } else {
-              // Log successful talent signup for admin monitoring
-              console.log('Talent profile created successfully, logging admin activity');
+              console.log('Talent profile created successfully:', profileResult);
             }
           } catch (profileError) {
-            console.log('Profile creation failed, but continuing with talent registration flow:', profileError);
+            console.error('Profile creation exception:', profileError);
           }
 
           toast({
