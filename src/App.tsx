@@ -1,5 +1,4 @@
 
-
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Login from './pages/Login';
@@ -11,6 +10,8 @@ import UserDashboard from './pages/UserDashboard';
 import Contact from './pages/Contact';
 import TalentRegister from './pages/TalentRegister';
 import TalentRegisterSuccess from './pages/TalentRegisterSuccess';
+import AdminDashboard from './pages/AdminDashboard';
+import AdminApp from './components/AdminApp';
 import { AuthProvider } from './contexts/AuthContext';
 import { Toaster } from "@/components/ui/toaster"
 import PaymentStatus from './pages/PaymentStatus';
@@ -32,6 +33,11 @@ function App() {
             <Route path="/payment-status" element={<PaymentStatus />} />
             <Route path="/talent-register" element={<TalentRegister />} />
             <Route path="/talent-register-success" element={<TalentRegisterSuccess />} />
+            <Route path="/admin" element={
+              <AdminApp>
+                <AdminDashboard />
+              </AdminApp>
+            } />
           </Routes>
         </div>
       </AuthProvider>
@@ -40,4 +46,3 @@ function App() {
 }
 
 export default App;
-
