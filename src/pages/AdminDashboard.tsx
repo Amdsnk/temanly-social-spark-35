@@ -30,8 +30,8 @@ const AdminDashboard = () => {
             <div className="flex items-center gap-3">
               <Shield className="w-8 h-8 text-blue-600" />
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Temanly Super Admin</h1>
-                <p className="text-sm text-gray-600">Real-Time Integrated Management System</p>
+                <h1 className="text-2xl font-bold text-gray-900">Temanly Admin Dashboard</h1>
+                <p className="text-sm text-gray-600">Production Management System</p>
               </div>
             </div>
             <div className="flex items-center gap-4">

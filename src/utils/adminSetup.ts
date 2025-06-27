@@ -1,28 +1,13 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
-export const setupDefaultAdmin = async () => {
-  const defaultAdminEmail = 'temanly.admin@gmail.com';
-  const defaultAdminPassword = 'TemanlyAdmin2024!';
-
+export const createAdminUser = async (email: string, password: string, name: string) => {
   try {
-    // Check if admin already exists
-    const { data: existingProfile } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('email', defaultAdminEmail)
-      .eq('user_type', 'admin')
-      .single();
-
-    if (existingProfile) {
-      console.log('Default admin already exists');
-      return { success: true, message: 'Default admin already exists' };
-    }
-
     // Create admin user in auth
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: defaultAdminEmail,
-      password: defaultAdminPassword,
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email: email,
+      password: password,
+      email_confirm: true
     });
 
     if (authError) {
@@ -36,8 +21,8 @@ export const setupDefaultAdmin = async () => {
         .from('profiles')
         .insert({
           id: authData.user.id,
-          email: defaultAdminEmail,
-          name: 'Super Admin',
+          email: email,
+          name: name,
           user_type: 'admin',
           verification_status: 'verified',
           created_at: new Date().toISOString(),
@@ -49,20 +34,33 @@ export const setupDefaultAdmin = async () => {
         return { success: false, error: profileError.message };
       }
 
-      console.log('Default admin created successfully');
+      console.log('Admin user created successfully');
       return { 
         success: true, 
-        message: 'Default admin created successfully',
-        credentials: {
-          email: defaultAdminEmail,
-          password: defaultAdminPassword
-        }
+        message: 'Admin user created successfully',
+        userId: authData.user.id
       };
     }
 
     return { success: false, error: 'Failed to create admin user' };
   } catch (error) {
-    console.error('Error in setupDefaultAdmin:', error);
+    console.error('Error in createAdminUser:', error);
     return { success: false, error: 'Unexpected error occurred' };
+  }
+};
+
+export const checkAdminExists = async (email: string) => {
+  try {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id, email, name')
+      .eq('email', email)
+      .eq('user_type', 'admin')
+      .single();
+
+    return { exists: !!profile, profile };
+  } catch (error) {
+    console.error('Error checking admin:', error);
+    return { exists: false, profile: null };
   }
 };

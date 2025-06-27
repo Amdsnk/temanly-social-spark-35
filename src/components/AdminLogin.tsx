@@ -85,13 +85,13 @@ const AdminLogin = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="passcode">Passcode</Label>
+              <Label htmlFor="passcode">Password</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input
                   id="passcode"
                   type={showPasscode ? 'text' : 'password'}
-                  placeholder="Enter strong passcode"
+                  placeholder="Enter admin password"
                   value={passcode}
                   onChange={(e) => setPasscode(e.target.value)}
                   className="pl-10 pr-10"
@@ -118,12 +118,10 @@ const AdminLogin = () => {
             </Button>
           </form>
 
-          <div className="text-xs text-gray-500 text-center space-y-1">
+          <div className="text-xs text-gray-500 text-center">
             <div>Admin access requires valid credentials</div>
-            <div className="text-blue-600 font-medium">
-              Username: temanly_admin<br />
-              Email: admin@temanly.com<br />
-              Passcode: TemanlySecure2024@Admin!
+            <div className="text-red-600 font-medium mt-2">
+              Contact system administrator for access
             </div>
           </div>
         </CardContent>

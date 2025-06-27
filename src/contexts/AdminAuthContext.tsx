@@ -1,5 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AdminAuthContextType {
   isAdmin: boolean;
@@ -10,48 +11,73 @@ interface AdminAuthContextType {
 
 const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefined);
 
-// Admin credentials
-const ADMIN_USERNAME = "temanly_admin";
-const ADMIN_EMAIL = "admin@temanly.com";
-const ADMIN_PASSCODE = "TemanlySecure2024@Admin!";
-
 export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if admin is already logged in from localStorage
-    const adminLoggedIn = localStorage.getItem('temanly_admin_logged_in');
-    if (adminLoggedIn === 'true') {
-      setIsAdmin(true);
-    }
-    setLoading(false);
+    checkAdminAuth();
   }, []);
+
+  const checkAdminAuth = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
+        // Check if user is admin
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('user_type')
+          .eq('id', session.user.id)
+          .eq('user_type', 'admin')
+          .single();
+
+        if (profile) {
+          setIsAdmin(true);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking admin auth:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const signInWithCredentials = async (username: string, email: string, passcode: string) => {
     try {
-      console.log('Attempting to sign in with credentials');
+      console.log('Attempting admin sign in');
       
-      if (username !== ADMIN_USERNAME) {
-        console.log('Invalid username');
-        return { error: 'Invalid username' };
+      // Sign in with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: passcode,
+      });
+
+      if (authError) {
+        console.log('Auth error:', authError.message);
+        return { error: authError.message };
       }
 
-      if (email !== ADMIN_EMAIL) {
-        console.log('Invalid email');
-        return { error: 'Invalid email address' };
-      }
-      
-      if (passcode !== ADMIN_PASSCODE) {
-        console.log('Invalid passcode');
-        return { error: 'Invalid passcode' };
+      if (authData.user) {
+        // Verify user is admin
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('user_type, name')
+          .eq('id', authData.user.id)
+          .eq('user_type', 'admin')
+          .single();
+
+        if (profileError || !profile) {
+          await supabase.auth.signOut();
+          return { error: 'Access denied. Admin privileges required.' };
+        }
+
+        console.log('Admin authenticated successfully');
+        setIsAdmin(true);
+        return {};
       }
 
-      console.log('All credentials validated successfully');
-      setIsAdmin(true);
-      localStorage.setItem('temanly_admin_logged_in', 'true');
-      
-      return {};
+      return { error: 'Authentication failed' };
     } catch (error) {
       console.error('Unexpected sign in error:', error);
       return { error: 'An unexpected error occurred' };
@@ -59,9 +85,9 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const signOut = async () => {
-    console.log('Signing out');
+    console.log('Admin signing out');
+    await supabase.auth.signOut();
     setIsAdmin(false);
-    localStorage.removeItem('temanly_admin_logged_in');
   };
 
   const value = {
