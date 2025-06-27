@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -166,16 +167,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const checkExistingUser = async (email: string, phone: string) => {
     try {
-      // Check if email already exists in auth.users
-      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-      
-      if (!authError && authUsers.users) {
-        const existingAuthUser = authUsers.users.find(user => user.email === email);
-        if (existingAuthUser) {
-          return { exists: true, type: 'email' };
-        }
-      }
-
       // Check if email or phone exists in profiles table
       const { data: profilesData, error: profileError } = await supabase
         .from('profiles')
@@ -260,7 +251,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               phone: userData.phone,
               user_type: 'companion' as const,
               verification_status: 'pending' as const,
-              status: 'pending',
+              status: 'pending' as const,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             };
