@@ -96,26 +96,41 @@ const BookingPage = () => {
 
       if (bookingError) {
         console.error('Error creating booking:', bookingError);
-        throw bookingError;
+        // Redirect to payment status page with error info
+        const params = new URLSearchParams({
+          status: 'success',
+          orderId: result.order_id || result.transaction_id || '',
+          amount: finalTotal.toString(),
+          service: selectedServices.map(s => s.id).join(', '),
+          talent: talent.name,
+          message: 'Payment successful but booking data could not be saved. Please contact support.'
+        });
+        navigate(`/payment-status?${params.toString()}`);
+        return;
       }
 
-      toast({
-        title: "Payment Successful! 🎉",
-        description: `Your booking with ${talent.name} has been confirmed. Booking ID: ${booking.id}`,
+      // Redirect to success page
+      const params = new URLSearchParams({
+        status: 'success',
+        orderId: booking.id,
+        amount: finalTotal.toString(),
+        service: selectedServices.map(s => s.id).join(', '),
+        talent: talent.name
       });
-      
-      // Redirect to dashboard
-      setTimeout(() => {
-        navigate('/user-dashboard');
-      }, 2000);
+      navigate(`/payment-status?${params.toString()}`);
 
     } catch (error) {
       console.error('Error saving booking:', error);
-      toast({
-        title: "Payment Successful but Error Occurred",
-        description: "Your payment was processed but there was an error saving your booking. Please contact support.",
-        variant: "destructive"
+      // Redirect to payment status page with error info
+      const params = new URLSearchParams({
+        status: 'success',
+        orderId: result.order_id || result.transaction_id || '',
+        amount: finalTotal.toString(),
+        service: selectedServices.map(s => s.id).join(', '),
+        talent: talent.name,
+        message: 'Payment successful but there was an error saving your booking. Please contact support.'
       });
+      navigate(`/payment-status?${params.toString()}`);
     }
   };
 
@@ -148,31 +163,36 @@ const BookingPage = () => {
         .select()
         .single();
 
-      if (bookingError) {
-        console.error('Error creating pending booking:', bookingError);
-        throw bookingError;
-      }
-
       let pendingMessage = "Your payment is being processed. You will receive a notification once completed.";
       
       // Special message for bank transfer
       if (result.payment_type === 'bank_transfer') {
-        pendingMessage = `Please complete your bank transfer payment. Your booking will be confirmed once payment is received.`;
+        pendingMessage = "Please complete your bank transfer payment. Your booking will be confirmed once payment is received.";
       }
-      
-      toast({
-        title: "Payment Pending ⏳",
-        description: pendingMessage,
-        variant: "default"
+
+      // Redirect to pending status page
+      const params = new URLSearchParams({
+        status: 'pending',
+        orderId: booking?.id || result.order_id || result.transaction_id || '',
+        amount: finalTotal.toString(),
+        service: selectedServices.map(s => s.id).join(', '),
+        talent: talent.name,
+        message: pendingMessage
       });
+      navigate(`/payment-status?${params.toString()}`);
 
     } catch (error) {
       console.error('Error saving pending booking:', error);
-      toast({
-        title: "Payment Pending but Error Occurred",
-        description: "Your payment is being processed but there was an error saving your booking. Please contact support.",
-        variant: "destructive"
+      // Redirect to pending status page with error info
+      const params = new URLSearchParams({
+        status: 'pending',
+        orderId: result.order_id || result.transaction_id || '',
+        amount: finalTotal.toString(),
+        service: selectedServices.map(s => s.id).join(', '),
+        talent: talent.name,
+        message: 'Payment is being processed but there was an error saving your booking. Please contact support.'
       });
+      navigate(`/payment-status?${params.toString()}`);
     }
   };
 
@@ -187,11 +207,15 @@ const BookingPage = () => {
       errorMessage = result;
     }
     
-    toast({
-      title: "Payment Failed ❌",
-      description: errorMessage,
-      variant: "destructive"
+    // Redirect to failed status page
+    const params = new URLSearchParams({
+      status: 'failed',
+      amount: finalTotal.toString(),
+      service: selectedServices.map(s => s.id).join(', '),
+      talent: talent.name,
+      message: errorMessage
     });
+    navigate(`/payment-status?${params.toString()}`);
   };
 
   const bookingData = {
