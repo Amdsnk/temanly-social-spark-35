@@ -19,6 +19,7 @@ import ServiceRestrictionNotice from '@/components/ServiceRestrictionNotice';
 import VerificationStatus from '@/components/VerificationStatus';
 import { useAuth } from '@/contexts/AuthContext';
 import { calculateTotalPrice, getServiceRestrictions, hasRestrictedServices } from '@/utils/serviceCalculations';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ServiceSelection {
   id: string;
@@ -38,8 +39,9 @@ const BookingPage = () => {
     message: '',
   });
 
-  // Mock talent data
+  // Mock talent data - in production this would come from the database
   const talent = {
+    id: 1,
     name: 'Sarah Jakarta',
     rating: 4.9,
     reviews: 127,
@@ -57,71 +59,109 @@ const BookingPage = () => {
   const platformFee = Math.round(totalPrice * 0.1);
   const finalTotal = totalPrice + platformFee;
 
-  const handlePaymentSuccess = (result: any) => {
+  const handlePaymentSuccess = async (result: any) => {
     console.log('Payment successful:', result);
     
-    // Save booking to local storage for demo
-    const bookingRecord = {
-      id: `BOOKING-${Date.now()}`,
-      talent: talent.name,
-      services: selectedServices,
-      date: selectedDate?.toISOString(),
-      message: bookingForm.message,
-      total: finalTotal,
-      status: 'confirmed',
-      payment_status: 'paid',
-      transaction_id: result.order_id || result.transaction_id,
-      created_at: new Date().toISOString(),
-    };
-    
-    const existingBookings = JSON.parse(localStorage.getItem('bookings') || '[]');
-    existingBookings.push(bookingRecord);
-    localStorage.setItem('bookings', JSON.stringify(existingBookings));
-    
-    toast({
-      title: "Payment Successful! 🎉",
-      description: `Your booking with ${talent.name} has been confirmed. Transaction ID: ${result.order_id || result.transaction_id}`,
-    });
-    
-    // Redirect after 2 seconds
-    setTimeout(() => {
-      navigate('/user-dashboard');
-    }, 2000);
+    try {
+      if (!user?.id) {
+        throw new Error('User not authenticated');
+      }
+
+      // Create booking record in Supabase
+      const { data: booking, error: bookingError } = await supabase
+        .from('bookings')
+        .insert({
+          user_id: user.id,
+          companion_id: talent.id.toString(),
+          service: selectedServices.map(s => s.id).join(', '),
+          booking_date: selectedDate?.toISOString().split('T')[0],
+          booking_time: '00:00',
+          message: bookingForm.message,
+          total_price: finalTotal,
+          payment_status: 'paid',
+          status: 'confirmed',
+          transaction_id: result.order_id || result.transaction_id,
+        })
+        .select()
+        .single();
+
+      if (bookingError) {
+        console.error('Error creating booking:', bookingError);
+        throw bookingError;
+      }
+
+      toast({
+        title: "Payment Successful! 🎉",
+        description: `Your booking with ${talent.name} has been confirmed. Booking ID: ${booking.id}`,
+      });
+      
+      // Redirect to dashboard
+      setTimeout(() => {
+        navigate('/user-dashboard');
+      }, 2000);
+
+    } catch (error) {
+      console.error('Error saving booking:', error);
+      toast({
+        title: "Payment Successful but Error Occurred",
+        description: "Your payment was processed but there was an error saving your booking. Please contact support.",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handlePaymentPending = (result: any) => {
+  const handlePaymentPending = async (result: any) => {
     console.log('Payment pending:', result);
     
-    // Save pending booking
-    const bookingRecord = {
-      id: `BOOKING-${Date.now()}`,
-      talent: talent.name,
-      services: selectedServices,
-      date: selectedDate?.toISOString(),
-      message: bookingForm.message,
-      total: finalTotal,
-      status: 'pending',
-      payment_status: 'pending',
-      transaction_id: result.order_id || result.transaction_id,
-      created_at: new Date().toISOString(),
-    };
-    
-    const existingBookings = JSON.parse(localStorage.getItem('bookings') || '[]');
-    existingBookings.push(bookingRecord);
-    localStorage.setItem('bookings', JSON.stringify(existingBookings));
-    
-    let pendingMessage = "Your payment is being processed. You will receive a notification once completed.";
-    
-    // Special message for bank transfer
-    if (result.payment_type === 'bank_transfer' && result.va_number) {
-      pendingMessage = `Please complete your bank transfer payment. Virtual Account: ${result.va_number}. Your booking will be confirmed once payment is received.`;
+    try {
+      if (!user?.id) {
+        throw new Error('User not authenticated');
+      }
+
+      // Create pending booking record
+      const { data: booking, error: bookingError } = await supabase
+        .from('bookings')
+        .insert({
+          user_id: user.id,
+          companion_id: talent.id.toString(),
+          service: selectedServices.map(s => s.id).join(', '),
+          booking_date: selectedDate?.toISOString().split('T')[0],
+          booking_time: '00:00',
+          message: bookingForm.message,
+          total_price: finalTotal,
+          payment_status: 'pending',
+          status: 'pending',
+          transaction_id: result.order_id || result.transaction_id,
+        })
+        .select()
+        .single();
+
+      if (bookingError) {
+        console.error('Error creating pending booking:', bookingError);
+        throw bookingError;
+      }
+
+      let pendingMessage = "Your payment is being processed. You will receive a notification once completed.";
+      
+      // Special message for bank transfer
+      if (result.payment_type === 'bank_transfer') {
+        pendingMessage = `Please complete your bank transfer payment. Your booking will be confirmed once payment is received.`;
+      }
+      
+      toast({
+        title: "Payment Pending ⏳",
+        description: pendingMessage,
+        variant: "default"
+      });
+
+    } catch (error) {
+      console.error('Error saving pending booking:', error);
+      toast({
+        title: "Payment Pending but Error Occurred",
+        description: "Your payment is being processed but there was an error saving your booking. Please contact support.",
+        variant: "destructive"
+      });
     }
-    
-    toast({
-      title: "Payment Pending ⏳",
-      description: pendingMessage,
-      variant: "default"
-    });
   };
 
   const handlePaymentError = (result: any) => {
@@ -147,19 +187,27 @@ const BookingPage = () => {
     service: selectedServices.map(s => s.id).join(', '),
     services: selectedServices,
     date: selectedDate!,
-    time: '00:00', // Default time, could be made configurable
+    time: '00:00',
     message: bookingForm.message,
     total: finalTotal
   };
 
-  const isFormValid = selectedServices.length > 0 && selectedDate && !hasRestricted;
+  const isFormValid = selectedServices.length > 0 && selectedDate && !hasRestricted && user?.id;
 
-  if (hasRestricted) {
-    toast({
-      title: "Verification Required",
-      description: "Some selected services require user verification.",
-      variant: "destructive"
-    });
+  if (!user?.id) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Card className="max-w-md mx-auto">
+          <CardContent className="p-6 text-center">
+            <h2 className="text-xl font-bold mb-4">Login Required</h2>
+            <p className="text-gray-600 mb-4">You need to be logged in to make a booking.</p>
+            <Button onClick={() => navigate('/login')} className="w-full">
+              Go to Login
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
@@ -328,7 +376,7 @@ const BookingPage = () => {
                       <br />
                       Mendukung transfer bank, e-wallet, kartu kredit & debit
                       <br />
-                      <span className="text-blue-600">Mode Demo: Menggunakan localStorage untuk penyimpanan data</span>
+                      Data tersimpan aman di database terenkripsi
                     </div>
                   </div>
                 </CardContent>
