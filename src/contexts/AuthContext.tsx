@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -27,6 +28,11 @@ interface SignupData {
   phone: string;
   password: string;
   user_type?: 'user' | 'companion';
+}
+
+interface ProfileData {
+  email: string;
+  phone: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -176,11 +182,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      // Check if email or phone exists in profiles table
+      // Check if email or phone exists in profiles table with proper typing
       const { data: profiles, error: profileError } = await supabase
         .from('profiles')
         .select('email, phone')
-        .or(`email.eq.${email},phone.eq.${phone}`);
+        .or(`email.eq.${email},phone.eq.${phone}`) as { data: ProfileData[] | null, error: any };
 
       if (profileError) {
         console.error('Error checking existing users:', profileError);
