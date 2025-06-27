@@ -181,17 +181,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      // Check if email or phone exists in profiles table with proper typing
-      const { data: profiles, error: profileError } = await supabase
+      // Check if email or phone exists in profiles table
+      const { data: profilesData, error: profileError } = await supabase
         .from('profiles')
         .select('email, phone')
-        .or(`email.eq.${email},phone.eq.${phone}`)
-        .returns<ProfileData[]>();
+        .or(`email.eq.${email},phone.eq.${phone}`);
 
       if (profileError) {
         console.error('Error checking existing users:', profileError);
         return { exists: false };
       }
+
+      // Type assertion to ensure TypeScript knows the correct type
+      const profiles = profilesData as ProfileData[];
 
       if (profiles && profiles.length > 0) {
         const existingProfile = profiles[0];
