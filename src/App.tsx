@@ -26,6 +26,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
             <Route path="/register" element={<Signup />} />
             <Route path="/talents" element={<BrowseTalents />} />
             <Route path="/talent/:id" element={<TalentProfile />} />
