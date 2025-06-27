@@ -46,6 +46,32 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ userType }) => {
     showLastSeen: false
   });
 
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast({
+          title: "File terlalu besar",
+          description: "Ukuran file maksimal 5MB",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setProfile(prev => ({ ...prev, profileImage: result }));
+        toast({
+          title: "Foto berhasil diupload",
+          description: "Foto profil Anda telah diperbarui",
+          className: "bg-green-50 border-green-200"
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleProfileUpdate = async () => {
     setIsLoading(true);
     try {
@@ -53,14 +79,14 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ userType }) => {
       await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
       
       toast({
-        title: "Profile Updated",
-        description: "Your profile has been successfully updated.",
+        title: "Profil Berhasil Diperbarui",
+        description: "Profil Anda telah berhasil diperbarui.",
         className: "bg-green-50 border-green-200"
       });
     } catch (error) {
       toast({
-        title: "Update Failed",
-        description: "Failed to update profile. Please try again.",
+        title: "Gagal Memperbarui",
+        description: "Gagal memperbarui profil. Silakan coba lagi.",
         variant: "destructive"
       });
     } finally {
@@ -70,8 +96,8 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ userType }) => {
 
   const handlePasswordChange = async () => {
     toast({
-      title: "Password Change",
-      description: "Password change functionality will be implemented soon.",
+      title: "Ubah Password",
+      description: "Fitur ubah password akan segera tersedia.",
     });
   };
 
@@ -82,13 +108,13 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ userType }) => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Camera className="w-5 h-5" />
-            Profile Information
+            Informasi Profil
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Profile Image */}
           <div className="flex items-center gap-4">
-            <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center">
+            <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center relative overflow-hidden">
               {profile.profileImage ? (
                 <img 
                   src={profile.profileImage} 
@@ -100,15 +126,28 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ userType }) => {
               )}
             </div>
             <div>
-              <Button variant="outline" size="sm">Change Photo</Button>
-              <p className="text-sm text-gray-500 mt-1">JPG, PNG max 5MB</p>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+                id="profile-image-upload"
+              />
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => document.getElementById('profile-image-upload')?.click()}
+              >
+                Ubah Foto
+              </Button>
+              <p className="text-sm text-gray-500 mt-1">JPG, PNG maks 5MB</p>
             </div>
           </div>
 
           {/* Basic Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
+              <Label htmlFor="name">Nama Lengkap</Label>
               <Input
                 id="name"
                 value={profile.name}
@@ -125,7 +164,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ userType }) => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
+              <Label htmlFor="phone">Nomor Telepon</Label>
               <Input
                 id="phone"
                 value={profile.phone}
@@ -133,12 +172,12 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ userType }) => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="location">Location</Label>
+              <Label htmlFor="location">Lokasi</Label>
               <Input
                 id="location"
                 value={profile.location}
                 onChange={(e) => setProfile(prev => ({...prev, location: e.target.value}))}
-                placeholder="City, Country"
+                placeholder="Kota, Negara"
               />
             </div>
           </div>
@@ -150,14 +189,14 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ userType }) => {
                 id="bio"
                 value={profile.bio}
                 onChange={(e) => setProfile(prev => ({...prev, bio: e.target.value}))}
-                placeholder="Tell us about yourself..."
+                placeholder="Ceritakan tentang diri Anda..."
                 rows={4}
               />
             </div>
           )}
 
           <Button onClick={handleProfileUpdate} disabled={isLoading}>
-            {isLoading ? 'Updating...' : 'Update Profile'}
+            {isLoading ? 'Memperbarui...' : 'Perbarui Profil'}
           </Button>
         </CardContent>
       </Card>
@@ -167,17 +206,17 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ userType }) => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="w-5 h-5" />
-            Security & Verification
+            Keamanan & Verifikasi
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium">Email Verification</p>
-              <p className="text-sm text-gray-500">Verify your email address</p>
+              <p className="font-medium">Verifikasi Email</p>
+              <p className="text-sm text-gray-500">Verifikasi alamat email Anda</p>
             </div>
             <Badge className={user?.verified ? "bg-green-100 text-green-600" : "bg-yellow-100 text-yellow-600"}>
-              {user?.verified ? 'Verified' : 'Pending'}
+              {user?.verified ? 'Terverifikasi' : 'Menunggu'}
             </Badge>
           </div>
           
@@ -185,11 +224,11 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ userType }) => {
           
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium">Change Password</p>
-              <p className="text-sm text-gray-500">Update your account password</p>
+              <p className="font-medium">Ubah Password</p>
+              <p className="text-sm text-gray-500">Perbarui password akun Anda</p>
             </div>
             <Button variant="outline" onClick={handlePasswordChange}>
-              Change
+              Ubah
             </Button>
           </div>
           
@@ -197,8 +236,8 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ userType }) => {
           
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium">Two-Factor Authentication</p>
-              <p className="text-sm text-gray-500">Add an extra layer of security</p>
+              <p className="font-medium">Autentikasi Dua Faktor</p>
+              <p className="text-sm text-gray-500">Tambahkan lapisan keamanan ekstra</p>
             </div>
             <Switch />
           </div>
@@ -210,14 +249,14 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ userType }) => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Bell className="w-5 h-5" />
-            Notification Preferences
+            Preferensi Notifikasi
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium">Email Notifications</p>
-              <p className="text-sm text-gray-500">Receive updates via email</p>
+              <p className="font-medium">Notifikasi Email</p>
+              <p className="text-sm text-gray-500">Terima pembaruan via email</p>
             </div>
             <Switch 
               checked={notifications.emailNotifications}
@@ -227,8 +266,8 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ userType }) => {
           
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium">Push Notifications</p>
-              <p className="text-sm text-gray-500">Get notified on your device</p>
+              <p className="font-medium">Notifikasi Push</p>
+              <p className="text-sm text-gray-500">Dapatkan notifikasi di perangkat Anda</p>
             </div>
             <Switch 
               checked={notifications.pushNotifications}
@@ -238,8 +277,8 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ userType }) => {
           
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium">SMS Notifications</p>
-              <p className="text-sm text-gray-500">Receive important updates via SMS</p>
+              <p className="font-medium">Notifikasi SMS</p>
+              <p className="text-sm text-gray-500">Terima pembaruan penting via SMS</p>
             </div>
             <Switch 
               checked={notifications.smsNotifications}
@@ -249,8 +288,8 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ userType }) => {
           
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium">Marketing Emails</p>
-              <p className="text-sm text-gray-500">Receive promotional content</p>
+              <p className="font-medium">Email Marketing</p>
+              <p className="text-sm text-gray-500">Terima konten promosi</p>
             </div>
             <Switch 
               checked={notifications.marketingEmails}
@@ -265,14 +304,14 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ userType }) => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Lock className="w-5 h-5" />
-            Privacy Settings
+            Pengaturan Privasi
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium">Profile Visibility</p>
-              <p className="text-sm text-gray-500">Make your profile visible to others</p>
+              <p className="font-medium">Visibilitas Profil</p>
+              <p className="text-sm text-gray-500">Buat profil Anda terlihat oleh orang lain</p>
             </div>
             <Switch 
               checked={privacy.profileVisible}
@@ -282,8 +321,8 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ userType }) => {
           
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium">Show Online Status</p>
-              <p className="text-sm text-gray-500">Let others see when you're online</p>
+              <p className="font-medium">Tampilkan Status Online</p>
+              <p className="text-sm text-gray-500">Biarkan orang lain melihat kapan Anda online</p>
             </div>
             <Switch 
               checked={privacy.showOnlineStatus}
@@ -293,8 +332,8 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ userType }) => {
           
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium">Allow Messages</p>
-              <p className="text-sm text-gray-500">Receive messages from other users</p>
+              <p className="font-medium">Izinkan Pesan</p>
+              <p className="text-sm text-gray-500">Terima pesan dari pengguna lain</p>
             </div>
             <Switch 
               checked={privacy.allowMessages}

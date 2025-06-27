@@ -6,7 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Search, Download, Filter, Eye } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface Transaction {
   id: string;
@@ -23,9 +25,12 @@ interface TransactionHistoryProps {
 }
 
 const TransactionHistory: React.FC<TransactionHistoryProps> = ({ userType }) => {
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   // Mock transaction data - would come from API
   const transactions: Transaction[] = [
@@ -95,6 +100,15 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ userType }) => 
     }
   };
 
+  const handleViewTransaction = (transaction: Transaction) => {
+    setSelectedTransaction(transaction);
+    setIsDetailModalOpen(true);
+    toast({
+      title: "Detail Transaksi",
+      description: `Menampilkan detail untuk transaksi ${transaction.id}`,
+    });
+  };
+
   const filteredTransactions = transactions.filter(transaction => {
     const matchesSearch = transaction.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          transaction.id.toLowerCase().includes(searchTerm.toLowerCase());
@@ -105,111 +119,169 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ userType }) => 
   });
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <CardTitle>Transaction History</CardTitle>
-            <p className="text-sm text-gray-600">Manage and track all your transactions</p>
+    <>
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <CardTitle>Riwayat Transaksi</CardTitle>
+              <p className="text-sm text-gray-600">Kelola dan lacak semua transaksi Anda</p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm">
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </Button>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm">
-              <Download className="w-4 h-4 mr-2" />
-              Export
-            </Button>
+        </CardHeader>
+        <CardContent>
+          {/* Filters */}
+          <div className="flex flex-col md:flex-row gap-4 mb-6">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input
+                placeholder="Cari transaksi..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full md:w-32">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Status</SelectItem>
+                <SelectItem value="completed">Selesai</SelectItem>
+                <SelectItem value="pending">Menunggu</SelectItem>
+                <SelectItem value="processing">Diproses</SelectItem>
+                <SelectItem value="failed">Gagal</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="w-full md:w-32">
+                <SelectValue placeholder="Tipe" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Tipe</SelectItem>
+                <SelectItem value="payment">Pembayaran</SelectItem>
+                <SelectItem value="commission">Komisi</SelectItem>
+                <SelectItem value="withdrawal">Penarikan</SelectItem>
+                <SelectItem value="refund">Refund</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {/* Filters */}
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <Input
-              placeholder="Search transactions..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full md:w-32">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="processing">Processing</SelectItem>
-              <SelectItem value="failed">Failed</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-full md:w-32">
-              <SelectValue placeholder="Type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="payment">Payment</SelectItem>
-              <SelectItem value="commission">Commission</SelectItem>
-              <SelectItem value="withdrawal">Withdrawal</SelectItem>
-              <SelectItem value="refund">Refund</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
 
-        {/* Transaction Table */}
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Transaction ID</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredTransactions.map((transaction) => (
-                <TableRow key={transaction.id}>
-                  <TableCell className="font-medium">{transaction.id}</TableCell>
-                  <TableCell>
-                    <Badge className={getTransactionTypeColor(transaction.type)}>
-                      {transaction.type}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{transaction.description}</TableCell>
-                  <TableCell className="font-semibold">
-                    {transaction.type === 'payment' || transaction.type === 'withdrawal' ? '-' : '+'}
-                    Rp {transaction.amount.toLocaleString()}
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={getStatusColor(transaction.status)}>
-                      {transaction.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{transaction.date}</TableCell>
-                  <TableCell>
-                    <Button variant="ghost" size="sm">
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                  </TableCell>
+          {/* Transaction Table */}
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>ID Transaksi</TableHead>
+                  <TableHead>Tipe</TableHead>
+                  <TableHead>Deskripsi</TableHead>
+                  <TableHead>Jumlah</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Tanggal</TableHead>
+                  <TableHead>Aksi</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-
-        {filteredTransactions.length === 0 && (
-          <div className="text-center py-8">
-            <p className="text-gray-500">No transactions found matching your criteria.</p>
+              </TableHeader>
+              <TableBody>
+                {filteredTransactions.map((transaction) => (
+                  <TableRow key={transaction.id}>
+                    <TableCell className="font-medium">{transaction.id}</TableCell>
+                    <TableCell>
+                      <Badge className={getTransactionTypeColor(transaction.type)}>
+                        {transaction.type}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{transaction.description}</TableCell>
+                    <TableCell className="font-semibold">
+                      {transaction.type === 'payment' || transaction.type === 'withdrawal' ? '-' : '+'}
+                      Rp {transaction.amount.toLocaleString()}
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getStatusColor(transaction.status)}>
+                        {transaction.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{transaction.date}</TableCell>
+                    <TableCell>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleViewTransaction(transaction)}
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
-        )}
-      </CardContent>
-    </Card>
+
+          {filteredTransactions.length === 0 && (
+            <div className="text-center py-8">
+              <p className="text-gray-500">Tidak ada transaksi yang sesuai dengan kriteria Anda.</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Transaction Detail Modal */}
+      <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Detail Transaksi</DialogTitle>
+          </DialogHeader>
+          {selectedTransaction && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">ID Transaksi</p>
+                  <p className="font-mono text-sm">{selectedTransaction.id}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Tipe</p>
+                  <Badge className={getTransactionTypeColor(selectedTransaction.type)}>
+                    {selectedTransaction.type}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Status</p>
+                  <Badge className={getStatusColor(selectedTransaction.status)}>
+                    {selectedTransaction.status}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Tanggal</p>
+                  <p className="text-sm">{selectedTransaction.date}</p>
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-600">Deskripsi</p>
+                <p className="text-sm">{selectedTransaction.description}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-600">Jumlah</p>
+                <p className="text-lg font-semibold">
+                  {selectedTransaction.type === 'payment' || selectedTransaction.type === 'withdrawal' ? '-' : '+'}
+                  Rp {selectedTransaction.amount.toLocaleString()}
+                </p>
+              </div>
+              {selectedTransaction.reference && (
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Referensi</p>
+                  <p className="text-sm font-mono">{selectedTransaction.reference}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
