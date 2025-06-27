@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { LogOut, Shield, TrendingUp, CreditCard, Settings, Users, DollarSign, Star, Activity, UserCog } from 'lucide-react';
+import { LogOut, Shield, TrendingUp, CreditCard, Settings, Users, DollarSign, Star, Activity, UserCog, UserCheck } from 'lucide-react';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
 import UserApprovalManagement from '@/components/admin/UserApprovalManagement';
 import PaymentManagement from '@/components/admin/PaymentManagement';
@@ -14,6 +14,7 @@ import ServiceAnalytics from '@/components/admin/ServiceAnalytics';
 import RealTimeActivityMonitor from '@/components/admin/RealTimeActivityMonitor';
 import SystemStats from '@/components/admin/SystemStats';
 import UserManagement from '@/components/admin/UserManagement';
+import TalentRegistrationManagement from '@/components/admin/TalentRegistrationManagement';
 
 const AdminDashboard = () => {
   const [selectedTimeframe, setSelectedTimeframe] = useState('7days');
@@ -67,10 +68,14 @@ const AdminDashboard = () => {
         </div>
 
         <Tabs defaultValue="monitor" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 gap-2 h-auto p-2 bg-muted">
+          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-9 gap-2 h-auto p-2 bg-muted">
             <TabsTrigger value="monitor" className="flex items-center gap-2">
               <Activity className="w-4 h-4" />
               Live Monitor
+            </TabsTrigger>
+            <TabsTrigger value="talent-registration" className="flex items-center gap-2">
+              <UserCheck className="w-4 h-4" />
+              Talent Registration
             </TabsTrigger>
             <TabsTrigger value="users" className="flex items-center gap-2">
               <UserCog className="w-4 h-4" />
@@ -104,6 +109,10 @@ const AdminDashboard = () => {
 
           <TabsContent value="monitor">
             <RealTimeActivityMonitor />
+          </TabsContent>
+
+          <TabsContent value="talent-registration">
+            <TalentRegistrationManagement />
           </TabsContent>
 
           <TabsContent value="users">

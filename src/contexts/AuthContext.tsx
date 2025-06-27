@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -27,11 +28,6 @@ interface SignupData {
   phone: string;
   password: string;
   user_type?: 'user' | 'companion';
-}
-
-interface ProfileData {
-  email: string;
-  phone: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -192,11 +188,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { exists: false };
       }
 
-      // Type assertion to ensure TypeScript knows the correct type
-      const profiles = profilesData as ProfileData[];
-
-      if (profiles && profiles.length > 0) {
-        const existingProfile = profiles[0];
+      if (profilesData && profilesData.length > 0) {
+        const existingProfile = profilesData[0];
         if (existingProfile.email === email) {
           return { exists: true, type: 'email' };
         }
