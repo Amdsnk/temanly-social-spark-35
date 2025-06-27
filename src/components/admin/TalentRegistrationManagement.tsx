@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { CheckCircle, XCircle, Clock, Mail, Phone, User, FileText, Eye, Calendar, MapPin, Camera } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Mail, Phone, User, FileText, Eye, Calendar, MapPin, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -33,6 +34,7 @@ const TalentRegistrationManagement = () => {
   const [applications, setApplications] = useState<TalentApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedApplication, setSelectedApplication] = useState<TalentApplication | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -43,25 +45,64 @@ const TalentRegistrationManagement = () => {
   const fetchTalentApplications = async () => {
     try {
       console.log('Fetching talent applications...');
+      setRefreshing(true);
       
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_type', 'companion')
-        .order('created_at', { ascending: false });
+      // Try different approaches to fetch talent data
+      const queries = [
+        // Query 1: Direct companion filter
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_type', 'companion')
+          .order('created_at', { ascending: false }),
+        
+        // Query 2: All profiles to see what's available
+        supabase
+          .from('profiles')
+          .select('*')
+          .order('created_at', { ascending: false })
+      ];
 
-      if (error) {
-        console.error('Error fetching talent applications:', error);
-        throw error;
+      const [companionResult, allProfilesResult] = await Promise.all(queries);
+
+      console.log('Companion query result:', companionResult);
+      console.log('All profiles query result:', allProfilesResult);
+
+      if (companionResult.error) {
+        console.error('Error fetching companion profiles:', companionResult.error);
+        throw companionResult.error;
+      }
+
+      if (allProfilesResult.error) {
+        console.error('Error fetching all profiles:', allProfilesResult.error);
+      } else {
+        console.log('All profiles in database:', allProfilesResult.data?.length);
+        console.log('Companion profiles found:', companionResult.data?.length);
+        
+        // Log profile types for debugging
+        const profileTypes = allProfilesResult.data?.reduce((acc: any, profile: any) => {
+          acc[profile.user_type] = (acc[profile.user_type] || 0) + 1;
+          return acc;
+        }, {});
+        console.log('Profile types breakdown:', profileTypes);
       }
       
-      console.log('Talent applications fetched:', data);
-      setApplications(data || []);
+      const talentData = companionResult.data || [];
+      console.log('Talent applications fetched:', talentData);
+      setApplications(talentData);
       
-      if (data && data.length > 0) {
-        console.log(`Found ${data.length} talent applications`);
+      if (talentData.length > 0) {
+        console.log(`Found ${talentData.length} talent applications`);
       } else {
         console.log('No talent applications found');
+        
+        // Additional debugging - check if there are any profiles with user_type = 'companion'
+        const debugQuery = await supabase
+          .from('profiles')
+          .select('user_type, verification_status, status, created_at, email')
+          .neq('user_type', 'admin');
+        
+        console.log('Debug query - non-admin profiles:', debugQuery.data);
       }
     } catch (error) {
       console.error('Error fetching talent applications:', error);
@@ -72,6 +113,7 @@ const TalentRegistrationManagement = () => {
       });
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -85,8 +127,8 @@ const TalentRegistrationManagement = () => {
           table: 'profiles',
           filter: 'user_type=eq.companion'
         },
-        () => {
-          console.log('Real-time update received for talent applications');
+        (payload) => {
+          console.log('Real-time update received for talent applications:', payload);
           fetchTalentApplications();
         }
       )
@@ -218,24 +260,40 @@ const TalentRegistrationManagement = () => {
         </Card>
       </div>
 
-      {/* Debug Information */}
+      {/* Enhanced Debug Information */}
       <Card className="bg-blue-50 border-blue-200">
         <CardHeader>
-          <CardTitle className="text-sm font-medium text-blue-800">Debug Info</CardTitle>
+          <CardTitle className="text-sm font-medium text-blue-800">Debug Info & Troubleshooting</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-sm text-blue-700 space-y-1">
-            <p>Total applications loaded: {allApplications.length}</p>
-            <p>Pending applications: {pendingApplications.length}</p>
-            <p>Loading state: {loading ? 'Loading...' : 'Loaded'}</p>
-            <Button 
-              size="sm" 
-              variant="outline" 
-              onClick={fetchTalentApplications}
-              className="mt-2"
-            >
-              Refresh Data
-            </Button>
+          <div className="text-sm text-blue-700 space-y-2">
+            <p><strong>Status:</strong> {loading ? 'Loading...' : 'Loaded'}</p>
+            <p><strong>Total applications loaded:</strong> {allApplications.length}</p>
+            <p><strong>Pending applications:</strong> {pendingApplications.length}</p>
+            <p><strong>Refreshing:</strong> {refreshing ? 'Yes' : 'No'}</p>
+            
+            <div className="flex gap-2 mt-3">
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={fetchTalentApplications}
+                disabled={refreshing}
+                className="flex items-center gap-1"
+              >
+                <RefreshCw className={`h-3 w-3 ${refreshing ? 'animate-spin' : ''}`} />
+                Refresh Data
+              </Button>
+            </div>
+            
+            <div className="mt-3 p-2 bg-white rounded border text-xs">
+              <p><strong>Kemungkinan penyebab data tidak muncul:</strong></p>
+              <ul className="mt-1 space-y-1 list-disc list-inside">
+                <li>RLS (Row Level Security) policy memblokir akses</li>
+                <li>user_type di database bukan 'companion'</li>
+                <li>Profile tidak tersimpan ke table 'profiles'</li>
+                <li>Koneksi database bermasalah</li>
+              </ul>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -251,13 +309,16 @@ const TalentRegistrationManagement = () => {
         <CardContent>
           {allApplications.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              <p>Belum ada pendaftaran talent.</p>
-              <p className="text-sm mt-2">Jika seharusnya ada data, silakan periksa:</p>
-              <ul className="text-sm mt-2 space-y-1">
-                <li>- Apakah user_type di database = 'companion'</li>
-                <li>- Apakah data tersimpan di table 'profiles'</li>
-                <li>- Refresh halaman atau klik tombol Refresh Data</li>
-              </ul>
+              <p className="text-lg font-medium">Belum ada pendaftaran talent yang ditemukan.</p>
+              <div className="mt-4 text-sm space-y-2">
+                <p><strong>Langkah troubleshooting:</strong></p>
+                <ol className="list-decimal list-inside space-y-1 text-left max-w-md mx-auto">
+                  <li>Periksa apakah data talent ada di Supabase dengan user_type = 'companion'</li>
+                  <li>Pastikan RLS policy mengizinkan admin membaca data talent</li>
+                  <li>Coba refresh data dengan tombol di atas</li>
+                  <li>Periksa console logs untuk error detail</li>
+                </ol>
+              </div>
             </div>
           ) : (
             <Table>

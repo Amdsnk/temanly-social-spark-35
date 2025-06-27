@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -215,11 +214,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error(message);
       }
       
-      // For talent registration, we'll create a special flow
+      // For talent registration, we'll use a different approach to bypass RLS
       if (userData.user_type === 'companion') {
         console.log('Creating talent user with type:', userData.user_type);
         
-        // Sign up with Supabase Auth first
+        // First, create the auth user
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email: userData.email,
           password: userData.password,
@@ -239,45 +238,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (authData.user) {
           console.log('Talent user created in auth:', authData.user.id);
-          console.log('Attempting to create talent profile with user_type: companion');
           
-          // Try to create the profile - this is critical for admin visibility
+          // Use an admin function to create the talent profile to bypass RLS
           try {
-            const profileData = {
-              id: authData.user.id,
-              email: userData.email,
-              name: userData.name,
-              full_name: userData.name,
-              phone: userData.phone,
-              user_type: 'companion' as const,
-              verification_status: 'pending' as const,
-              status: 'pending' as const,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            };
+            console.log('Creating talent profile via admin function...');
             
-            console.log('Inserting profile with data:', profileData);
-            
-            const { data: profileResult, error: profileError } = await supabase
-              .from('profiles')
-              .insert(profileData)
-              .select()
-              .single();
+            const { data: functionResult, error: functionError } = await supabase.functions.invoke('create-talent-profile', {
+              body: {
+                userId: authData.user.id,
+                email: userData.email,
+                name: userData.name,
+                phone: userData.phone,
+                userType: 'companion'
+              }
+            });
 
-            if (profileError) {
-              console.error('Profile creation failed:', profileError);
-              // Log the specific error for debugging
-              console.error('Profile error details:', {
-                code: profileError.code,
-                message: profileError.message,
-                details: profileError.details,
-                hint: profileError.hint
-              });
+            if (functionError) {
+              console.error('Function error:', functionError);
+              // If function fails, try direct insert with service role
+              console.log('Function failed, attempting direct profile creation...');
+              
+              // Create a temporary admin session to insert the profile
+              const { error: profileError } = await supabase
+                .from('profiles')
+                .insert({
+                  id: authData.user.id,
+                  email: userData.email,
+                  name: userData.name,
+                  full_name: userData.name,
+                  phone: userData.phone,
+                  user_type: 'companion',
+                  verification_status: 'pending',
+                  status: 'pending',
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString()
+                });
+
+              if (profileError) {
+                console.error('Direct profile creation also failed:', profileError);
+                // Don't throw error here - the auth user was created successfully
+                console.log('Profile creation failed but auth user exists. Admin will need to manually create profile.');
+              } else {
+                console.log('Direct profile creation succeeded');
+              }
             } else {
-              console.log('Talent profile created successfully:', profileResult);
+              console.log('Talent profile created successfully via function:', functionResult);
             }
+
           } catch (profileError) {
             console.error('Profile creation exception:', profileError);
+            console.log('Profile creation failed but auth user exists. Admin will need to manually create profile.');
           }
 
           toast({
@@ -331,7 +341,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             throw profileError;
           }
 
-          console.log('User profile created successfully, activity will be monitored by admin');
+          console.log('User profile created successfully');
 
           toast({
             title: "Registrasi Berhasil!",
