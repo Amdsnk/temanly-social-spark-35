@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,9 @@ import { Input } from '@/components/ui/input';
 import { TrendingUp, DollarSign, Filter, Download, Search, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { Database } from '@/integrations/supabase/types';
+
+type PaymentStatus = Database['public']['Enums']['payment_status'];
 
 interface Transaction {
   id: string;
@@ -19,7 +21,7 @@ interface Transaction {
   platform_fee: number;
   companion_earnings: number;
   payment_method: string;
-  status: string;
+  status: PaymentStatus;
   created_at: string;
   user_name?: string;
   companion_name?: string;
@@ -28,7 +30,7 @@ interface Transaction {
 const TransactionManagement = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all');
+  const [filter, setFilter] = useState<'all' | PaymentStatus>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [dateRange, setDateRange] = useState('30days');
   const { toast } = useToast();
@@ -59,7 +61,7 @@ const TransactionManagement = () => {
         .order('created_at', { ascending: false });
 
       if (filter !== 'all') {
-        query = query.eq('status', filter);
+        query = query.eq('status', filter as PaymentStatus);
       }
 
       // Date filtering
@@ -247,7 +249,7 @@ const TransactionManagement = () => {
               />
             </div>
             
-            <Select value={filter} onValueChange={setFilter}>
+            <Select value={filter} onValueChange={(value) => setFilter(value as 'all' | PaymentStatus)}>
               <SelectTrigger className="w-48">
                 <SelectValue />
               </SelectTrigger>
