@@ -9,7 +9,7 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  console.log('Admin get users function called:', req.method)
+  console.log('Admin get users function called with method:', req.method)
   
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -17,37 +17,64 @@ serve(async (req) => {
   }
 
   try {
-    // Validate environment variables
+    // Get environment variables
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     
+    console.log('Environment check:', {
+      hasUrl: !!supabaseUrl,
+      hasServiceKey: !!serviceRoleKey,
+      url: supabaseUrl
+    })
+    
     if (!supabaseUrl || !serviceRoleKey) {
-      console.error('Missing environment variables:', { supabaseUrl: !!supabaseUrl, serviceRoleKey: !!serviceRoleKey })
-      throw new Error('Missing required environment variables')
+      console.error('Missing environment variables')
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: 'Missing environment variables',
+          users: [],
+          count: 0
+        }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
     }
 
-    // Create a Supabase client with the service role key (bypasses RLS)
-    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey)
+    // Create admin client
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    })
 
-    // Get the request body to check for filters
+    // Parse request body
     let body = {}
-    try {
-      body = await req.json()
-    } catch (e) {
-      console.log('No JSON body provided, using empty object')
+    if (req.method === 'POST') {
+      try {
+        const text = await req.text()
+        if (text) {
+          body = JSON.parse(text)
+        }
+      } catch (e) {
+        console.log('No valid JSON body, using defaults')
+      }
     }
     
-    const { userType, verificationStatus } = body
+    const { userType, verificationStatus } = body as any
 
-    console.log('Admin fetching users with filters:', { userType, verificationStatus })
+    console.log('Fetching users with filters:', { userType, verificationStatus })
 
-    // Build query with admin privileges (bypasses RLS)
+    // Build query
     let query = supabaseAdmin
       .from('profiles')
       .select('*')
       .order('created_at', { ascending: false })
 
-    // Apply filters if provided
+    // Apply filters
     if (userType && userType !== 'all') {
       query = query.eq('user_type', userType)
     }
@@ -56,45 +83,52 @@ serve(async (req) => {
       query = query.eq('verification_status', verificationStatus)
     }
 
+    console.log('Executing query...')
     const { data, error } = await query
 
     if (error) {
-      console.error('Database error:', error)
-      throw error
+      console.error('Database query error:', error)
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: `Database error: ${error.message}`,
+          users: [],
+          count: 0
+        }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
     }
 
     console.log(`Successfully fetched ${data?.length || 0} users`)
+    console.log('Sample data:', data?.slice(0, 2))
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         users: data || [],
         count: data?.length || 0,
-        message: 'Users fetched successfully'
+        message: `Successfully fetched ${data?.length || 0} users`
       }),
       { 
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        } 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     )
 
   } catch (error) {
-    console.error('Function error:', error)
+    console.error('Function execution error:', error)
     return new Response(
       JSON.stringify({ 
         success: false,
-        error: error.message || 'Unknown error occurred',
+        error: `Function error: ${error.message}`,
         users: [],
         count: 0
       }),
       { 
         status: 500,
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        } 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     )
   }
