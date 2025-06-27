@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Star, MapPin, Clock, Heart, MessageCircle, Phone, Video, Users, ArrowLeft, Calendar, Shield } from 'lucide-react';
 import Footer from '@/components/Footer';
+import MainHeader from '@/components/MainHeader';
 import VerificationStatus from '@/components/VerificationStatus';
 import ServiceRestrictionNotice from '@/components/ServiceRestrictionNotice';
 import { useAuth } from '@/contexts/AuthContext';
@@ -87,35 +88,7 @@ const TalentProfile = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link to="/">
-                <Button variant="ghost" size="icon">
-                  <ArrowLeft className="w-5 h-5" />
-                </Button>
-              </Link>
-              <h1 className="text-xl font-bold">Profile Talent</h1>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsBookmarked(!isBookmarked)}
-              >
-                <Heart className={`w-5 h-5 ${isBookmarked ? 'text-red-500 fill-current' : ''}`} />
-              </Button>
-              {!isAuthenticated && (
-                <Link to="/signup">
-                  <Button variant="ghost">Masuk</Button>
-                </Link>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
+      <MainHeader />
 
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
