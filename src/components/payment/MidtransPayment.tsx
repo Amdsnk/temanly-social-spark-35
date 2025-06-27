@@ -2,6 +2,7 @@
 import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { CreditCard, Loader2 } from 'lucide-react';
+import { ENV } from '@/config/env';
 
 declare global {
   interface Window {
@@ -69,13 +70,11 @@ const MidtransPayment: React.FC<MidtransPaymentProps> = ({
       // Generate unique order ID
       const orderId = `ORDER-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
-      // Get Supabase URL and key from environment
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      // Use environment configuration instead of import.meta.env
+      const supabaseUrl = ENV.SUPABASE_URL;
+      const supabaseKey = ENV.SUPABASE_ANON_KEY;
       
-      if (!supabaseUrl || !supabaseKey) {
-        throw new Error('Supabase configuration not found. Please check environment variables.');
-      }
+      console.log('Using Supabase URL:', supabaseUrl);
       
       // Call Supabase Edge Function to create Midtrans transaction
       const response = await fetch(`${supabaseUrl}/functions/v1/create-payment`, {
