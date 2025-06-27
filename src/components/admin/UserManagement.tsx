@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Users, Search, Eye, UserCheck, UserX, Mail, Phone, Calendar, RefreshCw } from 'lucide-react';
+import { Users, Search, Eye, UserCheck, UserX, Mail, Phone, Calendar, RefreshCw, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Database } from '@/integrations/supabase/types';
@@ -36,6 +35,7 @@ const UserManagement = () => {
   const [filterType, setFilterType] = useState<'all' | UserType>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | VerificationStatus>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const [stats, setStats] = useState({
@@ -57,43 +57,56 @@ const UserManagement = () => {
 
   const fetchUsers = async () => {
     try {
-      console.log('Fetching all users via admin function...');
+      console.log('Fetching all users...');
       setRefreshing(true);
+      setConnectionError(null);
       
-      // Use admin function to bypass RLS and fetch all users
-      const { data: adminResponse, error: adminError } = await supabase.functions.invoke('admin-get-users', {
-        body: {
-          userType: filterType,
-          verificationStatus: filterStatus
+      // Try admin function first
+      try {
+        const { data: adminResponse, error: adminError } = await supabase.functions.invoke('admin-get-users', {
+          body: {
+            userType: filterType,
+            verificationStatus: filterStatus
+          }
+        });
+
+        if (adminError) {
+          console.error('Admin function error:', adminError);
+          throw adminError;
         }
-      });
 
-      if (adminError) {
-        console.error('Admin function error:', adminError);
-        throw adminError;
+        console.log('Admin function response:', adminResponse);
+
+        if (adminResponse?.success && adminResponse?.users) {
+          const allUsers = adminResponse.users;
+          console.log(`Total users fetched via admin function: ${allUsers.length}`);
+          setUsers(allUsers);
+          return;
+        } else if (!adminResponse?.success) {
+          throw new Error('Admin function returned unsuccessful response');
+        }
+      } catch (adminError) {
+        console.log('Admin function failed, trying direct query...');
+        
+        // Fallback to direct query
+        const { data: profiles, error: directError } = await supabase
+          .from('profiles')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (directError) {
+          console.error('Direct query error:', directError);
+          throw directError;
+        }
+
+        console.log(`Total users fetched via direct query: ${profiles?.length || 0}`);
+        setUsers(profiles || []);
+        setConnectionError('Using direct database access (RLS may limit results)');
       }
 
-      console.log('Admin function response:', adminResponse);
-
-      if (adminResponse?.success && adminResponse?.users) {
-        const allUsers = adminResponse.users;
-        console.log(`Total users fetched via admin function: ${allUsers.length}`);
-        
-        setUsers(allUsers);
-        
-        // Log user types for debugging
-        const userTypes = allUsers.reduce((acc: any, user: any) => {
-          acc[user.user_type] = (acc[user.user_type] || 0) + 1;
-          return acc;
-        }, {});
-        console.log('User types breakdown:', userTypes);
-        
-      } else {
-        console.error('Unexpected admin function response:', adminResponse);
-        setUsers([]);
-      }
     } catch (error) {
       console.error('Error fetching users:', error);
+      setConnectionError(error.message || 'Failed to fetch users');
       toast({
         title: "Error",
         description: "Gagal memuat data user. Menggunakan admin function untuk mengambil data.",
@@ -218,7 +231,7 @@ const UserManagement = () => {
         <CardContent className="p-6">
           <div className="flex items-center justify-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <span className="ml-2">Loading users via admin function...</span>
+            <span className="ml-2">Loading users...</span>
           </div>
         </CardContent>
       </Card>
@@ -285,17 +298,23 @@ const UserManagement = () => {
         </Card>
       </div>
 
-      {/* Admin Function Status */}
-      <Card className="bg-green-50 border-green-200">
+      {/* Connection Status */}
+      <Card className={connectionError ? "bg-yellow-50 border-yellow-200" : "bg-green-50 border-green-200"}>
         <CardHeader>
-          <CardTitle className="text-sm font-medium text-green-800">✓ Admin Access Status</CardTitle>
+          <CardTitle className={`text-sm font-medium ${connectionError ? 'text-yellow-800' : 'text-green-800'}`}>
+            {connectionError ? '⚠️ Connection Warning' : '✓ Admin Access Status'}
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-sm text-green-700 space-y-2">
-            <p><strong>Status:</strong> Connected via Admin Function (Bypass RLS)</p>
+          <div className={`text-sm ${connectionError ? 'text-yellow-700' : 'text-green-700'} space-y-2`}>
+            <p><strong>Status:</strong> {connectionError || 'Connected via Admin Function (Bypass RLS)'}</p>
             <p><strong>Total users loaded:</strong> {users.length}</p>
-            <p><strong>Data source:</strong> Supabase with Service Role Key</p>
-            <p><strong>Real-time updates:</strong> Active</p>
+            {connectionError && (
+              <p className="text-yellow-600">
+                <AlertTriangle className="inline w-4 h-4 mr-1" />
+                Edge function may not be deployed. Using fallback method.
+              </p>
+            )}
             
             <div className="flex gap-2 mt-3">
               <Button 
@@ -362,7 +381,18 @@ const UserManagement = () => {
           {/* Users Table */}
           {filteredUsers.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              {users.length === 0 ? "No users found in database." : "No users match your search criteria."}
+              {users.length === 0 ? (
+                <div>
+                  <p>No users found in database.</p>
+                  {connectionError && (
+                    <p className="text-sm mt-2 text-yellow-600">
+                      If you expect user data, please check your Supabase edge functions deployment.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                "No users match your search criteria."
+              )}
             </div>
           ) : (
             <Table>
