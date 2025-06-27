@@ -69,12 +69,20 @@ const MidtransPayment: React.FC<MidtransPaymentProps> = ({
       // Generate unique order ID
       const orderId = `ORDER-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
+      // Get Supabase URL and key from environment
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      
+      if (!supabaseUrl || !supabaseKey) {
+        throw new Error('Supabase configuration not found. Please check environment variables.');
+      }
+      
       // Call Supabase Edge Function to create Midtrans transaction
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-payment`, {
+      const response = await fetch(`${supabaseUrl}/functions/v1/create-payment`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Authorization': `Bearer ${supabaseKey}`,
         },
         body: JSON.stringify({
           booking_data: bookingData,
@@ -85,10 +93,18 @@ const MidtransPayment: React.FC<MidtransPaymentProps> = ({
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Payment service error: ${errorText}`);
+        console.error('Payment service error:', errorText);
+        throw new Error(`Payment service error: ${response.status} - ${errorText}`);
       }
 
-      const { token, order_id } = await response.json();
+      const responseData = await response.json();
+      console.log('Payment service response:', responseData);
+
+      if (!responseData.token) {
+        throw new Error('No payment token received from server');
+      }
+
+      const { token, order_id } = responseData;
       console.log('Midtrans token received:', token);
 
       // Open Midtrans payment popup

@@ -22,7 +22,7 @@ serve(async (req) => {
       throw new Error("Midtrans Server Key not configured");
     }
 
-    // Verify notification signature
+    // Verify notification signature for security
     const { order_id, status_code, gross_amount, signature_key } = notification;
     const expectedSignature = await crypto.subtle.digest(
       'SHA-512',
@@ -33,6 +33,7 @@ serve(async (req) => {
       .join('');
 
     if (signature_key !== expectedSignatureHex) {
+      console.error('Invalid signature from Midtrans notification');
       throw new Error("Invalid signature");
     }
 
@@ -45,23 +46,45 @@ serve(async (req) => {
 
     // Update transaction status based on Midtrans notification
     let newStatus = 'pending';
+    let paymentStatus = 'pending';
+    
     switch (notification.transaction_status) {
       case 'capture':
+        if (notification.fraud_status === 'accept') {
+          newStatus = 'paid';
+          paymentStatus = 'paid';
+        } else if (notification.fraud_status === 'challenge') {
+          newStatus = 'challenge';
+          paymentStatus = 'pending';
+        } else {
+          newStatus = 'failed';
+          paymentStatus = 'failed';
+        }
+        break;
       case 'settlement':
         newStatus = 'paid';
+        paymentStatus = 'paid';
         break;
       case 'pending':
         newStatus = 'pending';
+        paymentStatus = 'pending';
         break;
       case 'deny':
       case 'cancel':
       case 'expire':
         newStatus = 'failed';
+        paymentStatus = 'failed';
         break;
       case 'refund':
         newStatus = 'refunded';
+        paymentStatus = 'refunded';
         break;
+      default:
+        newStatus = 'unknown';
+        paymentStatus = 'pending';
     }
+
+    console.log(`Updating transaction ${order_id} to status: ${newStatus}`);
 
     // Update transaction in database
     const { error: updateError } = await supabaseAdmin
@@ -78,41 +101,40 @@ serve(async (req) => {
       throw updateError;
     }
 
-    // If payment is successful, create booking record
-    if (newStatus === 'paid') {
-      const { data: transaction } = await supabaseAdmin
-        .from('transactions')
-        .select('*')
-        .eq('id', order_id)
-        .single();
+    // If payment is successful, update any related booking records
+    if (paymentStatus === 'paid') {
+      console.log(`Payment confirmed for order ${order_id}, updating booking status`);
+      
+      // Update booking status if exists
+      await supabaseAdmin
+        .from('bookings')
+        .update({
+          payment_status: 'paid',
+          status: 'confirmed',
+          updated_at: new Date().toISOString()
+        })
+        .eq('transaction_id', order_id);
 
-      if (transaction?.booking_data) {
-        await supabaseAdmin
-          .from('bookings')
-          .insert({
-            user_id: 'temp-user-id', // Will be updated with actual user ID
-            companion_id: 'temp-companion-id', // Will be updated with actual companion ID
-            service: transaction.booking_data.service,
-            booking_date: transaction.booking_data.date,
-            booking_time: transaction.booking_data.time,
-            message: transaction.booking_data.message,
-            total_price: transaction.amount,
-            payment_status: 'paid',
-            status: 'confirmed',
-            created_at: new Date().toISOString(),
-          });
-      }
+      console.log(`Booking updated to confirmed status for order ${order_id}`);
     }
 
     return new Response(
-      JSON.stringify({ success: true }),
+      JSON.stringify({ 
+        success: true, 
+        message: 'Notification processed successfully',
+        order_id: order_id,
+        status: newStatus
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
   } catch (error) {
     console.error('Error processing Midtrans notification:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      }),
       { 
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" }

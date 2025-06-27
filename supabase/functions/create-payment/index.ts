@@ -15,6 +15,8 @@ serve(async (req) => {
   try {
     const { booking_data, amount, order_id } = await req.json();
     
+    console.log('Create payment request:', { booking_data, amount, order_id });
+    
     if (!booking_data || !amount) {
       throw new Error("Missing required fields: booking_data or amount");
     }
@@ -23,13 +25,14 @@ serve(async (req) => {
     const serverKey = Deno.env.get("MIDTRANS_SERVER_KEY");
     
     if (!serverKey) {
-      throw new Error("Midtrans Server Key not configured in Supabase secrets");
+      console.error("Midtrans Server Key not found in environment");
+      throw new Error("Payment configuration error. Please contact support.");
     }
 
     // Generate order ID if not provided
     const finalOrderId = order_id || `ORDER-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-    // Prepare Midtrans transaction parameters
+    // Prepare Midtrans transaction parameters for production
     const parameter = {
       transaction_details: {
         order_id: finalOrderId,
@@ -48,20 +51,30 @@ serve(async (req) => {
       ],
       customer_details: {
         first_name: "Customer",
-        email: "customer@example.com",
+        email: "customer@temanly.com",
         phone: "+628123456789",
       },
-      // Enable all payment methods
+      // Enable all production payment methods
       enabled_payments: [
-        "credit_card", "bca_va", "bni_va", "bri_va", "echannel", "permata_va",
-        "other_va", "gopay", "shopeepay", "dana", "ovo", "linkaja", "jenius",
-        "cstore", "alfamart", "qris"
+        "credit_card", 
+        "bca_va", "bni_va", "bri_va", "cimb_va", "echannel", "permata_va", "other_va",
+        "gopay", "shopeepay", "dana", "ovo", "linkaja", "jenius",
+        "cstore", "alfamart", "indomaret",
+        "qris"
       ],
+      // Production notification URL
+      notification_url: `${Deno.env.get("SUPABASE_URL")}/functions/v1/midtrans-notification`,
+      // Set expiry time (30 minutes)
+      expiry: {
+        start_time: new Date().toISOString().replace(/\.\d{3}Z$/, '+07:00'),
+        unit: "minutes",
+        duration: 30
+      }
     };
 
     console.log('Creating Midtrans transaction with parameter:', JSON.stringify(parameter, null, 2));
 
-    // Create transaction to Midtrans Snap API
+    // Create transaction to Midtrans Snap API (Production)
     const midtransResponse = await fetch('https://app.midtrans.com/snap/v1/transactions', {
       method: 'POST',
       headers: {
@@ -79,7 +92,7 @@ serve(async (req) => {
     }
 
     const midtransData = await midtransResponse.json();
-    console.log('Midtrans response:', midtransData);
+    console.log('Midtrans response received:', midtransData);
 
     // Create Supabase client for saving transaction
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -91,7 +104,7 @@ serve(async (req) => {
       });
 
       // Save pending transaction to database
-      await supabaseAdmin
+      const { error: insertError } = await supabaseAdmin
         .from('transactions')
         .insert({
           id: finalOrderId,
@@ -103,13 +116,19 @@ serve(async (req) => {
           midtrans_token: midtransData.token,
           created_at: new Date().toISOString(),
         });
+
+      if (insertError) {
+        console.error('Error saving transaction to database:', insertError);
+        // Don't throw error here, still return payment token
+      }
     }
 
     return new Response(
       JSON.stringify({ 
         token: midtransData.token,
         redirect_url: midtransData.redirect_url,
-        order_id: finalOrderId
+        order_id: finalOrderId,
+        success: true
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
@@ -120,7 +139,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : 'Unknown error occurred',
-        details: 'Check function logs for more information'
+        details: 'Check function logs for more information',
+        success: false
       }),
       { 
         status: 500,
