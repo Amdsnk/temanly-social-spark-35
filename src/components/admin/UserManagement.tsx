@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Users, Search, Eye, UserCheck, UserX, Mail, Phone, Calendar } from 'lucide-react';
+import { Users, Search, Eye, UserCheck, UserX, Mail, Phone, Calendar, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Database } from '@/integrations/supabase/types';
@@ -32,6 +32,7 @@ interface User {
 const UserManagement = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [filterType, setFilterType] = useState<'all' | UserType>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | VerificationStatus>('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -40,68 +41,105 @@ const UserManagement = () => {
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalTalents: 0,
+    totalAdmins: 0,
     verifiedUsers: 0,
     pendingApprovals: 0
   });
 
   useEffect(() => {
     fetchUsers();
+    setupRealTimeUpdates();
+  }, []);
+
+  useEffect(() => {
     calculateStats();
-  }, [filterType, filterStatus]);
+  }, [users]);
 
   const fetchUsers = async () => {
     try {
-      let query = supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
+      console.log('Fetching all users via admin function...');
+      setRefreshing(true);
+      
+      // Use admin function to bypass RLS and fetch all users
+      const { data: adminResponse, error: adminError } = await supabase.functions.invoke('admin-get-users', {
+        body: {
+          userType: filterType,
+          verificationStatus: filterStatus
+        }
+      });
 
-      if (filterType !== 'all') {
-        query = query.eq('user_type', filterType as UserType);
+      if (adminError) {
+        console.error('Admin function error:', adminError);
+        throw adminError;
       }
 
-      if (filterStatus !== 'all') {
-        query = query.eq('verification_status', filterStatus as VerificationStatus);
+      console.log('Admin function response:', adminResponse);
+
+      if (adminResponse?.success && adminResponse?.users) {
+        const allUsers = adminResponse.users;
+        console.log(`Total users fetched via admin function: ${allUsers.length}`);
+        
+        setUsers(allUsers);
+        
+        // Log user types for debugging
+        const userTypes = allUsers.reduce((acc: any, user: any) => {
+          acc[user.user_type] = (acc[user.user_type] || 0) + 1;
+          return acc;
+        }, {});
+        console.log('User types breakdown:', userTypes);
+        
+      } else {
+        console.error('Unexpected admin function response:', adminResponse);
+        setUsers([]);
       }
-
-      const { data, error } = await query;
-      if (error) throw error;
-
-      setUsers(data || []);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast({
         title: "Error",
-        description: "Failed to load user data",
+        description: "Gagal memuat data user. Menggunakan admin function untuk mengambil data.",
         variant: "destructive"
       });
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  const calculateStats = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('user_type, verification_status');
+  const setupRealTimeUpdates = () => {
+    const channel = supabase
+      .channel('user-management-admin')
+      .on('postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'profiles'
+        },
+        (payload) => {
+          console.log('Real-time update received for user management:', payload);
+          fetchUsers();
+        }
+      )
+      .subscribe();
 
-      if (error) throw error;
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  };
 
-      const totalUsers = data.filter(u => u.user_type === 'user').length;
-      const totalTalents = data.filter(u => u.user_type === 'companion').length;
-      const verifiedUsers = data.filter(u => u.verification_status === 'verified').length;
-      const pendingApprovals = data.filter(u => u.verification_status === 'pending').length;
+  const calculateStats = () => {
+    const totalUsers = users.filter(u => u.user_type === 'user').length;
+    const totalTalents = users.filter(u => u.user_type === 'companion').length;
+    const totalAdmins = users.filter(u => u.user_type === 'admin').length;
+    const verifiedUsers = users.filter(u => u.verification_status === 'verified').length;
+    const pendingApprovals = users.filter(u => u.verification_status === 'pending').length;
 
-      setStats({
-        totalUsers,
-        totalTalents,
-        verifiedUsers,
-        pendingApprovals
-      });
-    } catch (error) {
-      console.error('Error calculating stats:', error);
-    }
+    setStats({
+      totalUsers,
+      totalTalents,
+      totalAdmins,
+      verifiedUsers,
+      pendingApprovals
+    });
   };
 
   const updateUserStatus = async (userId: string, newStatus: VerificationStatus) => {
@@ -129,7 +167,6 @@ const UserManagement = () => {
         description: `User status has been updated to ${newStatus}`,
       });
 
-      calculateStats();
     } catch (error) {
       console.error('Error updating user status:', error);
       toast({
@@ -140,11 +177,16 @@ const UserManagement = () => {
     }
   };
 
-  const filteredUsers = users.filter(user =>
-    user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.phone?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         user.phone?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesType = filterType === 'all' || user.user_type === filterType;
+    const matchesStatus = filterStatus === 'all' || user.verification_status === filterStatus;
+    
+    return matchesSearch && matchesType && matchesStatus;
+  });
 
   const getUserTypeBadge = (userType: UserType) => {
     switch (userType) {
@@ -176,7 +218,7 @@ const UserManagement = () => {
         <CardContent className="p-6">
           <div className="flex items-center justify-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <span className="ml-2">Loading users...</span>
+            <span className="ml-2">Loading users via admin function...</span>
           </div>
         </CardContent>
       </Card>
@@ -186,7 +228,7 @@ const UserManagement = () => {
   return (
     <div className="space-y-6">
       {/* User Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Users</CardTitle>
@@ -206,6 +248,17 @@ const UserManagement = () => {
           <CardContent>
             <div className="text-2xl font-bold text-purple-600">{stats.totalTalents}</div>
             <p className="text-xs text-muted-foreground">Companion talents</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Admins</CardTitle>
+            <Users className="h-4 w-4 text-red-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">{stats.totalAdmins}</div>
+            <p className="text-xs text-muted-foreground">System admins</p>
           </CardContent>
         </Card>
 
@@ -231,6 +284,34 @@ const UserManagement = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Admin Function Status */}
+      <Card className="bg-green-50 border-green-200">
+        <CardHeader>
+          <CardTitle className="text-sm font-medium text-green-800">✓ Admin Access Status</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-sm text-green-700 space-y-2">
+            <p><strong>Status:</strong> Connected via Admin Function (Bypass RLS)</p>
+            <p><strong>Total users loaded:</strong> {users.length}</p>
+            <p><strong>Data source:</strong> Supabase with Service Role Key</p>
+            <p><strong>Real-time updates:</strong> Active</p>
+            
+            <div className="flex gap-2 mt-3">
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={fetchUsers}
+                disabled={refreshing}
+                className="flex items-center gap-1"
+              >
+                <RefreshCw className={`h-3 w-3 ${refreshing ? 'animate-spin' : ''}`} />
+                Refresh Data
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* User Management */}
       <Card>
@@ -281,7 +362,7 @@ const UserManagement = () => {
           {/* Users Table */}
           {filteredUsers.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              {users.length === 0 ? "No users found." : "No users match your search criteria."}
+              {users.length === 0 ? "No users found in database." : "No users match your search criteria."}
             </div>
           ) : (
             <Table>
@@ -343,6 +424,9 @@ const UserManagement = () => {
                         {user.user_type === 'user' && (
                           <div>Bookings: {user.total_bookings}</div>
                         )}
+                        {user.user_type === 'admin' && (
+                          <div className="text-red-600 font-medium">System Admin</div>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -357,7 +441,7 @@ const UserManagement = () => {
                           <Eye className="w-3 h-3 mr-1" />
                           View
                         </Button>
-                        {user.verification_status === 'pending' && (
+                        {user.verification_status === 'pending' && user.user_type !== 'admin' && (
                           <>
                             <Button
                               size="sm"
