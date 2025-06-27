@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -39,6 +38,7 @@ const UserDashboard = () => {
     { 
       id: 'ORD001', 
       talent: 'Sarah Jakarta', 
+      talentId: 1,
       service: 'Chat', 
       date: '2024-01-15', 
       amount: 25000, 
@@ -49,6 +49,7 @@ const UserDashboard = () => {
     { 
       id: 'ORD002', 
       talent: 'Maya Bandung', 
+      talentId: 2,
       service: 'Video Call', 
       date: '2024-01-14', 
       amount: 65000, 
@@ -59,6 +60,7 @@ const UserDashboard = () => {
     { 
       id: 'ORD003', 
       talent: 'Andi Surabaya', 
+      talentId: 3,
       service: 'Offline Date', 
       date: '2024-01-13', 
       amount: 285000, 
@@ -99,12 +101,12 @@ const UserDashboard = () => {
     });
   };
 
-  const handleBookAgain = (talentName: string) => {
+  const handleBookAgain = (talentName: string, talentId: number) => {
     console.log(`Book again with ${talentName}`);
-    navigate('/talents');
+    navigate(`/talent/${talentId}`);
     toast({
-      title: "Redirecting to Browse Talents",
-      description: `Looking for ${talentName} to book again.`,
+      title: "Redirecting to Talent Profile",
+      description: `Viewing ${talentName}'s profile to book again.`,
     });
   };
 
@@ -352,7 +354,7 @@ const UserDashboard = () => {
                             {booking.status === 'completed' && (
                               <Button 
                                 size="sm"
-                                onClick={() => handleBookAgain(booking.talent)}
+                                onClick={() => handleBookAgain(booking.talent, booking.talentId)}
                               >
                                 Book Again
                               </Button>
