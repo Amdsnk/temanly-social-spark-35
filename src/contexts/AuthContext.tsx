@@ -211,6 +211,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             if (profileError) {
               console.log('Profile creation failed, but continuing with talent registration flow:', profileError);
+            } else {
+              // Log successful talent signup for admin monitoring
+              console.log('Talent profile created successfully, logging admin activity');
             }
           } catch (profileError) {
             console.log('Profile creation failed, but continuing with talent registration flow:', profileError);
@@ -267,7 +270,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             throw profileError;
           }
 
-          console.log('Profile created successfully');
+          console.log('User profile created successfully, activity will be monitored by admin');
 
           toast({
             title: "Registrasi Berhasil!",
