@@ -1,12 +1,11 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, Filter, MapPin } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Search, Filter, MapPin } from 'lucide-react';
 import TalentCard from '@/components/TalentCard';
 import Footer from '@/components/Footer';
+import MainHeader from '@/components/MainHeader';
 
 const BrowseTalents = () => {
   const [selectedCity, setSelectedCity] = useState('Jakarta');
@@ -128,24 +127,14 @@ const BrowseTalents = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
-            <Link to="/">
-              <Button variant="ghost" size="icon">
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Browse Talents</h1>
-              <p className="text-gray-600">Temukan talent yang sempurna untuk kebutuhan Anda</p>
-            </div>
-          </div>
-        </div>
-      </header>
+      <MainHeader />
 
       <div className="container mx-auto px-4 py-8">
+        {/* Page Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Browse Talents</h1>
+          <p className="text-gray-600">Temukan talent yang sempurna untuk kebutuhan Anda</p>
+        </div>
         
         {/* Filters */}
         <div className="bg-white p-6 rounded-xl shadow-sm mb-8">
