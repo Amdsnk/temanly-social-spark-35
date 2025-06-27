@@ -4,13 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CheckCircle, XCircle, Clock, Mail, Phone, User, RefreshCw, AlertTriangle } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Mail, Phone, User, RefreshCw, Database } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Database } from '@/integrations/supabase/types';
+import { Database as DatabaseType } from '@/integrations/supabase/types';
 
-type UserType = Database['public']['Enums']['user_type'];
-type VerificationStatus = Database['public']['Enums']['verification_status'];
+type UserType = DatabaseType['public']['Enums']['user_type'];
+type VerificationStatus = DatabaseType['public']['Enums']['verification_status'];
 
 interface PendingUser {
   id: string;
@@ -26,7 +26,7 @@ const UserApprovalManagement = () => {
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<string>('');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -38,54 +38,27 @@ const UserApprovalManagement = () => {
     try {
       console.log('Fetching pending users...');
       setRefreshing(true);
-      setConnectionError(null);
+      setConnectionStatus('');
       
-      // Try admin function first
-      try {
-        const { data: adminResponse, error: adminError } = await supabase.functions.invoke('admin-get-users', {
-          body: {
-            verificationStatus: 'pending'
-          }
-        });
+      // Direct database query
+      const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('verification_status', 'pending')
+        .order('created_at', { ascending: false });
 
-        if (adminError) {
-          console.error('Admin function error:', adminError);
-          throw adminError;
-        }
-
-        console.log('Admin function response:', adminResponse);
-
-        if (adminResponse?.success && adminResponse?.users) {
-          const pendingUsers = adminResponse.users.filter((user: any) => user.verification_status === 'pending');
-          console.log(`Pending users found via admin function: ${pendingUsers.length}`);
-          setPendingUsers(pendingUsers);
-          return;
-        } else if (!adminResponse?.success) {
-          throw new Error('Admin function returned unsuccessful response');
-        }
-      } catch (adminError) {
-        console.log('Admin function failed, trying direct query...');
-        
-        // Fallback to direct query
-        const { data: profiles, error: directError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('verification_status', 'pending')
-          .order('created_at', { ascending: false });
-
-        if (directError) {
-          console.error('Direct query error:', directError);
-          throw directError;
-        }
-
-        console.log(`Pending users found via direct query: ${profiles?.length || 0}`);
-        setPendingUsers(profiles || []);
-        setConnectionError('Using direct database access (RLS may limit results)');
+      if (error) {
+        console.error('Database query error:', error);
+        throw error;
       }
+
+      console.log(`Pending users found: ${profiles?.length || 0}`);
+      setPendingUsers(profiles || []);
+      setConnectionStatus(`Successfully loaded ${profiles?.length || 0} pending users`);
 
     } catch (error) {
       console.error('Error fetching pending users:', error);
-      setConnectionError(error.message || 'Failed to fetch pending users');
+      setConnectionStatus(`Error: ${error.message}`);
       toast({
         title: "Error",
         description: "Gagal memuat data user yang menunggu approval",
@@ -177,22 +150,18 @@ const UserApprovalManagement = () => {
   return (
     <div className="space-y-6">
       {/* Connection Status */}
-      <Card className={connectionError ? "bg-yellow-50 border-yellow-200" : "bg-green-50 border-green-200"}>
+      <Card className="bg-blue-50 border-blue-200">
         <CardHeader>
-          <CardTitle className={`text-sm font-medium ${connectionError ? 'text-yellow-800' : 'text-green-800'}`}>
-            {connectionError ? '⚠️ Connection Warning' : '✓ Admin Function Status'}
+          <CardTitle className="text-sm font-medium text-blue-800 flex items-center gap-2">
+            <Database className="w-4 h-4" />
+            Database Connection Status
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className={`text-sm ${connectionError ? 'text-yellow-700' : 'text-green-700'} space-y-2`}>
-            <p><strong>Status:</strong> {connectionError || 'Connected via Admin Function'}</p>
+          <div className="text-sm text-blue-700 space-y-2">
+            <p><strong>Connection Method:</strong> Direct Database Query</p>
+            <p><strong>Status:</strong> {connectionStatus}</p>
             <p><strong>Pending users loaded:</strong> {pendingUsers.length}</p>
-            {connectionError && (
-              <p className="text-yellow-600">
-                <AlertTriangle className="inline w-4 h-4 mr-1" />
-                Edge function may not be deployed. Using fallback method.
-              </p>
-            )}
             
             <div className="flex gap-2 mt-3">
               <Button 
@@ -221,11 +190,6 @@ const UserApprovalManagement = () => {
           {pendingUsers.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <p>No pending approvals at this time.</p>
-              {connectionError && (
-                <p className="text-sm mt-2 text-yellow-600">
-                  If you expect pending users, please check your Supabase edge functions deployment.
-                </p>
-              )}
             </div>
           ) : (
             <Table>

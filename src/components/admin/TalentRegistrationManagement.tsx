@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { CheckCircle, XCircle, Clock, Mail, Phone, User, FileText, Eye, Calendar, MapPin, RefreshCw, AlertCircle, AlertTriangle } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Mail, Phone, User, FileText, Eye, Calendar, MapPin, RefreshCw, AlertCircle, Database } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -36,7 +36,7 @@ const TalentRegistrationManagement = () => {
   const [loading, setLoading] = useState(true);
   const [selectedApplication, setSelectedApplication] = useState<TalentApplication | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<string>('');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -48,63 +48,32 @@ const TalentRegistrationManagement = () => {
     try {
       console.log('Fetching talent applications...');
       setRefreshing(true);
-      setConnectionError(null);
+      setConnectionStatus('');
       
-      // Try admin function first
-      try {
-        const { data: adminResponse, error: adminError } = await supabase.functions.invoke('admin-get-users', {
-          body: {}
-        });
+      // Direct database query
+      const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-        if (adminError) {
-          console.error('Admin function error:', adminError);
-          throw adminError;
-        }
-
-        console.log('Admin function response:', adminResponse);
-
-        if (adminResponse?.success && adminResponse?.users) {
-          const allUsers = adminResponse.users;
-          console.log(`Total users fetched via admin function: ${allUsers.length}`);
-          
-          // Filter for companion/talent users
-          const talentUsers = allUsers.filter((user: any) => user.user_type === 'companion');
-          console.log(`Talent users found: ${talentUsers.length}`);
-          
-          setAllUsers(allUsers);
-          setApplications(talentUsers);
-          return;
-        } else if (!adminResponse?.success) {
-          throw new Error('Admin function returned unsuccessful response');
-        }
-      } catch (adminError) {
-        console.log('Admin function failed, trying direct query...');
-        
-        // Fallback to direct query
-        const { data: profiles, error: directError } = await supabase
-          .from('profiles')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (directError) {
-          console.error('Direct query error:', directError);
-          throw directError;
-        }
-
-        const allUsers = profiles || [];
-        const talentUsers = allUsers.filter((user: any) => user.user_type === 'companion');
-        
-        console.log(`Total users fetched via direct query: ${allUsers.length}`);
-        console.log(`Talent users found: ${talentUsers.length}`);
-        
-        setAllUsers(allUsers);
-        setApplications(talentUsers);
-        setConnectionError('Using direct database access (RLS may limit results)');
+      if (error) {
+        console.error('Database query error:', error);
+        throw error;
       }
+
+      const allUsers = profiles || [];
+      const talentUsers = allUsers.filter((user: any) => user.user_type === 'companion');
+      
+      console.log(`Total users fetched: ${allUsers.length}`);
+      console.log(`Talent users found: ${talentUsers.length}`);
+      
+      setAllUsers(allUsers);
+      setApplications(talentUsers);
+      setConnectionStatus(`Successfully loaded ${allUsers.length} total users, ${talentUsers.length} talents`);
 
     } catch (error) {
       console.error('Error fetching talent applications:', error);
-      setConnectionError(error.message || 'Failed to fetch talent applications');
+      setConnectionStatus(`Error: ${error.message}`);
       toast({
         title: "Error",
         description: "Gagal memuat data pendaftaran talent. Coba lagi atau periksa koneksi.",
@@ -270,24 +239,17 @@ const TalentRegistrationManagement = () => {
       </div>
 
       {/* Connection Status */}
-      <Card className={connectionError ? "bg-yellow-50 border-yellow-200" : "bg-blue-50 border-blue-200"}>
+      <Card className="bg-blue-50 border-blue-200">
         <CardHeader>
-          <CardTitle className={`text-sm font-medium ${connectionError ? 'text-yellow-800' : 'text-blue-800'}`}>
-            {connectionError ? '⚠️ Connection Warning' : 'Admin Function Status & Debug Info'}
+          <CardTitle className="text-sm font-medium text-blue-800 flex items-center gap-2">
+            <Database className="w-4 h-4" />
+            Database Connection Status
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className={`text-sm ${connectionError ? 'text-yellow-700' : 'text-blue-700'} space-y-2`}>
-            <p><strong>Status:</strong> {connectionError || 'Loaded via Admin Function'}</p>
-            <p><strong>Total users loaded:</strong> {allUsers.length}</p>
-            <p><strong>Talent applications:</strong> {allApplications.length}</p>
-            <p><strong>Pending applications:</strong> {pendingApplications.length}</p>
-            {connectionError && (
-              <p className="text-yellow-600">
-                <AlertTriangle className="inline w-4 h-4 mr-1" />
-                Edge function may not be deployed. Using fallback method.
-              </p>
-            )}
+          <div className="text-sm text-blue-700 space-y-2">
+            <p><strong>Connection Method:</strong> Direct Database Query</p>
+            <p><strong>Status:</strong> {connectionStatus}</p>
             
             <div className="flex gap-2 mt-3">
               <Button 
@@ -319,11 +281,7 @@ const TalentRegistrationManagement = () => {
               <p className="text-lg font-medium">Belum ada pendaftaran talent yang ditemukan.</p>
               <div className="mt-4 text-sm space-y-2">
                 <p>Sistem telah terhubung dengan database.</p>
-                {connectionError && (
-                  <p className="text-yellow-600">
-                    If you expect talent data, please check your Supabase edge functions deployment.
-                  </p>
-                )}
+                <p>Total users di sistem: {allUsers.length}</p>
               </div>
             </div>
           ) : (

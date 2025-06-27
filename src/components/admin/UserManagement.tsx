@@ -5,13 +5,13 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Users, Search, Eye, UserCheck, UserX, Mail, Phone, Calendar, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Users, Search, Eye, UserCheck, UserX, Mail, Phone, Calendar, RefreshCw, AlertTriangle, Database } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Database } from '@/integrations/supabase/types';
+import { Database as DatabaseType } from '@/integrations/supabase/types';
 
-type UserType = Database['public']['Enums']['user_type'];
-type VerificationStatus = Database['public']['Enums']['verification_status'];
+type UserType = DatabaseType['public']['Enums']['user_type'];
+type VerificationStatus = DatabaseType['public']['Enums']['verification_status'];
 
 interface User {
   id: string;
@@ -35,8 +35,7 @@ const UserManagement = () => {
   const [filterType, setFilterType] = useState<'all' | UserType>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | VerificationStatus>('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [connectionError, setConnectionError] = useState<string | null>(null);
-  const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [connectionStatus, setConnectionStatus] = useState<string>('');
   const { toast } = useToast();
 
   const [stats, setStats] = useState({
@@ -58,66 +57,48 @@ const UserManagement = () => {
 
   const fetchUsers = async () => {
     try {
-      console.log('🔍 Starting user fetch process...');
+      console.log('🔍 Fetching users directly from database...');
       setRefreshing(true);
-      setConnectionError(null);
-      setDebugInfo(null);
+      setConnectionStatus('');
       
-      // Try admin function first
-      console.log('📡 Attempting admin function call...');
-      const { data: adminResponse, error: adminError } = await supabase.functions.invoke('admin-get-users', {
-        body: {
-          userType: filterType,
-          verificationStatus: filterStatus
-        }
+      // Direct database query using regular client
+      const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select(`
+          id,
+          name,
+          email,
+          phone,
+          user_type,
+          verification_status,
+          status,
+          created_at,
+          total_bookings,
+          total_earnings,
+          rating,
+          location
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('❌ Database query error:', error);
+        throw error;
+      }
+
+      console.log('✅ Successfully fetched users:', profiles?.length || 0);
+      console.log('Sample user data:', profiles?.slice(0, 1));
+      
+      setUsers(profiles || []);
+      setConnectionStatus(`Successfully loaded ${profiles?.length || 0} users from database`);
+      
+    } catch (error) {
+      console.error('❌ Error fetching users:', error);
+      setConnectionStatus(`Error: ${error.message}`);
+      toast({
+        title: "Error",
+        description: "Gagal memuat data user. Periksa koneksi database.",
+        variant: "destructive"
       });
-
-      console.log('📡 Admin function response:', { adminResponse, adminError });
-      setDebugInfo({ adminResponse, adminError, timestamp: new Date().toISOString() });
-
-      if (adminError) {
-        console.error('❌ Admin function error:', adminError);
-        throw adminError;
-      }
-
-      if (adminResponse?.success && Array.isArray(adminResponse?.users)) {
-        console.log('✅ Admin function successful:', adminResponse.users.length, 'users found');
-        setUsers(adminResponse.users);
-        setConnectionError(null);
-        return;
-      }
-
-      throw new Error('Admin function returned invalid response');
-
-    } catch (adminError) {
-      console.log('⚠️ Admin function failed, trying direct query...', adminError);
-      
-      try {
-        // Fallback to direct query
-        console.log('🔄 Attempting direct database query...');
-        const { data: profiles, error: directError } = await supabase
-          .from('profiles')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (directError) {
-          console.error('❌ Direct query error:', directError);
-          throw directError;
-        }
-
-        console.log('✅ Direct query successful:', profiles?.length || 0, 'users found');
-        setUsers(profiles || []);
-        setConnectionError('Using direct database access (RLS may limit results)');
-        
-      } catch (directError) {
-        console.error('❌ Both methods failed:', directError);
-        setConnectionError(`Failed to fetch users: ${directError.message}`);
-        toast({
-          title: "Error",
-          description: "Gagal memuat data user. Silakan coba lagi.",
-          variant: "destructive"
-        });
-      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -304,34 +285,19 @@ const UserManagement = () => {
         </Card>
       </div>
 
-      {/* Debug & Connection Status */}
-      <Card className={connectionError ? "bg-yellow-50 border-yellow-200" : "bg-green-50 border-green-200"}>
+      {/* Database Connection Status */}
+      <Card className="bg-blue-50 border-blue-200">
         <CardHeader>
-          <CardTitle className={`text-sm font-medium ${connectionError ? 'text-yellow-800' : 'text-green-800'}`}>
-            🔍 Debug Information & Connection Status
+          <CardTitle className="text-sm font-medium text-blue-800 flex items-center gap-2">
+            <Database className="w-4 h-4" />
+            Database Connection Status
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className={`text-sm ${connectionError ? 'text-yellow-700' : 'text-green-700'} space-y-2`}>
-            <p><strong>Status:</strong> {connectionError || 'Connected via Admin Function'}</p>
+          <div className="text-sm text-blue-700 space-y-2">
+            <p><strong>Connection Method:</strong> Direct Database Query</p>
+            <p><strong>Status:</strong> {connectionStatus}</p>
             <p><strong>Total users loaded:</strong> {users.length}</p>
-            <p><strong>Function Response:</strong> {debugInfo ? 'Available' : 'No response yet'}</p>
-            
-            {debugInfo && (
-              <details className="mt-2">
-                <summary className="cursor-pointer font-medium">View Debug Details</summary>
-                <pre className="mt-2 p-2 bg-gray-100 rounded text-xs overflow-auto">
-                  {JSON.stringify(debugInfo, null, 2)}
-                </pre>
-              </details>
-            )}
-            
-            {connectionError && (
-              <p className="text-yellow-600">
-                <AlertTriangle className="inline w-4 h-4 mr-1" />
-                Edge function may not be deployed. Using fallback method.
-              </p>
-            )}
             
             <div className="flex gap-2 mt-3">
               <Button 
@@ -402,13 +368,8 @@ const UserManagement = () => {
                 <div>
                   <p>No users found in database.</p>
                   <p className="text-sm mt-2 text-gray-600">
-                    Please check the debug information above for more details.
+                    The database connection is working but no user data was found.
                   </p>
-                  {connectionError && (
-                    <p className="text-sm mt-2 text-yellow-600">
-                      Edge function may not be deployed or environment variables may be missing.
-                    </p>
-                  )}
                 </div>
               ) : (
                 "No users match your search criteria."
