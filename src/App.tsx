@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Login from './pages/Login';
@@ -8,6 +9,8 @@ import BrowseTalents from './pages/BrowseTalents';
 import BookingPage from './pages/BookingPage';
 import UserDashboard from './pages/UserDashboard';
 import Contact from './pages/Contact';
+import TalentRegister from './pages/TalentRegister';
+import TalentRegisterSuccess from './pages/TalentRegisterSuccess';
 import { AuthProvider } from './contexts/AuthContext';
 import { Toaster } from "@/components/ui/toaster"
 import PaymentStatus from './pages/PaymentStatus';
@@ -27,6 +30,8 @@ function App() {
             <Route path="/user-dashboard" element={<UserDashboard />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/payment-status" element={<PaymentStatus />} />
+            <Route path="/talent-register" element={<TalentRegister />} />
+            <Route path="/talent-register-success" element={<TalentRegisterSuccess />} />
           </Routes>
         </div>
       </AuthProvider>
@@ -35,3 +40,4 @@ function App() {
 }
 
 export default App;
+
