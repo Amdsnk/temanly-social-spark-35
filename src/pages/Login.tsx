@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -51,14 +52,16 @@ const Login = () => {
     if (!authLoading && isAuthenticated && user) {
       console.log('User authenticated, navigating to dashboard for user type:', user.user_type);
       
-      // Navigate based on user type
-      if (user.user_type === 'companion') {
-        navigate('/talent-dashboard', { replace: true });
-      } else if (user.user_type === 'admin') {
-        navigate('/admin', { replace: true });
-      } else {
-        navigate('/user-dashboard', { replace: true });
-      }
+      // Small delay to ensure state is fully resolved
+      setTimeout(() => {
+        if (user.user_type === 'companion') {
+          navigate('/talent-dashboard', { replace: true });
+        } else if (user.user_type === 'admin') {
+          navigate('/admin', { replace: true });
+        } else {
+          navigate('/user-dashboard', { replace: true });
+        }
+      }, 100);
     }
   }, [isAuthenticated, user, authLoading, navigate]);
 
@@ -73,7 +76,7 @@ const Login = () => {
     try {
       await login(values.email, values.password);
       console.log('Login successful, waiting for redirect...');
-      // Don't set loading to false here - let the useEffect handle navigation
+      // The useEffect will handle navigation after successful login
     } catch (error: any) {
       console.error('Login failed with error:', error);
       

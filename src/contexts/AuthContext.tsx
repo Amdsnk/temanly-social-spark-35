@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -46,45 +45,62 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check current session on app load
-    const getSession = async () => {
+    let mounted = true;
+
+    const initializeAuth = async () => {
       try {
+        // Get initial session
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error('Session error:', error);
-          setIsLoading(false);
+          if (mounted) {
+            setIsLoading(false);
+          }
           return;
         }
 
-        if (session?.user) {
+        if (session?.user && mounted) {
           console.log('Found existing session for user:', session.user.id);
           await fetchUserProfile(session.user.id);
-        } else {
+        } else if (mounted) {
           console.log('No existing session found');
           setIsLoading(false);
         }
       } catch (error) {
-        console.error('Error getting session:', error);
-        setIsLoading(false);
+        console.error('Error initializing auth:', error);
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     };
 
-    getSession();
-
-    // Listen for auth state changes
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+
       console.log('Auth state changed:', event, session?.user?.id);
       
       if (event === 'SIGNED_IN' && session?.user) {
-        await fetchUserProfile(session.user.id);
+        // Defer profile fetching to avoid deadlocks
+        setTimeout(() => {
+          if (mounted) {
+            fetchUserProfile(session.user.id);
+          }
+        }, 0);
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setIsLoading(false);
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Initialize auth
+    initializeAuth();
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const fetchUserProfile = async (userId: string) => {
@@ -99,6 +115,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error('Profile fetch error:', error);
+        
         // If profile doesn't exist, create a basic one
         if (error.code === 'PGRST116') {
           const { data: authUser } = await supabase.auth.getUser();
@@ -117,12 +134,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               });
             
             if (!insertError) {
-              await fetchUserProfile(userId);
+              // Retry fetching the profile
+              setTimeout(() => fetchUserProfile(userId), 100);
               return;
             }
           }
         }
-        throw error;
+        
+        // Set loading to false even if profile fetch fails
+        setIsLoading(false);
+        return;
       }
 
       console.log('Profile data:', data);
@@ -216,6 +237,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('Attempting login for:', email);
       
+      // Clear any existing auth state first
+      try {
+        await supabase.auth.signOut();
+      } catch (err) {
+        // Ignore signout errors
+      }
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -228,7 +256,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (data.user) {
         console.log('Login successful for user:', data.user.id);
-        // fetchUserProfile will be called automatically by the auth state change listener
         
         toast({
           title: "Login berhasil!",
@@ -250,8 +277,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     try {
       console.log('Logging out user');
-      await supabase.auth.signOut();
       setUser(null);
+      await supabase.auth.signOut();
       localStorage.removeItem('bookings');
       localStorage.removeItem('transactions');
       
