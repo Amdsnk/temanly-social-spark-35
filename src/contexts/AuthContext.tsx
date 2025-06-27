@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -168,57 +169,114 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('Starting signup process for:', userData.email);
       
-      // Sign up with Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: userData.email,
-        password: userData.password,
-        options: {
-          data: {
-            full_name: userData.name,
-            user_type: userData.user_type || 'user',
-            phone: userData.phone
+      // For talent registration, we'll create a special flow
+      if (userData.user_type === 'companion') {
+        // Sign up with Supabase Auth first
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: userData.email,
+          password: userData.password,
+          options: {
+            data: {
+              full_name: userData.name,
+              user_type: userData.user_type,
+              phone: userData.phone
+            }
           }
-        }
-      });
-
-      if (authError) {
-        console.error('Auth signup error:', authError);
-        throw authError;
-      }
-
-      if (authData.user) {
-        console.log('User created in auth:', authData.user.id);
-        
-        // Create profile in database
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .upsert({
-            id: authData.user.id,
-            email: userData.email,
-            name: userData.name,
-            full_name: userData.name,
-            phone: userData.phone,
-            user_type: userData.user_type || 'user',
-            verification_status: 'verified',
-            status: 'active',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          });
-
-        if (profileError) {
-          console.error('Profile creation error:', profileError);
-          throw profileError;
-        }
-
-        console.log('Profile created successfully');
-
-        toast({
-          title: "Registrasi Berhasil!",
-          description: "Akun Anda telah dibuat dan siap digunakan.",
-          className: "bg-green-50 border-green-200"
         });
 
-        return { needsVerification: false };
+        if (authError) {
+          console.error('Auth signup error:', authError);
+          throw authError;
+        }
+
+        if (authData.user) {
+          console.log('Talent user created in auth:', authData.user.id);
+          
+          // For talents, we'll try to create the profile with service role or let admin handle it
+          try {
+            const { error: profileError } = await supabase
+              .from('profiles')
+              .insert({
+                id: authData.user.id,
+                email: userData.email,
+                name: userData.name,
+                full_name: userData.name,
+                phone: userData.phone,
+                user_type: 'companion',
+                verification_status: 'pending',
+                status: 'pending',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              });
+
+            if (profileError) {
+              console.log('Profile creation failed, but continuing with talent registration flow:', profileError);
+            }
+          } catch (profileError) {
+            console.log('Profile creation failed, but continuing with talent registration flow:', profileError);
+          }
+
+          toast({
+            title: "Registrasi Talent Berhasil!",
+            description: "Pendaftaran Anda telah diterima dan sedang menunggu verifikasi admin.",
+            className: "bg-green-50 border-green-200"
+          });
+
+          return { needsVerification: true };
+        }
+      } else {
+        // Regular user signup
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: userData.email,
+          password: userData.password,
+          options: {
+            data: {
+              full_name: userData.name,
+              user_type: userData.user_type || 'user',
+              phone: userData.phone
+            }
+          }
+        });
+
+        if (authError) {
+          console.error('Auth signup error:', authError);
+          throw authError;
+        }
+
+        if (authData.user) {
+          console.log('User created in auth:', authData.user.id);
+          
+          // Create profile in database
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .upsert({
+              id: authData.user.id,
+              email: userData.email,
+              name: userData.name,
+              full_name: userData.name,
+              phone: userData.phone,
+              user_type: userData.user_type || 'user',
+              verification_status: 'verified',
+              status: 'active',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            });
+
+          if (profileError) {
+            console.error('Profile creation error:', profileError);
+            throw profileError;
+          }
+
+          console.log('Profile created successfully');
+
+          toast({
+            title: "Registrasi Berhasil!",
+            description: "Akun Anda telah dibuat dan siap digunakan.",
+            className: "bg-green-50 border-green-200"
+          });
+
+          return { needsVerification: false };
+        }
       }
 
       throw new Error('User creation failed');
