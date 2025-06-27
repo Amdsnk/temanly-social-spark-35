@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -165,9 +164,65 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const checkExistingUser = async (email: string, phone: string) => {
+    try {
+      // Check if email already exists in auth.users
+      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+      
+      if (!authError && authUsers.users) {
+        const existingAuthUser = authUsers.users.find(user => user.email === email);
+        if (existingAuthUser) {
+          return { exists: true, type: 'email' };
+        }
+      }
+
+      // Check if email or phone exists in profiles table
+      const { data: profiles, error: profileError } = await supabase
+        .from('profiles')
+        .select('email, phone')
+        .or(`email.eq.${email},phone.eq.${phone}`);
+
+      if (profileError) {
+        console.error('Error checking existing users:', profileError);
+        return { exists: false };
+      }
+
+      if (profiles && profiles.length > 0) {
+        const existingProfile = profiles[0];
+        if (existingProfile.email === email) {
+          return { exists: true, type: 'email' };
+        }
+        if (existingProfile.phone === phone) {
+          return { exists: true, type: 'phone' };
+        }
+      }
+
+      return { exists: false };
+    } catch (error) {
+      console.error('Error checking existing users:', error);
+      return { exists: false };
+    }
+  };
+
   const signup = async (userData: SignupData): Promise<{ needsVerification: boolean }> => {
     try {
       console.log('Starting signup process for:', userData.email);
+      
+      // Check if user already exists
+      const existingUser = await checkExistingUser(userData.email, userData.phone);
+      
+      if (existingUser.exists) {
+        const message = existingUser.type === 'email' 
+          ? 'Email sudah terdaftar. Silakan gunakan email lain atau login jika Anda sudah memiliki akun.'
+          : 'Nomor WhatsApp sudah terdaftar. Silakan gunakan nomor lain atau login jika Anda sudah memiliki akun.';
+          
+        toast({
+          title: "Pendaftaran Gagal",
+          description: message,
+          variant: "destructive"
+        });
+        throw new Error(message);
+      }
       
       // For talent registration, we'll create a special flow
       if (userData.user_type === 'companion') {
