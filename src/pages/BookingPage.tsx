@@ -1,6 +1,5 @@
-
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -33,15 +32,22 @@ const BookingPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedServices, setSelectedServices] = useState<ServiceSelection[]>([]);
   const [bookingForm, setBookingForm] = useState({
     message: '',
   });
 
+  // Get talent ID from URL params and generate a proper UUID for companion_id
+  const talentParam = searchParams.get('talent');
+  
   // Mock talent data - in production this would come from the database
+  // For now, we'll use a UUID format for companion_id instead of just "1"
   const talent = {
-    id: 1,
+    id: talentParam || '1',
+    // Use a proper UUID format for companion_id to avoid database errors
+    companion_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', // Mock UUID for now
     name: 'Sarah Jakarta',
     rating: 4.9,
     reviews: 127,
@@ -67,11 +73,11 @@ const BookingPage = () => {
         throw new Error('User not authenticated');
       }
 
-      // Create booking record in Supabase with correct field names
+      // Create booking record in Supabase with correct field names and UUID companion_id
       const { data: booking, error: bookingError } = await supabase
         .from('bookings')
         .insert({
-          companion_id: talent.id.toString(),
+          companion_id: talent.companion_id, // Use proper UUID instead of talent.id
           customer_name: user.name || 'Customer',
           customer_email: user.email || 'customer@example.com',
           customer_phone: user.phone || '08123456789',
@@ -121,11 +127,11 @@ const BookingPage = () => {
         throw new Error('User not authenticated');
       }
 
-      // Create pending booking record with correct field names
+      // Create pending booking record with correct field names and UUID companion_id
       const { data: booking, error: bookingError } = await supabase
         .from('bookings')
         .insert({
-          companion_id: talent.id.toString(),
+          companion_id: talent.companion_id, // Use proper UUID instead of talent.id
           customer_name: user.name || 'Customer',
           customer_email: user.email || 'customer@example.com',
           customer_phone: user.phone || '08123456789',
