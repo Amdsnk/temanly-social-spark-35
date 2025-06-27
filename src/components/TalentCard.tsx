@@ -1,10 +1,11 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Heart, MessageCircle, Phone, Video, Star, MapPin, Clock, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 interface Talent {
   id: number;
@@ -32,6 +33,32 @@ interface TalentCardProps {
 }
 
 const TalentCard: React.FC<TalentCardProps> = ({ talent, isNewcomer = false }) => {
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const { isAuthenticated } = useAuth();
+  const { toast } = useToast();
+
+  const handleBookmark = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!isAuthenticated) {
+      toast({
+        title: "Login Required",
+        description: "Silakan login untuk menambahkan talent ke favorites.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsBookmarked(!isBookmarked);
+    toast({
+      title: isBookmarked ? "Removed from Favorites" : "Added to Favorites",
+      description: isBookmarked 
+        ? `${talent.name} telah dihapus dari favorites Anda.`
+        : `${talent.name} telah ditambahkan ke favorites Anda.`,
+    });
+  };
+
   const getLevelColor = (level: string) => {
     switch (level) {
       case 'VIP Talent': return 'bg-purple-100 text-purple-700';
@@ -83,8 +110,15 @@ const TalentCard: React.FC<TalentCardProps> = ({ talent, isNewcomer = false }) =
 
         {/* Favorite Button */}
         <div className="absolute top-4 right-4">
-          <Button size="icon" variant="ghost" className="bg-black/20 hover:bg-black/40 text-white rounded-full">
-            <Heart className="w-5 h-5" />
+          <Button 
+            size="icon" 
+            variant="ghost" 
+            className={`bg-black/20 hover:bg-black/40 rounded-full ${
+              isBookmarked ? 'text-red-500' : 'text-white'
+            }`}
+            onClick={handleBookmark}
+          >
+            <Heart className={`w-5 h-5 ${isBookmarked ? 'fill-current' : ''}`} />
           </Button>
         </div>
 

@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import DashboardHeader from '@/components/DashboardHeader';
 import TransactionHistory from '@/components/TransactionHistory';
 import ProfileSettings from '@/components/ProfileSettings';
+import RatingModal from '@/components/RatingModal';
 
 const UserDashboard = () => {
   const { user } = useAuth();
@@ -19,6 +20,15 @@ const UserDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const defaultTab = searchParams.get('tab') || 'overview';
+  const [ratingModal, setRatingModal] = useState<{
+    isOpen: boolean;
+    bookingId: string;
+    talentName: string;
+  }>({
+    isOpen: false,
+    bookingId: '',
+    talentName: ''
+  });
   
   const handleTabChange = (value: string) => {
     navigate(`/user-dashboard?tab=${value}`, { replace: true });
@@ -93,12 +103,24 @@ const UserDashboard = () => {
     }
   ];
 
-  const handleRating = (bookingId: string, rating: number) => {
-    console.log(`Rating ${rating} for booking ${bookingId}`);
-    toast({
-      title: "Rating Submitted",
-      description: `You rated booking ${bookingId} with ${rating} stars.`,
+  const handleRating = (bookingId: string, talentName: string) => {
+    setRatingModal({
+      isOpen: true,
+      bookingId,
+      talentName
     });
+  };
+
+  const handleRatingSubmit = (rating: number, comment: string) => {
+    console.log(`Rating ${rating} for booking ${ratingModal.bookingId}:`, comment);
+    toast({
+      title: "Rating Berhasil Dikirim",
+      description: `Anda memberikan rating ${rating} bintang untuk ${ratingModal.talentName}.`,
+    });
+    
+    // Update the booking data (in real app, this would update the database)
+    // For now, just close the modal
+    setRatingModal({ isOpen: false, bookingId: '', talentName: '' });
   };
 
   const handleBookAgain = (talentName: string, talentId: number) => {
@@ -334,9 +356,9 @@ const UserDashboard = () => {
                             <Button 
                               size="sm" 
                               variant="outline"
-                              onClick={() => handleRating(booking.id, 5)}
+                              onClick={() => handleRating(booking.id, booking.talent)}
                             >
-                              Rate
+                              Beri Rating
                             </Button>
                           ) : (
                             <span className="text-gray-400">-</span>
@@ -427,6 +449,14 @@ const UserDashboard = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      <RatingModal
+        isOpen={ratingModal.isOpen}
+        onClose={() => setRatingModal({ isOpen: false, bookingId: '', talentName: '' })}
+        onSubmit={handleRatingSubmit}
+        talentName={ratingModal.talentName}
+        bookingId={ratingModal.bookingId}
+      />
     </div>
   );
 };

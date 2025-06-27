@@ -11,11 +11,13 @@ import VerificationStatus from '@/components/VerificationStatus';
 import ServiceRestrictionNotice from '@/components/ServiceRestrictionNotice';
 import { useAuth } from '@/contexts/AuthContext';
 import { getServiceRestrictions } from '@/utils/serviceCalculations';
+import { useToast } from '@/hooks/use-toast';
 
 const TalentProfile = () => {
   const { id } = useParams();
   const [isBookmarked, setIsBookmarked] = useState(false);
   const { user, isAuthenticated } = useAuth();
+  const { toast } = useToast();
   
   // Mock talent data - in real app, fetch based on ID
   const talent = {
@@ -86,6 +88,25 @@ const TalentProfile = () => {
     }
   };
 
+  const handleBookmark = () => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Login Required",
+        description: "Silakan login untuk menambahkan talent ke favorites.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsBookmarked(!isBookmarked);
+    toast({
+      title: isBookmarked ? "Removed from Favorites" : "Added to Favorites",
+      description: isBookmarked 
+        ? `${talent.name} telah dihapus dari favorites Anda.`
+        : `${talent.name} telah ditambahkan ke favorites Anda.`,
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <MainHeader />
@@ -126,14 +147,24 @@ const TalentProfile = () => {
                   
                   <div className="flex-1 space-y-4">
                     <div>
-                      <div className="flex items-center gap-3 mb-2">
-                        <h1 className="text-2xl font-bold">{talent.name}, {talent.age}</h1>
-                        {talent.verified && (
-                          <Badge className="bg-blue-500 text-white">
-                            <Shield className="w-3 h-3 mr-1" />
-                            Verified
-                          </Badge>
-                        )}
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                          <h1 className="text-2xl font-bold">{talent.name}, {talent.age}</h1>
+                          {talent.verified && (
+                            <Badge className="bg-blue-500 text-white">
+                              <Shield className="w-3 h-3 mr-1" />
+                              Verified
+                            </Badge>
+                          )}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={handleBookmark}
+                          className={`${isBookmarked ? 'text-red-500' : 'text-gray-400'} hover:text-red-500`}
+                        >
+                          <Heart className={`w-6 h-6 ${isBookmarked ? 'fill-current' : ''}`} />
+                        </Button>
                       </div>
                       <div className="flex items-center gap-4 text-gray-600 mb-3">
                         <div className="flex items-center gap-1">
@@ -281,7 +312,17 @@ const TalentProfile = () => {
           <div className="lg:col-span-1">
             <Card className="sticky top-24">
               <CardHeader>
-                <CardTitle>Book {talent.name}</CardTitle>
+                <CardTitle className="flex items-center justify-between">
+                  Book {talent.name}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleBookmark}
+                    className={`${isBookmarked ? 'text-red-500' : 'text-gray-400'} hover:text-red-500`}
+                  >
+                    <Heart className={`w-5 h-5 ${isBookmarked ? 'fill-current' : ''}`} />
+                  </Button>
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 
