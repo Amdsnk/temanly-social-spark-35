@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Database as DatabaseType } from '@/integrations/supabase/types';
 import { adminUserService, AdminUser } from '@/services/adminUserService';
+import UserDetailModal from './UserDetailModal';
 
 type UserType = DatabaseType['public']['Enums']['user_type'];
 type VerificationStatus = DatabaseType['public']['Enums']['verification_status'];
@@ -24,6 +24,8 @@ const UserManagement = () => {
   const [filterStatus, setFilterStatus] = useState<'all' | VerificationStatus>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [connectionStatus, setConnectionStatus] = useState<string>('');
+  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
+  const [showUserDetail, setShowUserDetail] = useState(false);
   const { toast } = useToast();
 
   const [stats, setStats] = useState({
@@ -190,6 +192,12 @@ const UserManagement = () => {
         variant: "destructive"
       });
     }
+  };
+
+  const handleViewUser = (user: AdminUser) => {
+    console.log('🔍 Viewing user details:', user);
+    setSelectedUser(user);
+    setShowUserDetail(true);
   };
 
   const filteredUsers = users.filter(user => {
@@ -483,7 +491,11 @@ const UserManagement = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        <Button size="sm" variant="outline">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => handleViewUser(user)}
+                        >
                           <Eye className="w-3 h-3 mr-1" />
                           View
                         </Button>
@@ -516,6 +528,16 @@ const UserManagement = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* User Detail Modal */}
+      <UserDetailModal
+        user={selectedUser}
+        isOpen={showUserDetail}
+        onClose={() => {
+          setShowUserDetail(false);
+          setSelectedUser(null);
+        }}
+      />
     </div>
   );
 };
