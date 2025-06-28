@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,17 +16,17 @@ type VerificationStatus = DatabaseType['public']['Enums']['verification_status']
 
 interface User {
   id: string;
-  name: string;
+  name: string | null;
   email: string;
   phone: string | null;
   user_type: UserType;
   verification_status: VerificationStatus;
   status: string;
   created_at: string;
-  total_bookings: number;
-  total_earnings: number;
-  rating: number;
-  location: string | null;
+  total_bookings?: number;
+  total_earnings?: number;
+  rating?: number;
+  location?: string | null;
 }
 
 const UserManagement = () => {
@@ -59,25 +60,12 @@ const UserManagement = () => {
     try {
       console.log('🔍 Fetching users directly from database...');
       setRefreshing(true);
-      setConnectionStatus('');
+      setConnectionStatus('Connecting to database...');
       
       // Direct database query using regular client
-      const { data: profiles, error } = await supabase
+      const { data: profiles, error, count } = await supabase
         .from('profiles')
-        .select(`
-          id,
-          name,
-          email,
-          phone,
-          user_type,
-          verification_status,
-          status,
-          created_at,
-          total_bookings,
-          total_earnings,
-          rating,
-          location
-        `)
+        .select('*', { count: 'exact' })
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -85,13 +73,22 @@ const UserManagement = () => {
         throw error;
       }
 
+      console.log('✅ Raw database response:', { profiles, count, error });
       console.log('✅ Successfully fetched users:', profiles?.length || 0);
-      console.log('Sample user data:', profiles?.slice(0, 1));
       
-      setUsers(profiles || []);
-      setConnectionStatus(`Successfully loaded ${profiles?.length || 0} users from database`);
+      // Ensure we have proper default values
+      const processedUsers = (profiles || []).map(user => ({
+        ...user,
+        name: user.name || user.email || 'No name',
+        total_bookings: user.total_bookings || 0,
+        total_earnings: user.total_earnings || 0,
+        rating: user.rating || 0
+      }));
       
-    } catch (error) {
+      setUsers(processedUsers);
+      setConnectionStatus(`Successfully loaded ${processedUsers.length} users from database (Count: ${count})`);
+      
+    } catch (error: any) {
       console.error('❌ Error fetching users:', error);
       setConnectionStatus(`Error: ${error.message}`);
       toast({
@@ -167,7 +164,7 @@ const UserManagement = () => {
         description: `User status has been updated to ${newStatus}`,
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating user status:', error);
       toast({
         title: "Error",
@@ -298,6 +295,7 @@ const UserManagement = () => {
             <p><strong>Connection Method:</strong> Direct Database Query</p>
             <p><strong>Status:</strong> {connectionStatus}</p>
             <p><strong>Total users loaded:</strong> {users.length}</p>
+            <p><strong>Debug Info:</strong> Raw data count from DB</p>
             
             <div className="flex gap-2 mt-3">
               <Button 
@@ -370,6 +368,10 @@ const UserManagement = () => {
                   <p className="text-sm mt-2 text-gray-600">
                     The database connection is working but no user data was found.
                   </p>
+                  <Button onClick={fetchUsers} className="mt-4">
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Try Again
+                  </Button>
                 </div>
               ) : (
                 "No users match your search criteria."
@@ -427,13 +429,13 @@ const UserManagement = () => {
                       <div className="text-xs space-y-1">
                         {user.user_type === 'companion' && (
                           <>
-                            <div>Rating: {user.rating}/5</div>
-                            <div>Bookings: {user.total_bookings}</div>
+                            <div>Rating: {user.rating || 0}/5</div>
+                            <div>Bookings: {user.total_bookings || 0}</div>
                             <div>Earnings: Rp {(user.total_earnings || 0).toLocaleString('id-ID')}</div>
                           </>
                         )}
                         {user.user_type === 'user' && (
-                          <div>Bookings: {user.total_bookings}</div>
+                          <div>Bookings: {user.total_bookings || 0}</div>
                         )}
                         {user.user_type === 'admin' && (
                           <div className="text-red-600 font-medium">System Admin</div>

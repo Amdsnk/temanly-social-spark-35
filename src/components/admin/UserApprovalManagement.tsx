@@ -14,9 +14,9 @@ type VerificationStatus = DatabaseType['public']['Enums']['verification_status']
 
 interface PendingUser {
   id: string;
-  name: string;
+  name: string | null;
   email: string;
-  phone: string;
+  phone: string | null;
   user_type: UserType;
   verification_status: VerificationStatus;
   created_at: string;
@@ -36,28 +36,30 @@ const UserApprovalManagement = () => {
 
   const fetchPendingUsers = async () => {
     try {
-      console.log('Fetching pending users...');
+      console.log('🔍 Fetching pending users...');
       setRefreshing(true);
-      setConnectionStatus('');
+      setConnectionStatus('Connecting to database...');
       
-      // Direct database query
-      const { data: profiles, error } = await supabase
+      // Direct database query with count
+      const { data: profiles, error, count } = await supabase
         .from('profiles')
-        .select('*')
+        .select('*', { count: 'exact' })
         .eq('verification_status', 'pending')
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Database query error:', error);
+        console.error('❌ Database query error:', error);
         throw error;
       }
 
-      console.log(`Pending users found: ${profiles?.length || 0}`);
+      console.log('✅ Pending users query result:', { profiles, count, error });
+      console.log(`✅ Pending users found: ${profiles?.length || 0}`);
+      
       setPendingUsers(profiles || []);
-      setConnectionStatus(`Successfully loaded ${profiles?.length || 0} pending users`);
+      setConnectionStatus(`Successfully loaded ${profiles?.length || 0} pending users (DB count: ${count})`);
 
-    } catch (error) {
-      console.error('Error fetching pending users:', error);
+    } catch (error: any) {
+      console.error('❌ Error fetching pending users:', error);
       setConnectionStatus(`Error: ${error.message}`);
       toast({
         title: "Error",
@@ -81,7 +83,7 @@ const UserApprovalManagement = () => {
           filter: 'verification_status=eq.pending'
         },
         (payload) => {
-          console.log('Real-time update received for pending users:', payload);
+          console.log('🔄 Real-time update received for pending users:', payload);
           fetchPendingUsers();
         }
       )
@@ -114,7 +116,7 @@ const UserApprovalManagement = () => {
         title: approved ? "User Approved" : "User Rejected",
         description: `User has been ${approved ? 'approved' : 'rejected'} and notified via email.`
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating user status:', error);
       toast({
         title: "Error",
@@ -154,7 +156,7 @@ const UserApprovalManagement = () => {
         <CardHeader>
           <CardTitle className="text-sm font-medium text-blue-800 flex items-center gap-2">
             <Database className="w-4 h-4" />
-            Database Connection Status
+            Database Connection Status - Pending Users
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -162,6 +164,7 @@ const UserApprovalManagement = () => {
             <p><strong>Connection Method:</strong> Direct Database Query</p>
             <p><strong>Status:</strong> {connectionStatus}</p>
             <p><strong>Pending users loaded:</strong> {pendingUsers.length}</p>
+            <p><strong>Query:</strong> SELECT * FROM profiles WHERE verification_status = 'pending'</p>
             
             <div className="flex gap-2 mt-3">
               <Button 
@@ -190,6 +193,10 @@ const UserApprovalManagement = () => {
           {pendingUsers.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <p>No pending approvals at this time.</p>
+              <Button onClick={fetchPendingUsers} className="mt-4" variant="outline">
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Check Again
+              </Button>
             </div>
           ) : (
             <Table>
@@ -209,7 +216,7 @@ const UserApprovalManagement = () => {
                       <div className="flex items-center gap-2">
                         <User className="w-4 h-4" />
                         <div>
-                          <div className="font-medium">{user.name}</div>
+                          <div className="font-medium">{user.name || user.email}</div>
                           <div className="text-sm text-gray-500">ID: {user.id.slice(0, 8)}...</div>
                         </div>
                       </div>
