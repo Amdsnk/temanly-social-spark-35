@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CheckCircle, XCircle, Clock, Mail, Phone, User, RefreshCw, Database } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Mail, Phone, User, RefreshCw, Database, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Database as DatabaseType } from '@/integrations/supabase/types';
@@ -24,42 +24,83 @@ interface PendingUser {
 
 const UserApprovalManagement = () => {
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
+  const [allUsers, setAllUsers] = useState<PendingUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<string>('');
+  const [debugInfo, setDebugInfo] = useState<any>({});
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchPendingUsers();
+    fetchAllData();
     setupRealTimeUpdates();
   }, []);
 
-  const fetchPendingUsers = async () => {
+  const fetchAllData = async () => {
     try {
-      console.log('🔍 Fetching pending users...');
+      console.log('🔍 Starting comprehensive data fetch...');
       setRefreshing(true);
       setConnectionStatus('Connecting to database...');
       
-      // Direct database query with count
-      const { data: profiles, error, count } = await supabase
+      // First, get ALL users to debug
+      const { data: allProfiles, error: allError, count: totalCount } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false });
+
+      console.log('✅ ALL USERS from database:', {
+        profiles: allProfiles,
+        count: totalCount,
+        error: allError
+      });
+
+      if (allError) {
+        console.error('❌ Error fetching all users:', allError);
+        throw allError;
+      }
+
+      setAllUsers(allProfiles || []);
+
+      // Now get pending users specifically
+      const { data: pendingProfiles, error: pendingError, count: pendingCount } = await supabase
         .from('profiles')
         .select('*', { count: 'exact' })
         .eq('verification_status', 'pending')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('❌ Database query error:', error);
-        throw error;
-      }
+      console.log('✅ PENDING USERS query result:', {
+        profiles: pendingProfiles,
+        count: pendingCount,
+        error: pendingError
+      });
 
-      console.log('✅ Pending users query result:', { profiles, count, error });
-      console.log(`✅ Pending users found: ${profiles?.length || 0}`);
+      // Debug: Check what verification statuses exist
+      const statusBreakdown = (allProfiles || []).reduce((acc: any, user) => {
+        acc[user.verification_status] = (acc[user.verification_status] || 0) + 1;
+        return acc;
+      }, {});
+
+      console.log('📊 Verification status breakdown:', statusBreakdown);
+
+      const debugData = {
+        totalUsers: allProfiles?.length || 0,
+        pendingUsers: pendingProfiles?.length || 0,
+        statusBreakdown,
+        sampleUsers: allProfiles?.slice(0, 3).map(u => ({
+          id: u.id.slice(0, 8),
+          email: u.email,
+          status: u.verification_status,
+          type: u.user_type
+        }))
+      };
+
+      setDebugInfo(debugData);
+      setPendingUsers(pendingProfiles || []);
       
-      setPendingUsers(profiles || []);
-      setConnectionStatus(`Successfully loaded ${profiles?.length || 0} pending users (DB count: ${count})`);
+      setConnectionStatus(`Loaded ${allProfiles?.length || 0} total users, ${pendingProfiles?.length || 0} pending approval`);
 
     } catch (error: any) {
-      console.error('❌ Error fetching pending users:', error);
+      console.error('❌ Error in fetchAllData:', error);
       setConnectionStatus(`Error: ${error.message}`);
       toast({
         title: "Error",
@@ -84,7 +125,7 @@ const UserApprovalManagement = () => {
         },
         (payload) => {
           console.log('🔄 Real-time update received for pending users:', payload);
-          fetchPendingUsers();
+          fetchAllData();
         }
       )
       .subscribe();
@@ -136,6 +177,32 @@ const UserApprovalManagement = () => {
     }
   };
 
+  // Function to manually set users to pending status for testing
+  const setUsersToPending = async () => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ verification_status: 'pending' })
+        .neq('user_type', 'admin');
+
+      if (error) throw error;
+
+      toast({
+        title: "Users Updated",
+        description: "Non-admin users set to pending status for testing"
+      });
+
+      fetchAllData();
+    } catch (error: any) {
+      console.error('Error updating users to pending:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update users",
+        variant: "destructive"
+      });
+    }
+  };
+
   if (loading) {
     return (
       <Card>
@@ -151,31 +218,65 @@ const UserApprovalManagement = () => {
 
   return (
     <div className="space-y-6">
-      {/* Connection Status */}
+      {/* Enhanced Debug Information */}
       <Card className="bg-blue-50 border-blue-200">
         <CardHeader>
           <CardTitle className="text-sm font-medium text-blue-800 flex items-center gap-2">
             <Database className="w-4 h-4" />
-            Database Connection Status - Pending Users
+            Database Debug Information - User Approvals
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-sm text-blue-700 space-y-2">
-            <p><strong>Connection Method:</strong> Direct Database Query</p>
-            <p><strong>Status:</strong> {connectionStatus}</p>
-            <p><strong>Pending users loaded:</strong> {pendingUsers.length}</p>
-            <p><strong>Query:</strong> SELECT * FROM profiles WHERE verification_status = 'pending'</p>
+          <div className="text-sm text-blue-700 space-y-3">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p><strong>Total Users in DB:</strong> {debugInfo.totalUsers}</p>
+                <p><strong>Pending Approvals:</strong> {debugInfo.pendingUsers}</p>
+                <p><strong>Connection Status:</strong> {connectionStatus}</p>
+              </div>
+              <div>
+                <p><strong>Status Breakdown:</strong></p>
+                <ul className="ml-4 text-xs">
+                  {Object.entries(debugInfo.statusBreakdown || {}).map(([status, count]) => (
+                    <li key={status}>• {status}: {count as number}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
             
-            <div className="flex gap-2 mt-3">
+            <div className="bg-white p-3 rounded border">
+              <p className="font-medium mb-2">Sample Users:</p>
+              <div className="text-xs space-y-1">
+                {debugInfo.sampleUsers?.map((user: any, idx: number) => (
+                  <div key={idx} className="flex gap-2">
+                    <span>ID: {user.id}</span>
+                    <span>Email: {user.email}</span>
+                    <span>Status: <strong>{user.status}</strong></span>
+                    <span>Type: {user.type}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="flex gap-2">
               <Button 
                 size="sm" 
                 variant="outline" 
-                onClick={fetchPendingUsers}
+                onClick={fetchAllData}
                 disabled={refreshing}
                 className="flex items-center gap-1"
               >
                 <RefreshCw className={`h-3 w-3 ${refreshing ? 'animate-spin' : ''}`} />
                 Refresh Data
+              </Button>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={setUsersToPending}
+                className="flex items-center gap-1 bg-yellow-50 hover:bg-yellow-100"
+              >
+                <AlertCircle className="h-3 w-3" />
+                Set Non-Admin to Pending (Test)
               </Button>
             </div>
           </div>
@@ -191,9 +292,34 @@ const UserApprovalManagement = () => {
         </CardHeader>
         <CardContent>
           {pendingUsers.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <p>No pending approvals at this time.</p>
-              <Button onClick={fetchPendingUsers} className="mt-4" variant="outline">
+            <div className="text-center py-8 text-gray-500 space-y-4">
+              <div>
+                <p className="text-lg">No pending approvals found.</p>
+                <p className="text-sm mt-2 text-gray-600">
+                  {allUsers.length > 0 
+                    ? `Found ${allUsers.length} total users in database, but none have 'pending' status.`
+                    : 'No users found in database.'
+                  }
+                </p>
+              </div>
+              
+              {allUsers.length > 0 && (
+                <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                  <p className="text-sm text-yellow-800 mb-3">
+                    <strong>Debug Help:</strong> If you want to test approvals, click the button below to set non-admin users to 'pending' status.
+                  </p>
+                  <Button 
+                    onClick={setUsersToPending} 
+                    className="bg-yellow-500 hover:bg-yellow-600"
+                    size="sm"
+                  >
+                    <AlertCircle className="w-4 h-4 mr-2" />
+                    Set Users to Pending for Testing
+                  </Button>
+                </div>
+              )}
+              
+              <Button onClick={fetchAllData} className="mt-4" variant="outline">
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Check Again
               </Button>
