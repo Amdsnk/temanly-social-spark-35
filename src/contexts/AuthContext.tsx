@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import type { Database } from '@/integrations/supabase/types';
 
 interface User {
   id: string;
@@ -279,16 +280,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               console.error('Function error:', functionError);
               console.log('Function failed, attempting direct comprehensive profile creation...');
               
-              // Create comprehensive profile directly
+              // Create comprehensive profile directly with properly typed values
               const profileData = {
                 id: authData.user.id,
                 email: userData.email,
                 name: userData.name,
                 full_name: userData.name,
                 phone: userData.phone,
-                user_type: 'companion',
-                verification_status: 'pending',
-                status: 'pending',
+                user_type: 'companion' as Database['public']['Enums']['user_type'],
+                verification_status: 'pending' as Database['public']['Enums']['verification_status'],
+                status: 'pending' as Database['public']['Enums']['user_status'],
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
                 // Add comprehensive talent data
@@ -361,7 +362,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (authData.user) {
           console.log('User created in auth:', authData.user.id);
           
-          // Create profile in database
+          // Create profile in database with properly typed values
           const { error: profileError } = await supabase
             .from('profiles')
             .upsert({
@@ -370,9 +371,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               name: userData.name,
               full_name: userData.name,
               phone: userData.phone,
-              user_type: userData.user_type || 'user',
-              verification_status: 'verified',
-              status: 'active',
+              user_type: (userData.user_type || 'user') as Database['public']['Enums']['user_type'],
+              verification_status: 'verified' as Database['public']['Enums']['verification_status'],
+              status: 'active' as Database['public']['Enums']['user_status'],
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             });
