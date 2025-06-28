@@ -74,7 +74,7 @@ const TalentApprovalSystem = () => {
       // Transform profiles data to match our interface with comprehensive data extraction
       const transformedTalents: TalentRegistrationData[] = profiles.map(profile => {
         let profileData = null;
-        let comprehensiveData = {};
+        let comprehensiveData: any = {};
         
         // Parse profile_data if exists
         if (profile.profile_data) {
@@ -86,27 +86,14 @@ const TalentApprovalSystem = () => {
           }
         }
 
-        // Also check auth metadata from user_metadata if available
-        let authMetadata = {};
-        if (profile.raw_user_meta_data) {
-          try {
-            authMetadata = typeof profile.raw_user_meta_data === 'string' 
-              ? JSON.parse(profile.raw_user_meta_data) 
-              : profile.raw_user_meta_data;
-          } catch (error) {
-            console.warn('⚠️ Failed to parse auth metadata for user:', profile.id, error);
-          }
-        }
-
-        // Merge all data sources with priority: profile_data > direct fields > auth metadata
+        // Merge all data sources with priority: profile_data > direct fields > defaults
         const combinedData = {
-          ...authMetadata,
           ...comprehensiveData,
           // Direct fields take precedence
-          age: profile.age || comprehensiveData.age || authMetadata.age || 0,
-          location: profile.location || comprehensiveData.location || authMetadata.location || 'Tidak diisi',
-          bio: profile.bio || comprehensiveData.bio || authMetadata.bio || '',
-          hourlyRate: profile.hourly_rate || comprehensiveData.hourlyRate || authMetadata.hourlyRate || 0,
+          age: profile.age || comprehensiveData.age || 0,
+          location: profile.location || comprehensiveData.location || 'Tidak diisi',
+          bio: profile.bio || comprehensiveData.bio || '',
+          hourlyRate: profile.hourly_rate || comprehensiveData.hourlyRate || 0,
         };
 
         return {

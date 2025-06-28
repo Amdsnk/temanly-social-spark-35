@@ -20,6 +20,11 @@ export interface AdminUser {
   bio?: string | null;
   hourly_rate?: number | null;
   profile_data?: string | null;
+  // Additional fields for comprehensive user management
+  rating?: number | null;
+  total_bookings?: number;
+  total_earnings?: number;
+  raw_user_meta_data?: any;
 }
 
 export const adminUserService = {
