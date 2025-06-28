@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,7 +29,7 @@ interface TalentApplication {
   specialties?: string[];
   languages?: string[];
   user_type: string;
-  profile_data?: string; // JSON string containing comprehensive registration data
+  profile_data?: string;
 }
 
 const TalentRegistrationManagement = () => {
@@ -47,33 +48,38 @@ const TalentRegistrationManagement = () => {
 
   const fetchTalentApplications = async () => {
     try {
-      console.log('Fetching talent applications...');
+      console.log('🔍 Fetching talent applications...');
       setRefreshing(true);
-      setConnectionStatus('');
+      setConnectionStatus('Connecting to database...');
       
-      // Direct database query
+      // Fetch all profiles
       const { data: profiles, error } = await supabase
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Database query error:', error);
+        console.error('❌ Database query error:', error);
         throw error;
       }
 
+      console.log('📊 Raw profiles data:', profiles);
+      
       const allUsers = profiles || [];
+      
+      // Filter talent users (companions)
       const talentUsers = allUsers.filter((user: any) => user.user_type === 'companion');
       
-      console.log(`Total users fetched: ${allUsers.length}`);
-      console.log(`Talent users found: ${talentUsers.length}`);
+      console.log(`✅ Total users fetched: ${allUsers.length}`);
+      console.log(`✅ Talent users found: ${talentUsers.length}`);
+      console.log('📋 Sample talent users:', talentUsers.slice(0, 3));
       
       setAllUsers(allUsers);
       setApplications(talentUsers);
       setConnectionStatus(`Successfully loaded ${allUsers.length} total users, ${talentUsers.length} talents`);
 
-    } catch (error) {
-      console.error('Error fetching talent applications:', error);
+    } catch (error: any) {
+      console.error('❌ Error fetching talent applications:', error);
       setConnectionStatus(`Error: ${error.message}`);
       toast({
         title: "Error",
@@ -93,10 +99,11 @@ const TalentRegistrationManagement = () => {
         { 
           event: '*', 
           schema: 'public', 
-          table: 'profiles'
+          table: 'profiles',
+          filter: 'user_type=eq.companion'
         },
         (payload) => {
-          console.log('Real-time update received for profiles:', payload);
+          console.log('🔄 Real-time update received for talent profiles:', payload);
           fetchTalentApplications();
         }
       )
@@ -112,6 +119,8 @@ const TalentRegistrationManagement = () => {
       const verificationStatus = approved ? 'verified' : 'rejected';
       const profileStatus = approved ? 'active' : 'suspended';
       
+      console.log(`${approved ? '✅' : '❌'} Processing approval for talent:`, applicationId);
+      
       const { error } = await supabase
         .from('profiles')
         .update({ 
@@ -121,11 +130,15 @@ const TalentRegistrationManagement = () => {
         })
         .eq('id', applicationId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error updating talent status:', error);
+        throw error;
+      }
 
       // Send notification
       await sendApprovalNotification(applicationId, approved);
 
+      // Update local state
       setApplications(prev => 
         prev.map(app => 
           app.id === applicationId 
@@ -135,15 +148,19 @@ const TalentRegistrationManagement = () => {
       );
       
       toast({
-        title: approved ? "Talent Disetujui" : "Talent Ditolak",
+        title: approved ? "✅ Talent Disetujui" : "❌ Talent Ditolak",
         description: `Pendaftaran talent telah ${approved ? 'disetujui' : 'ditolak'} dan notifikasi telah dikirim.`,
         className: approved ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"
       });
-    } catch (error) {
-      console.error('Error updating talent status:', error);
+
+      // Refresh data to get latest
+      setTimeout(() => fetchTalentApplications(), 1000);
+      
+    } catch (error: any) {
+      console.error('❌ Error updating talent status:', error);
       toast({
         title: "Error",
-        description: "Gagal mengupdate status talent",
+        description: "Gagal mengupdate status talent: " + error.message,
         variant: "destructive"
       });
     }
@@ -151,32 +168,42 @@ const TalentRegistrationManagement = () => {
 
   const sendApprovalNotification = async (applicationId: string, approved: boolean) => {
     try {
-      await supabase.functions.invoke('send-approval-notification', {
+      console.log('📧 Sending approval notification...');
+      const { error } = await supabase.functions.invoke('send-approval-notification', {
         body: { userId: applicationId, approved }
       });
+      
+      if (error) {
+        console.error('❌ Error sending notification:', error);
+        throw error;
+      }
+      
+      console.log('✅ Notification sent successfully');
     } catch (error) {
-      console.error('Error sending notification:', error);
+      console.error('❌ Error sending notification:', error);
+      // Don't throw error here as the main approval still succeeded
     }
   };
 
   const getStatusBadge = (status: string, verificationStatus: string) => {
     if (verificationStatus === 'pending') {
-      return <Badge className="bg-yellow-100 text-yellow-600">Menunggu Review</Badge>;
+      return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300">⏳ Menunggu Review</Badge>;
     }
     if (verificationStatus === 'verified') {
-      return <Badge className="bg-green-100 text-green-600">Disetujui</Badge>;
+      return <Badge className="bg-green-100 text-green-800 border-green-300">✅ Disetujui</Badge>;
     }
     if (verificationStatus === 'rejected') {
-      return <Badge className="bg-red-100 text-red-600">Ditolak</Badge>;
+      return <Badge className="bg-red-100 text-red-800 border-red-300">❌ Ditolak</Badge>;
     }
-    return <Badge className="bg-gray-100 text-gray-600">Unknown</Badge>;
+    return <Badge className="bg-gray-100 text-gray-600">❓ Unknown</Badge>;
   };
 
   const parseProfileData = (profileData: string | null) => {
     if (!profileData) return null;
     try {
       return JSON.parse(profileData);
-    } catch {
+    } catch (error) {
+      console.warn('⚠️ Failed to parse profile data:', error);
       return null;
     }
   };
@@ -195,7 +222,8 @@ const TalentRegistrationManagement = () => {
   }
 
   const pendingApplications = applications.filter(app => app.verification_status === 'pending');
-  const allApplications = applications;
+  const approvedApplications = applications.filter(app => app.verification_status === 'verified');
+  const rejectedApplications = applications.filter(app => app.verification_status === 'rejected');
 
   return (
     <div className="space-y-6">
@@ -207,7 +235,7 @@ const TalentRegistrationManagement = () => {
             <User className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{allApplications.length}</div>
+            <div className="text-2xl font-bold text-blue-600">{applications.length}</div>
             <p className="text-xs text-muted-foreground">Semua pendaftaran talent</p>
           </CardContent>
         </Card>
@@ -229,21 +257,19 @@ const TalentRegistrationManagement = () => {
             <CheckCircle className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {applications.filter(app => app.verification_status === 'verified').length}
-            </div>
+            <div className="text-2xl font-bold text-green-600">{approvedApplications.length}</div>
             <p className="text-xs text-muted-foreground">Talent yang disetujui</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Semua User</CardTitle>
-            <AlertCircle className="h-4 w-4 text-purple-600" />
+            <CardTitle className="text-sm font-medium">Ditolak</CardTitle>
+            <XCircle className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-600">{allUsers.length}</div>
-            <p className="text-xs text-muted-foreground">Semua user di sistem</p>
+            <div className="text-2xl font-bold text-red-600">{rejectedApplications.length}</div>
+            <p className="text-xs text-muted-foreground">Talent yang ditolak</p>
           </CardContent>
         </Card>
       </div>
@@ -258,8 +284,8 @@ const TalentRegistrationManagement = () => {
         </CardHeader>
         <CardContent>
           <div className="text-sm text-blue-700 space-y-2">
-            <p><strong>Connection Method:</strong> Direct Database Query</p>
             <p><strong>Status:</strong> {connectionStatus}</p>
+            <p><strong>Last Updated:</strong> {new Date().toLocaleString('id-ID')}</p>
             
             <div className="flex gap-2 mt-3">
               <Button 
@@ -282,17 +308,28 @@ const TalentRegistrationManagement = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5" />
-            Pendaftaran Talent ({allApplications.length})
+            Pendaftaran Talent ({applications.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {allApplications.length === 0 ? (
+          {applications.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
+              <AlertCircle className="w-12 h-12 mx-auto mb-4 text-gray-400" />
               <p className="text-lg font-medium">Belum ada pendaftaran talent yang ditemukan.</p>
               <div className="mt-4 text-sm space-y-2">
                 <p>Sistem telah terhubung dengan database.</p>
                 <p>Total users di sistem: {allUsers.length}</p>
+                <p>User type 'companion' yang ditemukan: {applications.length}</p>
               </div>
+              <Button 
+                onClick={fetchTalentApplications} 
+                className="mt-4" 
+                variant="outline"
+                disabled={refreshing}
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                Cek Lagi
+              </Button>
             </div>
           ) : (
             <Table>
@@ -308,7 +345,7 @@ const TalentRegistrationManagement = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {allApplications.map((application) => {
+                {applications.map((application) => {
                   const profileData = parseProfileData(application.profile_data);
                   
                   return (
@@ -317,17 +354,20 @@ const TalentRegistrationManagement = () => {
                         <div className="flex items-center gap-2">
                           <User className="w-4 h-4" />
                           <div>
-                            <div className="font-medium">{application.name || application.full_name}</div>
+                            <div className="font-medium">{application.name || application.full_name || 'No Name'}</div>
                             <div className="text-sm text-gray-500">ID: {application.id.slice(0, 8)}...</div>
-                            {profileData?.hasIdCard && (
-                              <Badge variant="outline" className="text-xs mt-1">KTP ✓</Badge>
-                            )}
-                            {profileData?.hasProfilePhoto && (
-                              <Badge variant="outline" className="text-xs mt-1 ml-1">Foto ✓</Badge>
-                            )}
+                            <div className="flex gap-1 mt-1">
+                              {profileData?.hasIdCard && (
+                                <Badge variant="outline" className="text-xs">📄 KTP</Badge>
+                              )}
+                              {profileData?.hasProfilePhoto && (
+                                <Badge variant="outline" className="text-xs">📸 Foto</Badge>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </TableCell>
+                      
                       <TableCell>
                         <div className="space-y-1">
                           <div className="flex items-center gap-1 text-sm">
@@ -340,13 +380,9 @@ const TalentRegistrationManagement = () => {
                               {application.phone}
                             </div>
                           )}
-                          {profileData?.emergencyContact && (
-                            <div className="text-xs text-gray-500">
-                              Darurat: {profileData.emergencyContact}
-                            </div>
-                          )}
                         </div>
                       </TableCell>
+                      
                       <TableCell>
                         <div className="space-y-1">
                           {application.location && (
@@ -360,13 +396,9 @@ const TalentRegistrationManagement = () => {
                               Usia: {application.age} tahun
                             </div>
                           )}
-                          {profileData?.experienceYears !== undefined && (
-                            <div className="text-sm">
-                              Pengalaman: {profileData.experienceYears} tahun
-                            </div>
-                          )}
                         </div>
                       </TableCell>
+                      
                       <TableCell>
                         <div className="space-y-1">
                           {application.hourly_rate && (
@@ -380,22 +412,20 @@ const TalentRegistrationManagement = () => {
                               {profileData.services.length > 2 && ` +${profileData.services.length - 2} lainnya`}
                             </div>
                           )}
-                          {profileData?.transportationMode && (
-                            <div className="text-xs text-gray-500">
-                              Transport: {profileData.transportationMode}
-                            </div>
-                          )}
                         </div>
                       </TableCell>
+                      
                       <TableCell>
                         {getStatusBadge(application.status, application.verification_status)}
                       </TableCell>
+                      
                       <TableCell>
                         <div className="flex items-center gap-1 text-sm">
                           <Calendar className="w-3 h-3" />
                           {new Date(application.created_at).toLocaleDateString('id-ID')}
                         </div>
                       </TableCell>
+                      
                       <TableCell>
                         <div className="flex gap-1">
                           <Dialog>
@@ -403,9 +433,13 @@ const TalentRegistrationManagement = () => {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => setSelectedApplication(application)}
+                                className="flex items-center gap-1"
+                                onClick={() => {
+                                  console.log('🔍 Opening detail modal for:', application.id);
+                                  setSelectedApplication(application);
+                                }}
                               >
-                                <Eye className="w-3 h-3 mr-1" />
+                                <Eye className="w-3 h-3" />
                                 Detail
                               </Button>
                             </DialogTrigger>
@@ -414,142 +448,10 @@ const TalentRegistrationManagement = () => {
                                 <DialogTitle>Detail Pendaftaran Talent Lengkap</DialogTitle>
                               </DialogHeader>
                               {selectedApplication && (
-                                <div className="space-y-6">
-                                  {/* Personal Information */}
-                                  <div className="bg-gray-50 p-4 rounded-lg">
-                                    <h3 className="font-semibold mb-3">Informasi Personal</h3>
-                                    <div className="grid grid-cols-2 gap-4">
-                                      <div>
-                                        <label className="text-sm font-medium">Nama Lengkap</label>
-                                        <p className="text-sm">{selectedApplication.name || selectedApplication.full_name}</p>
-                                      </div>
-                                      <div>
-                                        <label className="text-sm font-medium">Email</label>
-                                        <p className="text-sm">{selectedApplication.email}</p>
-                                      </div>
-                                      <div>
-                                        <label className="text-sm font-medium">Nomor WhatsApp</label>
-                                        <p className="text-sm">{selectedApplication.phone}</p>
-                                      </div>
-                                      <div>
-                                        <label className="text-sm font-medium">Usia</label>
-                                        <p className="text-sm">{selectedApplication.age} tahun</p>
-                                      </div>
-                                      <div>
-                                        <label className="text-sm font-medium">Lokasi</label>
-                                        <p className="text-sm">{selectedApplication.location}</p>
-                                      </div>
-                                      {parseProfileData(selectedApplication.profile_data)?.emergencyContact && (
-                                        <>
-                                          <div>
-                                            <label className="text-sm font-medium">Kontak Darurat</label>
-                                            <p className="text-sm">{parseProfileData(selectedApplication.profile_data).emergencyContact}</p>
-                                          </div>
-                                          <div>
-                                            <label className="text-sm font-medium">Nomor Darurat</label>
-                                            <p className="text-sm">{parseProfileData(selectedApplication.profile_data).emergencyPhone}</p>
-                                          </div>
-                                        </>
-                                      )}
-                                    </div>
-                                    
-                                    {selectedApplication.bio && (
-                                      <div className="mt-4">
-                                        <label className="text-sm font-medium block mb-1">Bio</label>
-                                        <p className="text-sm bg-white p-3 rounded border">{selectedApplication.bio}</p>
-                                      </div>
-                                    )}
-                                  </div>
-
-                                  {/* Service Information */}
-                                  {parseProfileData(selectedApplication.profile_data) && (
-                                    <div className="bg-blue-50 p-4 rounded-lg">
-                                      <h3 className="font-semibold mb-3">Informasi Layanan</h3>
-                                      <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                          <label className="text-sm font-medium">Tarif per Jam</label>
-                                          <p className="text-sm font-medium">Rp {selectedApplication.hourly_rate?.toLocaleString()}</p>
-                                        </div>
-                                        <div>
-                                          <label className="text-sm font-medium">Pengalaman</label>
-                                          <p className="text-sm">{parseProfileData(selectedApplication.profile_data)?.experienceYears || 0} tahun</p>
-                                        </div>
-                                        <div>
-                                          <label className="text-sm font-medium">Transportasi</label>
-                                          <p className="text-sm">{parseProfileData(selectedApplication.profile_data)?.transportationMode}</p>
-                                        </div>
-                                      </div>
-                                      
-                                      {parseProfileData(selectedApplication.profile_data)?.services && (
-                                        <div className="mt-4">
-                                          <label className="text-sm font-medium block mb-2">Services yang Ditawarkan</label>
-                                          <div className="flex flex-wrap gap-1">
-                                            {parseProfileData(selectedApplication.profile_data).services.map((service: string, index: number) => (
-                                              <Badge key={index} variant="secondary">{service}</Badge>
-                                            ))}
-                                          </div>
-                                        </div>
-                                      )}
-                                      
-                                      {parseProfileData(selectedApplication.profile_data)?.languages && (
-                                        <div className="mt-4">
-                                          <label className="text-sm font-medium block mb-2">Bahasa</label>
-                                          <div className="flex flex-wrap gap-1">
-                                            {parseProfileData(selectedApplication.profile_data).languages.map((language: string, index: number) => (
-                                              <Badge key={index} variant="outline">{language}</Badge>
-                                            ))}
-                                          </div>
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-
-                                  {/* Document Status */}
-                                  {parseProfileData(selectedApplication.profile_data) && (
-                                    <div className="bg-yellow-50 p-4 rounded-lg">
-                                      <h3 className="font-semibold mb-3">Status Dokumen</h3>
-                                      <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                          <label className="text-sm font-medium">Foto KTP</label>
-                                          <p className="text-sm">
-                                            {parseProfileData(selectedApplication.profile_data)?.hasIdCard ? 
-                                              <Badge className="bg-green-100 text-green-600">Sudah Upload</Badge> : 
-                                              <Badge className="bg-red-100 text-red-600">Belum Upload</Badge>
-                                            }
-                                          </p>
-                                        </div>
-                                        <div>
-                                          <label className="text-sm font-medium">Foto Profil</label>
-                                          <p className="text-sm">
-                                            {parseProfileData(selectedApplication.profile_data)?.hasProfilePhoto ? 
-                                              <Badge className="bg-green-100 text-green-600">Sudah Upload</Badge> : 
-                                              <Badge className="bg-red-100 text-red-600">Belum Upload</Badge>
-                                            }
-                                          </p>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {selectedApplication.verification_status === 'pending' && (
-                                    <div className="flex gap-2 pt-4 border-t">
-                                      <Button
-                                        className="bg-green-500 hover:bg-green-600"
-                                        onClick={() => handleApproval(selectedApplication.id, true)}
-                                      >
-                                        <CheckCircle className="w-4 h-4 mr-1" />
-                                        Setujui Talent
-                                      </Button>
-                                      <Button
-                                        variant="destructive"
-                                        onClick={() => handleApproval(selectedApplication.id, false)}
-                                      >
-                                        <XCircle className="w-4 h-4 mr-1" />
-                                        Tolak Talent
-                                      </Button>
-                                    </div>
-                                  )}
-                                </div>
+                                <TalentDetailView 
+                                  application={selectedApplication}
+                                  onApproval={handleApproval}
+                                />
                               )}
                             </DialogContent>
                           </Dialog>
@@ -558,7 +460,7 @@ const TalentRegistrationManagement = () => {
                             <>
                               <Button
                                 size="sm"
-                                className="bg-green-500 hover:bg-green-600"
+                                className="bg-green-500 hover:bg-green-600 text-white"
                                 onClick={() => handleApproval(application.id, true)}
                               >
                                 <CheckCircle className="w-3 h-3 mr-1" />
@@ -584,6 +486,148 @@ const TalentRegistrationManagement = () => {
           )}
         </CardContent>
       </Card>
+    </div>
+  );
+};
+
+// Separate component for talent detail view
+const TalentDetailView = ({ 
+  application, 
+  onApproval 
+}: { 
+  application: TalentApplication; 
+  onApproval: (id: string, approved: boolean) => void;
+}) => {
+  const profileData = application.profile_data ? JSON.parse(application.profile_data) : null;
+
+  return (
+    <div className="space-y-6">
+      {/* Personal Information */}
+      <div className="bg-gray-50 p-4 rounded-lg">
+        <h3 className="font-semibold mb-3 text-gray-900">📋 Informasi Personal</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="text-sm font-medium text-gray-700">Nama Lengkap</label>
+            <p className="text-sm mt-1">{application.name || application.full_name || 'Tidak ada'}</p>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700">Email</label>
+            <p className="text-sm mt-1">{application.email}</p>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700">Nomor WhatsApp</label>
+            <p className="text-sm mt-1">{application.phone || 'Tidak ada'}</p>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700">Usia</label>
+            <p className="text-sm mt-1">{application.age ? `${application.age} tahun` : 'Tidak ada'}</p>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700">Lokasi</label>
+            <p className="text-sm mt-1">{application.location || 'Tidak ada'}</p>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700">Tanggal Daftar</label>
+            <p className="text-sm mt-1">{new Date(application.created_at).toLocaleString('id-ID')}</p>
+          </div>
+        </div>
+        
+        {application.bio && (
+          <div className="mt-4">
+            <label className="text-sm font-medium text-gray-700 block mb-1">Bio</label>
+            <p className="text-sm bg-white p-3 rounded border">{application.bio}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Service Information */}
+      <div className="bg-blue-50 p-4 rounded-lg">
+        <h3 className="font-semibold mb-3 text-blue-900">💼 Informasi Layanan</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="text-sm font-medium text-blue-700">Tarif per Jam</label>
+            <p className="text-sm mt-1 font-medium">
+              {application.hourly_rate ? `Rp ${application.hourly_rate.toLocaleString()}` : 'Belum diisi'}
+            </p>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-blue-700">Pengalaman</label>
+            <p className="text-sm mt-1">
+              {profileData?.experienceYears ? `${profileData.experienceYears} tahun` : 'Belum diisi'}
+            </p>
+          </div>
+        </div>
+        
+        {profileData?.services && profileData.services.length > 0 && (
+          <div className="mt-4">
+            <label className="text-sm font-medium text-blue-700 block mb-2">Services yang Ditawarkan</label>
+            <div className="flex flex-wrap gap-1">
+              {profileData.services.map((service: string, index: number) => (
+                <Badge key={index} variant="secondary" className="bg-blue-100 text-blue-800">
+                  {service}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Document Status */}
+      <div className="bg-yellow-50 p-4 rounded-lg">
+        <h3 className="font-semibold mb-3 text-yellow-900">📄 Status Dokumen</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="text-sm font-medium text-yellow-700">Foto KTP</label>
+            <p className="text-sm mt-1">
+              {profileData?.hasIdCard ? 
+                <Badge className="bg-green-100 text-green-700">✅ Sudah Upload</Badge> : 
+                <Badge className="bg-red-100 text-red-700">❌ Belum Upload</Badge>
+              }
+            </p>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-yellow-700">Foto Profil</label>
+            <p className="text-sm mt-1">
+              {profileData?.hasProfilePhoto ? 
+                <Badge className="bg-green-100 text-green-700">✅ Sudah Upload</Badge> : 
+                <Badge className="bg-red-100 text-red-700">❌ Belum Upload</Badge>
+              }
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      {application.verification_status === 'pending' && (
+        <div className="flex gap-2 pt-4 border-t">
+          <Button
+            className="bg-green-500 hover:bg-green-600 text-white"
+            onClick={() => onApproval(application.id, true)}
+          >
+            <CheckCircle className="w-4 h-4 mr-2" />
+            ✅ Setujui Talent
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={() => onApproval(application.id, false)}
+          >
+            <XCircle className="w-4 h-4 mr-2" />
+            ❌ Tolak Talent
+          </Button>
+        </div>
+      )}
+
+      {application.verification_status === 'verified' && (
+        <div className="bg-green-50 p-3 rounded border border-green-200">
+          <p className="text-green-800 font-medium">✅ Talent ini sudah disetujui</p>
+        </div>
+      )}
+
+      {application.verification_status === 'rejected' && (
+        <div className="bg-red-50 p-3 rounded border border-red-200">
+          <p className="text-red-800 font-medium">❌ Talent ini sudah ditolak</p>
+        </div>
+      )}
     </div>
   );
 };

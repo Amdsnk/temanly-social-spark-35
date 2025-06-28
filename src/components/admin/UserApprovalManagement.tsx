@@ -39,10 +39,15 @@ const UserApprovalManagement = () => {
         throw new Error(error);
       }
 
-      const pendingUsers = users.filter(user => user.verification_status === 'pending');
+      // Filter for pending approvals - focus on regular users, not talents
+      const pendingUsers = users.filter(user => 
+        user.verification_status === 'pending' && 
+        user.user_type !== 'companion' // Exclude talents as they have their own management
+      );
+      
       const authOnlyUsers = users.filter(user => user.auth_only);
       
-      console.log('✅ PENDING USERS found:', pendingUsers.length);
+      console.log('✅ PENDING REGULAR USERS found:', pendingUsers.length);
       console.log('✅ AUTH-ONLY USERS found:', authOnlyUsers.length);
 
       setAllUsers(users);
@@ -59,6 +64,7 @@ const UserApprovalManagement = () => {
       const debugData = {
         totalUsers: users.length,
         pendingUsers: pendingUsers.length,
+        pendingTalents: users.filter(u => u.verification_status === 'pending' && u.user_type === 'companion').length,
         authOnlyUsers: authOnlyUsers.length,
         statusBreakdown,
         sampleUsers: users.slice(0, 3).map(u => ({
@@ -72,7 +78,7 @@ const UserApprovalManagement = () => {
 
       setDebugInfo(debugData);
       setConnectionStatus(
-        `Loaded ${users.length} total users, ${pendingUsers.length} pending approval, ${authOnlyUsers.length} auth-only`
+        `Loaded ${users.length} total users, ${pendingUsers.length} pending regular users, ${debugData.pendingTalents} pending talents, ${authOnlyUsers.length} auth-only`
       );
 
     } catch (error: any) {
@@ -213,7 +219,7 @@ const UserApprovalManagement = () => {
         <CardHeader>
           <CardTitle className="text-sm font-medium text-blue-800 flex items-center gap-2">
             <Database className="w-4 h-4" />
-            Enhanced Database Debug Information - User Approvals
+            Enhanced Database Debug Information - Regular User Approvals
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -221,7 +227,8 @@ const UserApprovalManagement = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p><strong>Total Users in System:</strong> {debugInfo.totalUsers}</p>
-                <p><strong>Pending Approvals:</strong> {debugInfo.pendingUsers}</p>
+                <p><strong>Pending Regular Users:</strong> {debugInfo.pendingUsers}</p>
+                <p><strong>Pending Talents:</strong> {debugInfo.pendingTalents} (managed in Talent Registration tab)</p>
                 <p><strong>Auth-Only Users:</strong> {debugInfo.authOnlyUsers}</p>
                 <p><strong>Connection Status:</strong> {connectionStatus}</p>
               </div>
@@ -282,20 +289,25 @@ const UserApprovalManagement = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="w-5 h-5" />
-            Pending User Approvals ({pendingUsers.length})
+            Pending Regular User Approvals ({pendingUsers.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
           {pendingUsers.length === 0 ? (
             <div className="text-center py-8 text-gray-500 space-y-4">
               <div>
-                <p className="text-lg">No pending approvals found.</p>
+                <p className="text-lg">No pending regular user approvals found.</p>
                 <p className="text-sm mt-2 text-gray-600">
-                  {allUsers.length > 0 
-                    ? `Found ${allUsers.length} total users in system, but none have 'pending' status.`
-                    : 'No users found in system.'
-                  }
+                  Regular users (type: 'user') with 'pending' status will appear here.
                 </p>
+                <p className="text-sm text-blue-600">
+                  💡 Talent approvals are managed in the "Talent Registration" tab.
+                </p>
+                {debugInfo.pendingTalents > 0 && (
+                  <p className="text-sm text-orange-600">
+                    Found {debugInfo.pendingTalents} pending talents - check Talent Registration tab.
+                  </p>
+                )}
                 {authOnlyUsers.length > 0 && (
                   <p className="text-sm text-orange-600">
                     {authOnlyUsers.length} users exist in Auth but don't have profiles yet.
