@@ -43,7 +43,7 @@ serve(async (req) => {
       )
     }
 
-    // Create admin client
+    // Create admin client with service role key
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
       auth: {
         autoRefreshToken: false,
@@ -51,47 +51,17 @@ serve(async (req) => {
       }
     })
 
-    // Parse request body
-    let body = {}
-    if (req.method === 'POST') {
-      try {
-        const text = await req.text()
-        if (text) {
-          body = JSON.parse(text)
-        }
-      } catch (e) {
-        console.log('No valid JSON body, using defaults')
-      }
-    }
-    
-    const { userType, verificationStatus } = body as any
+    console.log('Attempting to fetch Auth users...')
 
-    console.log('Fetching users with filters:', { userType, verificationStatus })
+    // Get all users from Supabase Auth
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.listUsers()
 
-    // Build query
-    let query = supabaseAdmin
-      .from('profiles')
-      .select('*')
-      .order('created_at', { ascending: false })
-
-    // Apply filters
-    if (userType && userType !== 'all') {
-      query = query.eq('user_type', userType)
-    }
-
-    if (verificationStatus && verificationStatus !== 'all') {
-      query = query.eq('verification_status', verificationStatus)
-    }
-
-    console.log('Executing query...')
-    const { data, error } = await query
-
-    if (error) {
-      console.error('Database query error:', error)
+    if (authError) {
+      console.error('Auth list users error:', authError)
       return new Response(
         JSON.stringify({ 
           success: false,
-          error: `Database error: ${error.message}`,
+          error: `Auth error: ${authError.message}`,
           users: [],
           count: 0
         }),
@@ -102,15 +72,26 @@ serve(async (req) => {
       )
     }
 
-    console.log(`Successfully fetched ${data?.length || 0} users`)
-    console.log('Sample data:', data?.slice(0, 2))
+    const users = authData?.users || []
+    console.log(`Successfully fetched ${users.length} Auth users`)
+    
+    // Log first few users for debugging
+    if (users.length > 0) {
+      console.log('Sample Auth users:', users.slice(0, 2).map(u => ({
+        id: u.id,
+        email: u.email,
+        created_at: u.created_at,
+        user_metadata: u.user_metadata,
+        email_confirmed_at: u.email_confirmed_at
+      })))
+    }
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        users: data || [],
-        count: data?.length || 0,
-        message: `Successfully fetched ${data?.length || 0} users`
+        users: users,
+        count: users.length,
+        message: `Successfully fetched ${users.length} Auth users`
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 

@@ -4,29 +4,21 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CheckCircle, XCircle, Clock, Mail, Phone, User, RefreshCw, Database, AlertCircle } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Mail, Phone, User, RefreshCw, Database, AlertCircle, Sync } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Database as DatabaseType } from '@/integrations/supabase/types';
+import { adminUserService, AdminUser } from '@/services/adminUserService';
 
 type UserType = DatabaseType['public']['Enums']['user_type'];
 type VerificationStatus = DatabaseType['public']['Enums']['verification_status'];
 
-interface PendingUser {
-  id: string;
-  name: string | null;
-  email: string;
-  phone: string | null;
-  user_type: UserType;
-  verification_status: VerificationStatus;
-  created_at: string;
-}
-
 const UserApprovalManagement = () => {
-  const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
-  const [allUsers, setAllUsers] = useState<PendingUser[]>([]);
+  const [pendingUsers, setPendingUsers] = useState<AdminUser[]>([]);
+  const [allUsers, setAllUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<string>('');
   const [debugInfo, setDebugInfo] = useState<any>({});
   const { toast } = useToast();
@@ -38,44 +30,27 @@ const UserApprovalManagement = () => {
 
   const fetchAllData = async () => {
     try {
-      console.log('🔍 Starting comprehensive data fetch...');
+      console.log('🔍 UserApprovalManagement: Starting comprehensive data fetch...');
       setRefreshing(true);
-      setConnectionStatus('Connecting to database...');
+      setConnectionStatus('Connecting to database and Auth...');
       
-      // First, get ALL users to debug
-      const { data: allProfiles, error: allError, count: totalCount } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact' })
-        .order('created_at', { ascending: false });
-
-      console.log('✅ ALL USERS from database:', {
-        profiles: allProfiles,
-        count: totalCount,
-        error: allError
-      });
-
-      if (allError) {
-        console.error('❌ Error fetching all users:', allError);
-        throw allError;
+      const { users, error } = await adminUserService.getAllUsers();
+      
+      if (error) {
+        throw new Error(error);
       }
 
-      setAllUsers(allProfiles || []);
+      const pendingUsers = users.filter(user => user.verification_status === 'pending');
+      const authOnlyUsers = users.filter(user => user.auth_only);
+      
+      console.log('✅ PENDING USERS found:', pendingUsers.length);
+      console.log('✅ AUTH-ONLY USERS found:', authOnlyUsers.length);
 
-      // Now get pending users specifically
-      const { data: pendingProfiles, error: pendingError, count: pendingCount } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact' })
-        .eq('verification_status', 'pending')
-        .order('created_at', { ascending: false });
-
-      console.log('✅ PENDING USERS query result:', {
-        profiles: pendingProfiles,
-        count: pendingCount,
-        error: pendingError
-      });
+      setAllUsers(users);
+      setPendingUsers(pendingUsers);
 
       // Debug: Check what verification statuses exist
-      const statusBreakdown = (allProfiles || []).reduce((acc: any, user) => {
+      const statusBreakdown = users.reduce((acc: any, user) => {
         acc[user.verification_status] = (acc[user.verification_status] || 0) + 1;
         return acc;
       }, {});
@@ -83,21 +58,23 @@ const UserApprovalManagement = () => {
       console.log('📊 Verification status breakdown:', statusBreakdown);
 
       const debugData = {
-        totalUsers: allProfiles?.length || 0,
-        pendingUsers: pendingProfiles?.length || 0,
+        totalUsers: users.length,
+        pendingUsers: pendingUsers.length,
+        authOnlyUsers: authOnlyUsers.length,
         statusBreakdown,
-        sampleUsers: allProfiles?.slice(0, 3).map(u => ({
+        sampleUsers: users.slice(0, 3).map(u => ({
           id: u.id.slice(0, 8),
           email: u.email,
           status: u.verification_status,
-          type: u.user_type
+          type: u.user_type,
+          authOnly: u.auth_only
         }))
       };
 
       setDebugInfo(debugData);
-      setPendingUsers(pendingProfiles || []);
-      
-      setConnectionStatus(`Loaded ${allProfiles?.length || 0} total users, ${pendingProfiles?.length || 0} pending approval`);
+      setConnectionStatus(
+        `Loaded ${users.length} total users, ${pendingUsers.length} pending approval, ${authOnlyUsers.length} auth-only`
+      );
 
     } catch (error: any) {
       console.error('❌ Error in fetchAllData:', error);
@@ -110,6 +87,44 @@ const UserApprovalManagement = () => {
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  };
+
+  const syncAuthUsersToProfiles = async () => {
+    try {
+      setSyncing(true);
+      console.log('🔄 Syncing Auth users to Profiles...');
+      
+      const authOnlyUsers = allUsers.filter(u => u.auth_only);
+      
+      if (authOnlyUsers.length === 0) {
+        toast({
+          title: "No sync needed",
+          description: "All Auth users already have profiles.",
+        });
+        return;
+      }
+
+      await adminUserService.createMissingProfiles(authOnlyUsers);
+      
+      toast({
+        title: "Sync Successful",
+        description: `Created profiles for ${authOnlyUsers.length} users.`,
+        className: "bg-green-50 border-green-200"
+      });
+
+      // Refresh data after sync
+      await fetchAllData();
+      
+    } catch (error: any) {
+      console.error('❌ Error syncing users:', error);
+      toast({
+        title: "Sync Failed",
+        description: "Failed to sync Auth users to profiles.",
+        variant: "destructive"
+      });
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -177,32 +192,6 @@ const UserApprovalManagement = () => {
     }
   };
 
-  // Function to manually set users to pending status for testing
-  const setUsersToPending = async () => {
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ verification_status: 'pending' })
-        .neq('user_type', 'admin');
-
-      if (error) throw error;
-
-      toast({
-        title: "Users Updated",
-        description: "Non-admin users set to pending status for testing"
-      });
-
-      fetchAllData();
-    } catch (error: any) {
-      console.error('Error updating users to pending:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update users",
-        variant: "destructive"
-      });
-    }
-  };
-
   if (loading) {
     return (
       <Card>
@@ -216,6 +205,8 @@ const UserApprovalManagement = () => {
     );
   }
 
+  const authOnlyUsers = allUsers.filter(u => u.auth_only);
+
   return (
     <div className="space-y-6">
       {/* Enhanced Debug Information */}
@@ -223,15 +214,16 @@ const UserApprovalManagement = () => {
         <CardHeader>
           <CardTitle className="text-sm font-medium text-blue-800 flex items-center gap-2">
             <Database className="w-4 h-4" />
-            Database Debug Information - User Approvals
+            Enhanced Database Debug Information - User Approvals
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-sm text-blue-700 space-y-3">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p><strong>Total Users in DB:</strong> {debugInfo.totalUsers}</p>
+                <p><strong>Total Users in System:</strong> {debugInfo.totalUsers}</p>
                 <p><strong>Pending Approvals:</strong> {debugInfo.pendingUsers}</p>
+                <p><strong>Auth-Only Users:</strong> {debugInfo.authOnlyUsers}</p>
                 <p><strong>Connection Status:</strong> {connectionStatus}</p>
               </div>
               <div>
@@ -253,6 +245,7 @@ const UserApprovalManagement = () => {
                     <span>Email: {user.email}</span>
                     <span>Status: <strong>{user.status}</strong></span>
                     <span>Type: {user.type}</span>
+                    {user.authOnly && <span className="text-orange-600">Auth-Only</span>}
                   </div>
                 ))}
               </div>
@@ -269,15 +262,18 @@ const UserApprovalManagement = () => {
                 <RefreshCw className={`h-3 w-3 ${refreshing ? 'animate-spin' : ''}`} />
                 Refresh Data
               </Button>
-              <Button 
-                size="sm" 
-                variant="outline" 
-                onClick={setUsersToPending}
-                className="flex items-center gap-1 bg-yellow-50 hover:bg-yellow-100"
-              >
-                <AlertCircle className="h-3 w-3" />
-                Set Non-Admin to Pending (Test)
-              </Button>
+              
+              {authOnlyUsers.length > 0 && (
+                <Button 
+                  size="sm" 
+                  onClick={syncAuthUsersToProfiles}
+                  disabled={syncing}
+                  className="flex items-center gap-1 bg-orange-500 hover:bg-orange-600"
+                >
+                  <Sync className={`h-3 w-3 ${syncing ? 'animate-spin' : ''}`} />
+                  Sync Auth to Profiles ({authOnlyUsers.length})
+                </Button>
+              )}
             </div>
           </div>
         </CardContent>
@@ -297,24 +293,31 @@ const UserApprovalManagement = () => {
                 <p className="text-lg">No pending approvals found.</p>
                 <p className="text-sm mt-2 text-gray-600">
                   {allUsers.length > 0 
-                    ? `Found ${allUsers.length} total users in database, but none have 'pending' status.`
-                    : 'No users found in database.'
+                    ? `Found ${allUsers.length} total users in system, but none have 'pending' status.`
+                    : 'No users found in system.'
                   }
                 </p>
+                {authOnlyUsers.length > 0 && (
+                  <p className="text-sm text-orange-600">
+                    {authOnlyUsers.length} users exist in Auth but don't have profiles yet.
+                  </p>
+                )}
               </div>
               
-              {allUsers.length > 0 && (
-                <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                  <p className="text-sm text-yellow-800 mb-3">
-                    <strong>Debug Help:</strong> If you want to test approvals, click the button below to set non-admin users to 'pending' status.
+              {authOnlyUsers.length > 0 && (
+                <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                  <p className="text-sm text-orange-800 mb-3">
+                    <strong>Action Required:</strong> Some users registered in Auth but don't have profiles. 
+                    Sync them to create profiles and enable approval workflow.
                   </p>
                   <Button 
-                    onClick={setUsersToPending} 
-                    className="bg-yellow-500 hover:bg-yellow-600"
+                    onClick={syncAuthUsersToProfiles} 
+                    disabled={syncing}
+                    className="bg-orange-500 hover:bg-orange-600"
                     size="sm"
                   >
-                    <AlertCircle className="w-4 h-4 mr-2" />
-                    Set Users to Pending for Testing
+                    <Sync className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+                    Sync {authOnlyUsers.length} Auth Users to Profiles
                   </Button>
                 </div>
               )}
@@ -344,6 +347,9 @@ const UserApprovalManagement = () => {
                         <div>
                           <div className="font-medium">{user.name || user.email}</div>
                           <div className="text-sm text-gray-500">ID: {user.id.slice(0, 8)}...</div>
+                          {user.auth_only && (
+                            <Badge className="bg-orange-100 text-orange-600 text-xs">Auth Only</Badge>
+                          )}
                         </div>
                       </div>
                     </TableCell>
@@ -373,22 +379,30 @@ const UserApprovalManagement = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          className="bg-green-500 hover:bg-green-600"
-                          onClick={() => handleApproval(user.id, true)}
-                        >
-                          <CheckCircle className="w-4 h-4 mr-1" />
-                          Approve
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => handleApproval(user.id, false)}
-                        >
-                          <XCircle className="w-4 h-4 mr-1" />
-                          Reject
-                        </Button>
+                        {user.has_profile ? (
+                          <>
+                            <Button
+                              size="sm"
+                              className="bg-green-500 hover:bg-green-600"
+                              onClick={() => handleApproval(user.id, true)}
+                            >
+                              <CheckCircle className="w-4 h-4 mr-1" />
+                              Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleApproval(user.id, false)}
+                            >
+                              <XCircle className="w-4 h-4 mr-1" />
+                              Reject
+                            </Button>
+                          </>
+                        ) : (
+                          <div className="text-sm text-orange-600">
+                            No profile - sync required
+                          </div>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

@@ -6,33 +6,20 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Users, Search, Eye, UserCheck, UserX, Mail, Phone, Calendar, RefreshCw, AlertTriangle, Database } from 'lucide-react';
+import { Users, Search, Eye, UserCheck, UserX, Mail, Phone, Calendar, RefreshCw, AlertTriangle, Database, Sync } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Database as DatabaseType } from '@/integrations/supabase/types';
+import { adminUserService, AdminUser } from '@/services/adminUserService';
 
 type UserType = DatabaseType['public']['Enums']['user_type'];
 type VerificationStatus = DatabaseType['public']['Enums']['verification_status'];
 
-interface User {
-  id: string;
-  name: string | null;
-  email: string;
-  phone: string | null;
-  user_type: UserType;
-  verification_status: VerificationStatus;
-  status: string;
-  created_at: string;
-  total_bookings?: number;
-  total_earnings?: number;
-  rating?: number;
-  location?: string | null;
-}
-
 const UserManagement = () => {
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [filterType, setFilterType] = useState<'all' | UserType>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | VerificationStatus>('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -44,7 +31,8 @@ const UserManagement = () => {
     totalTalents: 0,
     totalAdmins: 0,
     verifiedUsers: 0,
-    pendingApprovals: 0
+    pendingApprovals: 0,
+    authOnlyUsers: 0
   });
 
   useEffect(() => {
@@ -58,35 +46,25 @@ const UserManagement = () => {
 
   const fetchUsers = async () => {
     try {
-      console.log('🔍 Fetching users directly from database...');
+      console.log('🔍 Fetching users using AdminUserService...');
       setRefreshing(true);
-      setConnectionStatus('Connecting to database...');
+      setConnectionStatus('Connecting to database and Auth...');
       
-      // Direct database query using regular client
-      const { data: profiles, error, count } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact' })
-        .order('created_at', { ascending: false });
-
+      const { users: fetchedUsers, error } = await adminUserService.getAllUsers();
+      
       if (error) {
-        console.error('❌ Database query error:', error);
-        throw error;
+        throw new Error(error);
       }
 
-      console.log('✅ Raw database response:', { profiles, count, error });
-      console.log('✅ Successfully fetched users:', profiles?.length || 0);
+      setUsers(fetchedUsers);
       
-      // Ensure we have proper default values
-      const processedUsers = (profiles || []).map(user => ({
-        ...user,
-        name: user.name || user.email || 'No name',
-        total_bookings: user.total_bookings || 0,
-        total_earnings: user.total_earnings || 0,
-        rating: user.rating || 0
-      }));
+      const authOnlyCount = fetchedUsers.filter(u => u.auth_only).length;
+      const profileCount = fetchedUsers.filter(u => u.has_profile).length;
       
-      setUsers(processedUsers);
-      setConnectionStatus(`Successfully loaded ${processedUsers.length} users from database (Count: ${count})`);
+      setConnectionStatus(
+        `Successfully loaded ${fetchedUsers.length} total users ` +
+        `(${profileCount} with profiles, ${authOnlyCount} auth-only)`
+      );
       
     } catch (error: any) {
       console.error('❌ Error fetching users:', error);
@@ -99,6 +77,44 @@ const UserManagement = () => {
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  };
+
+  const syncAuthUsersToProfiles = async () => {
+    try {
+      setSyncing(true);
+      console.log('🔄 Syncing Auth users to Profiles...');
+      
+      const authOnlyUsers = users.filter(u => u.auth_only);
+      
+      if (authOnlyUsers.length === 0) {
+        toast({
+          title: "No sync needed",
+          description: "All Auth users already have profiles.",
+        });
+        return;
+      }
+
+      await adminUserService.createMissingProfiles(authOnlyUsers);
+      
+      toast({
+        title: "Sync Successful",
+        description: `Created profiles for ${authOnlyUsers.length} users.`,
+        className: "bg-green-50 border-green-200"
+      });
+
+      // Refresh data after sync
+      await fetchUsers();
+      
+    } catch (error: any) {
+      console.error('❌ Error syncing users:', error);
+      toast({
+        title: "Sync Failed",
+        description: "Failed to sync Auth users to profiles.",
+        variant: "destructive"
+      });
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -129,13 +145,15 @@ const UserManagement = () => {
     const totalAdmins = users.filter(u => u.user_type === 'admin').length;
     const verifiedUsers = users.filter(u => u.verification_status === 'verified').length;
     const pendingApprovals = users.filter(u => u.verification_status === 'pending').length;
+    const authOnlyUsers = users.filter(u => u.auth_only).length;
 
     setStats({
       totalUsers,
       totalTalents,
       totalAdmins,
       verifiedUsers,
-      pendingApprovals
+      pendingApprovals,
+      authOnlyUsers
     });
   };
 
@@ -196,7 +214,11 @@ const UserManagement = () => {
     }
   };
 
-  const getStatusBadge = (status: VerificationStatus) => {
+  const getStatusBadge = (status: VerificationStatus, authOnly: boolean) => {
+    if (authOnly) {
+      return <Badge className="bg-orange-100 text-orange-600">Auth Only</Badge>;
+    }
+    
     switch (status) {
       case 'verified':
         return <Badge className="bg-green-100 text-green-600">Verified</Badge>;
@@ -225,7 +247,7 @@ const UserManagement = () => {
   return (
     <div className="space-y-6">
       {/* User Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Users</CardTitle>
@@ -280,6 +302,17 @@ const UserManagement = () => {
             <p className="text-xs text-muted-foreground">Need review</p>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Auth Only</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-orange-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">{stats.authOnlyUsers}</div>
+            <p className="text-xs text-muted-foreground">Missing profiles</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Database Connection Status */}
@@ -287,15 +320,15 @@ const UserManagement = () => {
         <CardHeader>
           <CardTitle className="text-sm font-medium text-blue-800 flex items-center gap-2">
             <Database className="w-4 h-4" />
-            Database Connection Status
+            Enhanced Database Connection Status
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-sm text-blue-700 space-y-2">
-            <p><strong>Connection Method:</strong> Direct Database Query</p>
+            <p><strong>Connection Method:</strong> Auth + Database Query</p>
             <p><strong>Status:</strong> {connectionStatus}</p>
             <p><strong>Total users loaded:</strong> {users.length}</p>
-            <p><strong>Debug Info:</strong> Raw data count from DB</p>
+            <p><strong>Auth-only users:</strong> {stats.authOnlyUsers}</p>
             
             <div className="flex gap-2 mt-3">
               <Button 
@@ -308,6 +341,18 @@ const UserManagement = () => {
                 <RefreshCw className={`h-3 w-3 ${refreshing ? 'animate-spin' : ''}`} />
                 Refresh Data
               </Button>
+              
+              {stats.authOnlyUsers > 0 && (
+                <Button 
+                  size="sm" 
+                  onClick={syncAuthUsersToProfiles}
+                  disabled={syncing}
+                  className="flex items-center gap-1 bg-orange-500 hover:bg-orange-600"
+                >
+                  <Sync className={`h-3 w-3 ${syncing ? 'animate-spin' : ''}`} />
+                  Sync Auth to Profiles ({stats.authOnlyUsers})
+                </Button>
+              )}
             </div>
           </div>
         </CardContent>
@@ -364,10 +409,7 @@ const UserManagement = () => {
             <div className="text-center py-8 text-gray-500">
               {users.length === 0 ? (
                 <div>
-                  <p>No users found in database.</p>
-                  <p className="text-sm mt-2 text-gray-600">
-                    The database connection is working but no user data was found.
-                  </p>
+                  <p>No users found in system.</p>
                   <Button onClick={fetchUsers} className="mt-4">
                     <RefreshCw className="w-4 h-4 mr-2" />
                     Try Again
@@ -385,7 +427,7 @@ const UserManagement = () => {
                   <TableHead>Contact</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Statistics</TableHead>
+                  <TableHead>Source</TableHead>
                   <TableHead>Registration Date</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -399,9 +441,6 @@ const UserManagement = () => {
                         <div>
                           <div className="font-medium">{user.name || 'No name'}</div>
                           <div className="text-sm text-gray-500">ID: {user.id.slice(0, 8)}...</div>
-                          {user.location && (
-                            <div className="text-xs text-gray-400">{user.location}</div>
-                          )}
                         </div>
                       </div>
                     </TableCell>
@@ -423,22 +462,16 @@ const UserManagement = () => {
                       {getUserTypeBadge(user.user_type)}
                     </TableCell>
                     <TableCell>
-                      {getStatusBadge(user.verification_status)}
+                      {getStatusBadge(user.verification_status, user.auth_only)}
                     </TableCell>
                     <TableCell>
-                      <div className="text-xs space-y-1">
-                        {user.user_type === 'companion' && (
-                          <>
-                            <div>Rating: {user.rating || 0}/5</div>
-                            <div>Bookings: {user.total_bookings || 0}</div>
-                            <div>Earnings: Rp {(user.total_earnings || 0).toLocaleString('id-ID')}</div>
-                          </>
-                        )}
-                        {user.user_type === 'user' && (
-                          <div>Bookings: {user.total_bookings || 0}</div>
-                        )}
-                        {user.user_type === 'admin' && (
-                          <div className="text-red-600 font-medium">System Admin</div>
+                      <div className="text-xs">
+                        {user.has_profile && user.auth_only ? (
+                          <Badge variant="secondary">Both</Badge>
+                        ) : user.has_profile ? (
+                          <Badge className="bg-green-100 text-green-600">Profile</Badge>
+                        ) : (
+                          <Badge className="bg-orange-100 text-orange-600">Auth Only</Badge>
                         )}
                       </div>
                     </TableCell>
@@ -454,7 +487,7 @@ const UserManagement = () => {
                           <Eye className="w-3 h-3 mr-1" />
                           View
                         </Button>
-                        {user.verification_status === 'pending' && user.user_type !== 'admin' && (
+                        {user.verification_status === 'pending' && user.user_type !== 'admin' && user.has_profile && (
                           <>
                             <Button
                               size="sm"
