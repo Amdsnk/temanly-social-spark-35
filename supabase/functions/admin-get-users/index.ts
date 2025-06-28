@@ -13,11 +13,7 @@ serve(async (req) => {
   
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    console.log('Handling OPTIONS preflight request')
-    return new Response('ok', { 
-      status: 200,
-      headers: corsHeaders 
-    })
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
@@ -98,7 +94,6 @@ serve(async (req) => {
         message: `Successfully fetched ${users.length} Auth users`
       }),
       { 
-        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     )
