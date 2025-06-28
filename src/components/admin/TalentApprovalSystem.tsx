@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Clock, CheckCircle, XCircle, User, Search, Filter, RefreshCw } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, User, Search, Filter, RefreshCw, AlertTriangle, FileCheck, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import TalentApprovalCard from './TalentApprovalCard';
@@ -32,6 +32,7 @@ interface TalentRegistrationData {
   profile_photo_url?: string;
   created_at: string;
   verification_status: 'pending' | 'verified' | 'rejected';
+  specialties?: string[];
 }
 
 const TalentApprovalSystem = () => {
@@ -40,6 +41,7 @@ const TalentApprovalSystem = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [serviceFilter, setServiceFilter] = useState<string>('all');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -49,12 +51,12 @@ const TalentApprovalSystem = () => {
 
   useEffect(() => {
     filterTalents();
-  }, [talents, searchTerm, statusFilter]);
+  }, [talents, searchTerm, statusFilter, serviceFilter]);
 
   const fetchTalentRegistrations = async () => {
     try {
       setLoading(true);
-      console.log('🔍 Fetching talent registrations...');
+      console.log('🔍 Fetching comprehensive talent registrations...');
 
       const { data: profiles, error } = await supabase
         .from('profiles')
@@ -69,44 +71,72 @@ const TalentApprovalSystem = () => {
 
       console.log('📊 Raw profiles data:', profiles);
 
-      // Transform profiles data to match our interface
+      // Transform profiles data to match our interface with comprehensive data extraction
       const transformedTalents: TalentRegistrationData[] = profiles.map(profile => {
         let profileData = null;
+        let comprehensiveData = {};
+        
+        // Parse profile_data if exists
         if (profile.profile_data) {
           try {
             profileData = JSON.parse(profile.profile_data);
+            comprehensiveData = profileData;
           } catch (error) {
             console.warn('⚠️ Failed to parse profile_data for user:', profile.id, error);
           }
         }
+
+        // Also check auth metadata from user_metadata if available
+        let authMetadata = {};
+        if (profile.raw_user_meta_data) {
+          try {
+            authMetadata = typeof profile.raw_user_meta_data === 'string' 
+              ? JSON.parse(profile.raw_user_meta_data) 
+              : profile.raw_user_meta_data;
+          } catch (error) {
+            console.warn('⚠️ Failed to parse auth metadata for user:', profile.id, error);
+          }
+        }
+
+        // Merge all data sources with priority: profile_data > direct fields > auth metadata
+        const combinedData = {
+          ...authMetadata,
+          ...comprehensiveData,
+          // Direct fields take precedence
+          age: profile.age || comprehensiveData.age || authMetadata.age || 0,
+          location: profile.location || comprehensiveData.location || authMetadata.location || 'Tidak diisi',
+          bio: profile.bio || comprehensiveData.bio || authMetadata.bio || '',
+          hourlyRate: profile.hourly_rate || comprehensiveData.hourlyRate || authMetadata.hourlyRate || 0,
+        };
 
         return {
           id: profile.id,
           email: profile.email || '',
           full_name: profile.full_name || profile.name || 'Tidak ada nama',
           phone: profile.phone || '',
-          age: profileData?.age || profile.age || 0,
-          location: profileData?.location || profile.location || 'Tidak diisi',
-          bio: profileData?.bio || profile.bio || '',
-          hourly_rate: profileData?.hourlyRate || profile.hourly_rate || 0,
-          services: profileData?.services || [],
-          languages: profileData?.languages || [],
-          interests: profileData?.interests || [],
-          experience_years: profileData?.experienceYears || 0,
-          transportation_mode: profileData?.transportationMode || '',
-          emergency_contact: profileData?.emergencyContact || '',
-          emergency_phone: profileData?.emergencyPhone || '',
-          availability: profileData?.availability || [],
-          has_id_card: profileData?.hasIdCard || false,
-          has_profile_photo: profileData?.hasProfilePhoto || false,
-          id_card_url: profileData?.idCardUrl,
-          profile_photo_url: profileData?.profilePhotoUrl,
+          age: combinedData.age,
+          location: combinedData.location,
+          bio: combinedData.bio,
+          hourly_rate: combinedData.hourlyRate,
+          services: combinedData.services || [],
+          languages: combinedData.languages || ['Bahasa Indonesia'],
+          interests: combinedData.interests || [],
+          experience_years: combinedData.experienceYears || 0,
+          transportation_mode: combinedData.transportationMode || '',
+          emergency_contact: combinedData.emergencyContact || '',
+          emergency_phone: combinedData.emergencyPhone || '',
+          availability: combinedData.availability || [],
+          has_id_card: combinedData.hasIdCard || false,
+          has_profile_photo: combinedData.hasProfilePhoto || false,
+          id_card_url: combinedData.idCardUrl,
+          profile_photo_url: combinedData.profilePhotoUrl,
           created_at: profile.created_at,
-          verification_status: profile.verification_status as 'pending' | 'verified' | 'rejected'
+          verification_status: profile.verification_status as 'pending' | 'verified' | 'rejected',
+          specialties: combinedData.specialties || []
         };
       });
 
-      console.log('✅ Transformed talents:', transformedTalents);
+      console.log('✅ Transformed comprehensive talents:', transformedTalents);
       setTalents(transformedTalents);
 
     } catch (error: any) {
@@ -151,13 +181,23 @@ const TalentApprovalSystem = () => {
       filtered = filtered.filter(talent =>
         talent.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         talent.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        talent.location.toLowerCase().includes(searchTerm.toLowerCase())
+        talent.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        talent.services.some(service => service.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
 
     // Filter by status
     if (statusFilter !== 'all') {
       filtered = filtered.filter(talent => talent.verification_status === statusFilter);
+    }
+
+    // Filter by service
+    if (serviceFilter !== 'all') {
+      filtered = filtered.filter(talent => 
+        talent.services.some(service => 
+          service.toLowerCase().includes(serviceFilter.toLowerCase())
+        )
+      );
     }
 
     setFilteredTalents(filtered);
@@ -229,6 +269,11 @@ const TalentApprovalSystem = () => {
     }
   };
 
+  // Get unique services for filter
+  const uniqueServices = Array.from(new Set(
+    talents.flatMap(talent => talent.services)
+  )).filter(Boolean);
+
   if (loading) {
     return (
       <Card>
@@ -245,19 +290,20 @@ const TalentApprovalSystem = () => {
   const pendingCount = talents.filter(t => t.verification_status === 'pending').length;
   const approvedCount = talents.filter(t => t.verification_status === 'verified').length;
   const rejectedCount = talents.filter(t => t.verification_status === 'rejected').length;
+  const incompleteDataCount = talents.filter(t => !t.services?.length || !t.has_id_card || !t.has_profile_photo).length;
 
   return (
     <div className="space-y-6">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* Enhanced Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Pendaftaran</CardTitle>
-            <User className="h-4 w-4 text-blue-600" />
+            <Users className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">{talents.length}</div>
-            <p className="text-xs text-muted-foreground">Semua pendaftaran talent</p>
+            <p className="text-xs text-muted-foreground">Total talent terdaftar</p>
           </CardContent>
         </Card>
 
@@ -293,46 +339,80 @@ const TalentApprovalSystem = () => {
             <p className="text-xs text-muted-foreground">Talent yang ditolak</p>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Data Incomplete</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-orange-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">{incompleteDataCount}</div>
+            <p className="text-xs text-muted-foreground">Data tidak lengkap</p>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Filters */}
+      {/* Enhanced Filters */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Filter & Pencarian</CardTitle>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Filter className="w-5 h-5" />
+            Filter & Pencarian Data Talent
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-4 items-center">
-            <div className="flex-1">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="md:col-span-2">
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Cari berdasarkan nama, email, atau lokasi..."
+                  placeholder="Cari berdasarkan nama, email, lokasi, atau layanan..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
                 />
               </div>
             </div>
-            <div className="w-48">
+            <div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="Filter Status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Semua Status</SelectItem>
-                  <SelectItem value="pending">Menunggu Review</SelectItem>
-                  <SelectItem value="verified">Disetujui</SelectItem>
-                  <SelectItem value="rejected">Ditolak</SelectItem>
+                  <SelectItem value="pending">⏳ Menunggu Review</SelectItem>
+                  <SelectItem value="verified">✅ Disetujui</SelectItem>
+                  <SelectItem value="rejected">❌ Ditolak</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+            <div>
+              <Select value={serviceFilter} onValueChange={setServiceFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Filter Layanan" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Layanan</SelectItem>
+                  {uniqueServices.map((service) => (
+                    <SelectItem key={service} value={service}>
+                      {service}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="mt-4 flex justify-between items-center">
+            <p className="text-sm text-gray-600">
+              Menampilkan {filteredTalents.length} dari {talents.length} total talent
+            </p>
             <Button 
               variant="outline" 
               onClick={fetchTalentRegistrations}
               className="flex items-center gap-2"
             >
               <RefreshCw className="h-4 w-4" />
-              Refresh
+              Refresh Data
             </Button>
           </div>
         </CardContent>
@@ -342,12 +422,27 @@ const TalentApprovalSystem = () => {
       <div className="space-y-4">
         {filteredTalents.length === 0 ? (
           <Card>
-            <CardContent className="p-6 text-center">
+            <CardContent className="p-8 text-center">
+              <FileCheck className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Tidak Ada Data</h3>
               <p className="text-gray-500">
-                {searchTerm || statusFilter !== 'all' 
-                  ? 'Tidak ada talent yang sesuai dengan filter.'
-                  : 'Belum ada pendaftaran talent.'}
+                {searchTerm || statusFilter !== 'all' || serviceFilter !== 'all'
+                  ? 'Tidak ada talent yang sesuai dengan filter yang dipilih.'
+                  : 'Belum ada pendaftaran talent yang masuk.'}
               </p>
+              {(searchTerm || statusFilter !== 'all' || serviceFilter !== 'all') && (
+                <Button 
+                  variant="outline" 
+                  className="mt-4"
+                  onClick={() => {
+                    setSearchTerm('');
+                    setStatusFilter('all');
+                    setServiceFilter('all');
+                  }}
+                >
+                  Reset Filter
+                </Button>
+              )}
             </CardContent>
           </Card>
         ) : (

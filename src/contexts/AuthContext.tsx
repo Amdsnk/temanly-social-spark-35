@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -43,6 +44,7 @@ interface SignupData {
     emergencyPhone?: string;
     hasIdCard?: boolean;
     hasProfilePhoto?: boolean;
+    interests?: string[];
   };
 }
 
@@ -231,7 +233,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error(message);
       }
       
-      // For talent registration, we'll use a different approach to bypass RLS
+      // For talent registration, we'll use a comprehensive approach
       if (userData.user_type === 'companion') {
         console.log('Creating comprehensive talent user with detailed data');
         
@@ -240,7 +242,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           full_name: userData.name,
           user_type: userData.user_type,
           phone: userData.phone,
-          // Include all additional data
+          // Include all additional data in metadata for easy access
           ...userData.additionalData
         };
         
@@ -261,70 +263,91 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (authData.user) {
           console.log('Talent user created in auth with comprehensive data:', authData.user.id);
           
-          // Try to create comprehensive profile via admin function
+          // Create comprehensive profile with all data structured properly
           try {
-            console.log('Creating comprehensive talent profile via admin function...');
+            console.log('Creating comprehensive talent profile directly...');
             
-            const { data: functionResult, error: functionError } = await supabase.functions.invoke('create-talent-profile', {
-              body: {
-                userId: authData.user.id,
-                email: userData.email,
-                name: userData.name,
-                phone: userData.phone,
-                userType: 'companion',
-                comprehensiveData: userData.additionalData
-              }
-            });
-
-            if (functionError) {
-              console.error('Function error:', functionError);
-              console.log('Function failed, attempting direct comprehensive profile creation...');
-              
-              // Create comprehensive profile directly with properly typed values
-              const profileData = {
-                id: authData.user.id,
-                email: userData.email,
-                name: userData.name,
-                full_name: userData.name,
-                phone: userData.phone,
-                user_type: 'companion' as Database['public']['Enums']['user_type'],
-                verification_status: 'pending' as Database['public']['Enums']['verification_status'],
-                status: 'pending' as Database['public']['Enums']['user_status'],
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-                // Add comprehensive talent data
+            // Create comprehensive profile data with proper structure for admin review
+            const profileData = {
+              id: authData.user.id,
+              email: userData.email,
+              name: userData.name,
+              full_name: userData.name,
+              phone: userData.phone,
+              user_type: 'companion' as Database['public']['Enums']['user_type'],
+              verification_status: 'pending' as Database['public']['Enums']['verification_status'],
+              status: 'pending' as Database['public']['Enums']['user_status'],
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              // Add all talent-specific data for admin review
+              age: userData.additionalData?.age,
+              location: userData.additionalData?.location,
+              bio: userData.additionalData?.bio,
+              hourly_rate: userData.additionalData?.hourlyRate,
+              // Store comprehensive registration data in profile_data for admin review
+              profile_data: JSON.stringify({
+                // Personal Info
                 age: userData.additionalData?.age,
                 location: userData.additionalData?.location,
                 bio: userData.additionalData?.bio,
-                hourly_rate: userData.additionalData?.hourlyRate,
-                // Store complex data as JSON strings temporarily
-                // Admin can process this into proper talent_services and other tables
-                profile_data: JSON.stringify({
-                  services: userData.additionalData?.services || [],
-                  experienceYears: userData.additionalData?.experienceYears || 0,
-                  availability: userData.additionalData?.availability || [],
-                  languages: userData.additionalData?.languages || [],
-                  specialties: userData.additionalData?.specialties || [],
-                  transportationMode: userData.additionalData?.transportationMode || '',
-                  emergencyContact: userData.additionalData?.emergencyContact || '',
-                  emergencyPhone: userData.additionalData?.emergencyPhone || '',
-                  hasIdCard: userData.additionalData?.hasIdCard || false,
-                  hasProfilePhoto: userData.additionalData?.hasProfilePhoto || false
-                })
-              };
+                
+                // Service Info
+                services: userData.additionalData?.services || [],
+                hourlyRate: userData.additionalData?.hourlyRate,
+                experienceYears: userData.additionalData?.experienceYears || 0,
+                
+                // Skills & Languages
+                languages: userData.additionalData?.languages || ['Bahasa Indonesia'],
+                specialties: userData.additionalData?.specialties || [],
+                interests: userData.additionalData?.interests || [],
+                
+                // Availability & Transportation
+                availability: userData.additionalData?.availability || [],
+                transportationMode: userData.additionalData?.transportationMode,
+                
+                // Emergency Contact
+                emergencyContact: userData.additionalData?.emergencyContact,
+                emergencyPhone: userData.additionalData?.emergencyPhone,
+                
+                // Document Status
+                hasIdCard: userData.additionalData?.hasIdCard || false,
+                hasProfilePhoto: userData.additionalData?.hasProfilePhoto || false,
+                
+                // Registration metadata
+                registrationTimestamp: new Date().toISOString(),
+                completionStatus: 'complete',
+                dataVersion: '1.0'
+              })
+            };
 
-              const { error: profileError } = await supabase
-                .from('profiles')
-                .insert(profileData);
+            console.log('Profile data being inserted:', profileData);
 
-              if (profileError) {
-                console.error('Direct comprehensive profile creation failed:', profileError);
+            const { error: profileError } = await supabase
+              .from('profiles')
+              .insert(profileData);
+
+            if (profileError) {
+              console.error('Direct comprehensive profile creation failed:', profileError);
+              // Try using the edge function as fallback
+              console.log('Attempting profile creation via edge function...');
+              
+              const { error: functionError } = await supabase.functions.invoke('create-talent-profile', {
+                body: {
+                  userId: authData.user.id,
+                  email: userData.email,
+                  name: userData.name,
+                  phone: userData.phone,
+                  userType: 'companion',
+                  comprehensiveData: userData.additionalData
+                }
+              });
+
+              if (functionError) {
+                console.error('Function also failed:', functionError);
                 console.log('Profile creation failed but auth user exists. Admin will need to manually create profile.');
-              } else {
-                console.log('Direct comprehensive profile creation succeeded');
               }
             } else {
-              console.log('Comprehensive talent profile created successfully via function:', functionResult);
+              console.log('Direct comprehensive profile creation succeeded');
             }
 
           } catch (profileError) {
