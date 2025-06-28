@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 export interface AdminUser {
@@ -13,6 +14,12 @@ export interface AdminUser {
   updated_at?: string;
   has_profile: boolean;
   auth_only: boolean;
+  // Additional profile fields
+  age?: number | null;
+  location?: string | null;
+  bio?: string | null;
+  hourly_rate?: number | null;
+  profile_data?: string | null;
 }
 
 export const adminUserService = {
@@ -75,6 +82,10 @@ export const adminUserService = {
           user_type: user.user_type,
           verification_status: user.verification_status,
           status: user.status,
+          age: user.age,
+          location: user.location,
+          hourly_rate: user.hourly_rate,
+          profile_data: user.profile_data ? 'Has data' : 'No data',
           created_at: user.created_at
         });
       });
@@ -129,7 +140,11 @@ export const adminUserService = {
         email: profile.email,
         verification_status: profile.verification_status,
         user_type: profile.user_type,
-        status: profile.status
+        status: profile.status,
+        age: profile.age,
+        location: profile.location,
+        hourly_rate: profile.hourly_rate,
+        has_profile_data: !!profile.profile_data
       });
       
       userMap.set(profile.id, {
@@ -144,7 +159,13 @@ export const adminUserService = {
         created_at: profile.created_at,
         updated_at: profile.updated_at,
         has_profile: true,
-        auth_only: false
+        auth_only: false,
+        // Include additional profile fields
+        age: profile.age,
+        location: profile.location,
+        bio: profile.bio,
+        hourly_rate: profile.hourly_rate,
+        profile_data: profile.profile_data
       });
     });
 
@@ -195,7 +216,13 @@ export const adminUserService = {
           status: 'active',
           created_at: authUser.created_at,
           has_profile: false,
-          auth_only: true
+          auth_only: true,
+          // Auth-only users don't have these fields yet
+          age: null,
+          location: null,
+          bio: null,
+          hourly_rate: null,
+          profile_data: null
         });
       }
     });
@@ -220,7 +247,8 @@ export const adminUserService = {
           user_type: user.user_type,
           verification_status: user.verification_status,
           auth_only: user.auth_only,
-          has_profile: user.has_profile
+          has_profile: user.has_profile,
+          has_profile_data: !!user.profile_data
         });
       }
     });

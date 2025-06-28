@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -49,21 +50,46 @@ const TalentRegistrationManagement = () => {
   }, []);
 
   const transformAdminUserToTalentApplication = (user: AdminUser): TalentApplication => {
+    // Try to parse profile_data if it exists
+    let profileData = null;
+    if (user.profile_data) {
+      try {
+        profileData = JSON.parse(user.profile_data);
+        console.log('📊 Parsed profile data for user:', user.id.slice(0, 8), profileData);
+      } catch (error) {
+        console.warn('⚠️ Failed to parse profile data for user:', user.id.slice(0, 8), error);
+      }
+    }
+
     return {
       id: user.id,
       name: user.name || user.full_name || 'No Name',
       full_name: user.full_name || user.name || '',
       email: user.email,
       phone: user.phone || '',
-      age: null, // Will be populated from profile data if available
-      location: null, // Will be populated from profile data if available
-      bio: null, // Will be populated from profile data if available
+      // Get age from profile data or user directly
+      age: profileData?.age || user.age || null,
+      // Get location from profile data or user directly  
+      location: profileData?.location || user.location || null,
+      // Get bio from profile data or user directly
+      bio: profileData?.bio || user.bio || null,
       verification_status: user.verification_status,
       status: user.status,
       created_at: user.created_at,
       updated_at: user.updated_at || user.created_at,
+      // Get hourly rate from profile data or user directly
+      hourly_rate: profileData?.hourlyRate || user.hourly_rate || null,
+      // Get experience from profile data
+      experience_years: profileData?.experienceYears || 0,
+      // Get languages from profile data
+      languages: profileData?.languages || [],
+      // Get specialties/services from profile data
+      specialties: profileData?.services || [],
+      // Document URLs from profile data
+      id_card_url: profileData?.idCardUrl || null,
+      photo_url: profileData?.profilePhotoUrl || null,
       user_type: user.user_type,
-      profile_data: null,
+      profile_data: user.profile_data,
       auth_only: user.auth_only,
       has_profile: user.has_profile
     };
@@ -95,6 +121,8 @@ const TalentRegistrationManagement = () => {
       
       // Transform the data to match our interface
       const transformedTalents = talentUsers.map(transformAdminUserToTalentApplication);
+      
+      console.log('🎯 Transformed talents:', transformedTalents);
       
       setAllUsers(users);
       setApplications(transformedTalents);
@@ -399,10 +427,10 @@ const TalentRegistrationManagement = () => {
                               {application.auth_only && (
                                 <Badge variant="outline" className="text-xs bg-orange-100 text-orange-600">Auth Only</Badge>
                               )}
-                              {profileData?.hasIdCard && (
+                              {(profileData?.hasIdCard || application.id_card_url) && (
                                 <Badge variant="outline" className="text-xs">📄 KTP</Badge>
                               )}
-                              {profileData?.hasProfilePhoto && (
+                              {(profileData?.hasProfilePhoto || application.photo_url) && (
                                 <Badge variant="outline" className="text-xs">📸 Foto</Badge>
                               )}
                             </div>
@@ -448,10 +476,10 @@ const TalentRegistrationManagement = () => {
                               Rp {application.hourly_rate.toLocaleString()}/jam
                             </div>
                           )}
-                          {profileData?.services && profileData.services.length > 0 && (
+                          {application.specialties && application.specialties.length > 0 && (
                             <div className="text-xs">
-                              {profileData.services.slice(0, 2).join(', ')}
-                              {profileData.services.length > 2 && ` +${profileData.services.length - 2} lainnya`}
+                              {application.specialties.slice(0, 2).join(', ')}
+                              {application.specialties.length > 2 && ` +${application.specialties.length - 2} lainnya`}
                             </div>
                           )}
                         </div>
@@ -605,18 +633,31 @@ const TalentDetailView = ({
           <div>
             <label className="text-sm font-medium text-blue-700">Pengalaman</label>
             <p className="text-sm mt-1">
-              {profileData?.experienceYears ? `${profileData.experienceYears} tahun` : 'Belum diisi'}
+              {application.experience_years ? `${application.experience_years} tahun` : 'Belum diisi'}
             </p>
           </div>
         </div>
         
-        {profileData?.services && profileData.services.length > 0 && (
+        {application.specialties && application.specialties.length > 0 && (
           <div className="mt-4">
             <label className="text-sm font-medium text-blue-700 block mb-2">Services yang Ditawarkan</label>
             <div className="flex flex-wrap gap-1">
-              {profileData.services.map((service: string, index: number) => (
+              {application.specialties.map((service: string, index: number) => (
                 <Badge key={index} variant="secondary" className="bg-blue-100 text-blue-800">
                   {service}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {application.languages && application.languages.length > 0 && (
+          <div className="mt-4">
+            <label className="text-sm font-medium text-blue-700 block mb-2">Bahasa yang Dikuasai</label>
+            <div className="flex flex-wrap gap-1">
+              {application.languages.map((language: string, index: number) => (
+                <Badge key={index} variant="outline" className="bg-blue-50 text-blue-700">
+                  {language}
                 </Badge>
               ))}
             </div>
@@ -631,7 +672,7 @@ const TalentDetailView = ({
           <div>
             <label className="text-sm font-medium text-yellow-700">Foto KTP</label>
             <p className="text-sm mt-1">
-              {profileData?.hasIdCard ? 
+              {(profileData?.hasIdCard || application.id_card_url) ? 
                 <Badge className="bg-green-100 text-green-700">✅ Sudah Upload</Badge> : 
                 <Badge className="bg-red-100 text-red-700">❌ Belum Upload</Badge>
               }
@@ -640,7 +681,7 @@ const TalentDetailView = ({
           <div>
             <label className="text-sm font-medium text-yellow-700">Foto Profil</label>
             <p className="text-sm mt-1">
-              {profileData?.hasProfilePhoto ? 
+              {(profileData?.hasProfilePhoto || application.photo_url) ? 
                 <Badge className="bg-green-100 text-green-700">✅ Sudah Upload</Badge> : 
                 <Badge className="bg-red-100 text-red-700">❌ Belum Upload</Badge>
               }
@@ -648,6 +689,45 @@ const TalentDetailView = ({
           </div>
         </div>
       </div>
+
+      {/* Additional Information */}
+      {profileData && (
+        <div className="bg-purple-50 p-4 rounded-lg">
+          <h3 className="font-semibold mb-3 text-purple-900">📝 Informasi Tambahan</h3>
+          <div className="grid grid-cols-2 gap-4">
+            {profileData.transportationMode && (
+              <div>
+                <label className="text-sm font-medium text-purple-700">Mode Transportasi</label>
+                <p className="text-sm mt-1">{profileData.transportationMode}</p>
+              </div>
+            )}
+            {profileData.emergencyContact && (
+              <div>
+                <label className="text-sm font-medium text-purple-700">Kontak Darurat</label>
+                <p className="text-sm mt-1">{profileData.emergencyContact}</p>
+              </div>
+            )}
+            {profileData.emergencyPhone && (
+              <div>
+                <label className="text-sm font-medium text-purple-700">Nomor Darurat</label>
+                <p className="text-sm mt-1">{profileData.emergencyPhone}</p>
+              </div>
+            )}
+            {profileData.availability && profileData.availability.length > 0 && (
+              <div>
+                <label className="text-sm font-medium text-purple-700">Ketersediaan</label>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {profileData.availability.map((avail: string, index: number) => (
+                    <Badge key={index} variant="outline" className="text-xs">
+                      {avail}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Action Buttons */}
       {application.verification_status === 'pending' && (
