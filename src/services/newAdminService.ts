@@ -6,7 +6,7 @@ export interface UserData {
   email: string;
   name: string;
   phone: string;
-  user_type: 'user' | 'companion';
+  user_type: 'user' | 'companion' | 'admin';
   verification_status: 'pending' | 'verified' | 'rejected';
   created_at: string;
   ktp_number?: string;
@@ -74,11 +74,11 @@ export const newAdminService = {
           email: profile.email || '',
           name: profile.name || profile.full_name || 'Unknown',
           phone: profile.phone || '',
-          user_type: profile.user_type || 'user',
-          verification_status: profile.verification_status || 'pending',
+          user_type: (profile.user_type as 'user' | 'companion' | 'admin') || 'user',
+          verification_status: (profile.verification_status as 'pending' | 'verified' | 'rejected') || 'pending',
           created_at: profile.created_at,
-          ktp_number: profile.ktp_number,
-          ktp_image: profile.ktp_image,
+          ktp_number: (profile as any).ktp_number,
+          ktp_image: (profile as any).ktp_image,
           age: profile.age,
           city: profile.city,
           bio: profile.bio,
@@ -95,7 +95,7 @@ export const newAdminService = {
             email: authUser.email || '',
             name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Unknown',
             phone: authUser.user_metadata?.phone || '',
-            user_type: authUser.user_metadata?.user_type || 'user',
+            user_type: (authUser.user_metadata?.user_type as 'user' | 'companion' | 'admin') || 'user',
             verification_status: 'pending',
             created_at: authUser.created_at,
             has_profile: false,
@@ -141,24 +141,40 @@ export const newAdminService = {
     try {
       console.log('🔄 Approving user:', userId);
 
+      // First, try to get existing profile to see what fields are available
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      // Prepare the upsert data with only the fields that exist in the database
+      const upsertData: any = {
+        id: userId,
+        email: userData.email,
+        name: userData.name,
+        full_name: userData.name,
+        phone: userData.phone,
+        user_type: userData.user_type,
+        status: 'active',
+        city: userData.city,
+        age: userData.age,
+        bio: userData.bio,
+        updated_at: new Date().toISOString()
+      };
+
+      // Add KTP fields if they exist in the schema
+      if (userData.ktp_number) {
+        upsertData.ktp_number = userData.ktp_number;
+      }
+      if (userData.ktp_image) {
+        upsertData.ktp_image = userData.ktp_image;
+      }
+
       // Update or create profile
       const { error: profileError } = await supabase
         .from('profiles')
-        .upsert({
-          id: userId,
-          email: userData.email,
-          name: userData.name,
-          full_name: userData.name,
-          phone: userData.phone,
-          user_type: userData.user_type,
-          verification_status: 'verified',
-          status: 'active',
-          city: userData.city,
-          age: userData.age,
-          bio: userData.bio,
-          ktp_number: userData.ktp_number,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'id' });
+        .upsert(upsertData, { onConflict: 'id' });
 
       if (profileError) throw profileError;
 
@@ -183,15 +199,21 @@ export const newAdminService = {
     try {
       console.log('🔄 Rejecting user:', userId);
 
+      // Prepare the upsert data
+      const upsertData: any = {
+        id: userId,
+        status: 'suspended',
+        updated_at: new Date().toISOString()
+      };
+
+      // Add rejection reason if the field exists
+      if (reason) {
+        upsertData.rejection_reason = reason;
+      }
+
       const { error } = await supabase
         .from('profiles')
-        .upsert({
-          id: userId,
-          verification_status: 'rejected',
-          status: 'rejected',
-          rejection_reason: reason,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'id' });
+        .upsert(upsertData, { onConflict: 'id' });
 
       if (error) throw error;
 
