@@ -27,6 +27,22 @@ interface SignupData {
   phone: string;
   password: string;
   user_type?: 'user' | 'companion';
+  additionalData?: {
+    age?: number;
+    location?: string;
+    bio?: string;
+    services?: string[];
+    hourlyRate?: number;
+    experienceYears?: number;
+    availability?: string[];
+    languages?: string[];
+    specialties?: string[];
+    transportationMode?: string;
+    emergencyContact?: string;
+    emergencyPhone?: string;
+    hasIdCard?: boolean;
+    hasProfilePhoto?: boolean;
+  };
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -196,7 +212,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signup = async (userData: SignupData): Promise<{ needsVerification: boolean }> => {
     try {
-      console.log('Starting signup process for:', userData.email);
+      console.log('Starting comprehensive signup process for:', userData.email);
       
       // Check if user already exists
       const existingUser = await checkExistingUser(userData.email, userData.phone);
@@ -216,18 +232,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // For talent registration, we'll use a different approach to bypass RLS
       if (userData.user_type === 'companion') {
-        console.log('Creating talent user with type:', userData.user_type);
+        console.log('Creating comprehensive talent user with detailed data');
         
-        // First, create the auth user
+        // Prepare comprehensive metadata
+        const userMetadata = {
+          full_name: userData.name,
+          user_type: userData.user_type,
+          phone: userData.phone,
+          // Include all additional data
+          ...userData.additionalData
+        };
+        
+        // First, create the auth user with comprehensive metadata
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email: userData.email,
           password: userData.password,
           options: {
-            data: {
-              full_name: userData.name,
-              user_type: userData.user_type,
-              phone: userData.phone
-            }
+            data: userMetadata
           }
         });
 
@@ -237,11 +258,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         if (authData.user) {
-          console.log('Talent user created in auth:', authData.user.id);
+          console.log('Talent user created in auth with comprehensive data:', authData.user.id);
           
-          // Use an admin function to create the talent profile to bypass RLS
+          // Try to create comprehensive profile via admin function
           try {
-            console.log('Creating talent profile via admin function...');
+            console.log('Creating comprehensive talent profile via admin function...');
             
             const { data: functionResult, error: functionError } = await supabase.functions.invoke('create-talent-profile', {
               body: {
@@ -249,50 +270,70 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 email: userData.email,
                 name: userData.name,
                 phone: userData.phone,
-                userType: 'companion'
+                userType: 'companion',
+                comprehensiveData: userData.additionalData
               }
             });
 
             if (functionError) {
               console.error('Function error:', functionError);
-              // If function fails, try direct insert with service role
-              console.log('Function failed, attempting direct profile creation...');
+              console.log('Function failed, attempting direct comprehensive profile creation...');
               
-              // Create a temporary admin session to insert the profile
+              // Create comprehensive profile directly
+              const profileData = {
+                id: authData.user.id,
+                email: userData.email,
+                name: userData.name,
+                full_name: userData.name,
+                phone: userData.phone,
+                user_type: 'companion',
+                verification_status: 'pending',
+                status: 'pending',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                // Add comprehensive talent data
+                age: userData.additionalData?.age,
+                location: userData.additionalData?.location,
+                bio: userData.additionalData?.bio,
+                hourly_rate: userData.additionalData?.hourlyRate,
+                // Store complex data as JSON strings temporarily
+                // Admin can process this into proper talent_services and other tables
+                profile_data: JSON.stringify({
+                  services: userData.additionalData?.services || [],
+                  experienceYears: userData.additionalData?.experienceYears || 0,
+                  availability: userData.additionalData?.availability || [],
+                  languages: userData.additionalData?.languages || [],
+                  specialties: userData.additionalData?.specialties || [],
+                  transportationMode: userData.additionalData?.transportationMode || '',
+                  emergencyContact: userData.additionalData?.emergencyContact || '',
+                  emergencyPhone: userData.additionalData?.emergencyPhone || '',
+                  hasIdCard: userData.additionalData?.hasIdCard || false,
+                  hasProfilePhoto: userData.additionalData?.hasProfilePhoto || false
+                })
+              };
+
               const { error: profileError } = await supabase
                 .from('profiles')
-                .insert({
-                  id: authData.user.id,
-                  email: userData.email,
-                  name: userData.name,
-                  full_name: userData.name,
-                  phone: userData.phone,
-                  user_type: 'companion',
-                  verification_status: 'pending',
-                  status: 'pending',
-                  created_at: new Date().toISOString(),
-                  updated_at: new Date().toISOString()
-                });
+                .insert(profileData);
 
               if (profileError) {
-                console.error('Direct profile creation also failed:', profileError);
-                // Don't throw error here - the auth user was created successfully
+                console.error('Direct comprehensive profile creation failed:', profileError);
                 console.log('Profile creation failed but auth user exists. Admin will need to manually create profile.');
               } else {
-                console.log('Direct profile creation succeeded');
+                console.log('Direct comprehensive profile creation succeeded');
               }
             } else {
-              console.log('Talent profile created successfully via function:', functionResult);
+              console.log('Comprehensive talent profile created successfully via function:', functionResult);
             }
 
           } catch (profileError) {
             console.error('Profile creation exception:', profileError);
-            console.log('Profile creation failed but auth user exists. Admin will need to manually create profile.');
+            console.log('Profile creation failed but auth user exists with comprehensive metadata.');
           }
 
           toast({
             title: "Registrasi Talent Berhasil!",
-            description: "Pendaftaran Anda telah diterima dan sedang menunggu verifikasi admin.",
+            description: "Data lengkap Anda telah diterima dan sedang menunggu verifikasi admin. Kami akan menghubungi Anda dalam 1-2 hari kerja.",
             className: "bg-green-50 border-green-200"
           });
 

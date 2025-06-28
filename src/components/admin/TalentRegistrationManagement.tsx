@@ -28,6 +28,7 @@ interface TalentApplication {
   specialties?: string[];
   languages?: string[];
   user_type: string;
+  profile_data?: string; // JSON string containing comprehensive registration data
 }
 
 const TalentRegistrationManagement = () => {
@@ -171,6 +172,15 @@ const TalentRegistrationManagement = () => {
     return <Badge className="bg-gray-100 text-gray-600">Unknown</Badge>;
   };
 
+  const parseProfileData = (profileData: string | null) => {
+    if (!profileData) return null;
+    try {
+      return JSON.parse(profileData);
+    } catch {
+      return null;
+    }
+  };
+
   if (loading) {
     return (
       <Card>
@@ -291,198 +301,284 @@ const TalentRegistrationManagement = () => {
                   <TableHead>Data Talent</TableHead>
                   <TableHead>Kontak</TableHead>
                   <TableHead>Lokasi & Usia</TableHead>
+                  <TableHead>Services & Tarif</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Tanggal Daftar</TableHead>
                   <TableHead>Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {allApplications.map((application) => (
-                  <TableRow key={application.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <User className="w-4 h-4" />
-                        <div>
-                          <div className="font-medium">{application.name || application.full_name}</div>
-                          <div className="text-sm text-gray-500">ID: {application.id.slice(0, 8)}...</div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-1 text-sm">
-                          <Mail className="w-3 h-3" />
-                          {application.email}
-                        </div>
-                        {application.phone && (
-                          <div className="flex items-center gap-1 text-sm">
-                            <Phone className="w-3 h-3" />
-                            {application.phone}
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        {application.location && (
-                          <div className="flex items-center gap-1 text-sm">
-                            <MapPin className="w-3 h-3" />
-                            {application.location}
-                          </div>
-                        )}
-                        {application.age && (
-                          <div className="text-sm">
-                            Usia: {application.age} tahun
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {getStatusBadge(application.status, application.verification_status)}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1 text-sm">
-                        <Calendar className="w-3 h-3" />
-                        {new Date(application.created_at).toLocaleDateString('id-ID')}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setSelectedApplication(application)}
-                            >
-                              <Eye className="w-3 h-3 mr-1" />
-                              Detail
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-                            <DialogHeader>
-                              <DialogTitle>Detail Pendaftaran Talent</DialogTitle>
-                            </DialogHeader>
-                            {selectedApplication && (
-                              <div className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                  <div>
-                                    <label className="text-sm font-medium">Nama Lengkap</label>
-                                    <p className="text-sm">{selectedApplication.name || selectedApplication.full_name}</p>
-                                  </div>
-                                  <div>
-                                    <label className="text-sm font-medium">Email</label>
-                                    <p className="text-sm">{selectedApplication.email}</p>
-                                  </div>
-                                  <div>
-                                    <label className="text-sm font-medium">Nomor Telepon</label>
-                                    <p className="text-sm">{selectedApplication.phone}</p>
-                                  </div>
-                                  <div>
-                                    <label className="text-sm font-medium">Usia</label>
-                                    <p className="text-sm">{selectedApplication.age} tahun</p>
-                                  </div>
-                                  <div>
-                                    <label className="text-sm font-medium">Lokasi</label>
-                                    <p className="text-sm">{selectedApplication.location}</p>
-                                  </div>
-                                  <div>
-                                    <label className="text-sm font-medium">Pengalaman</label>
-                                    <p className="text-sm">{selectedApplication.experience_years} tahun</p>
-                                  </div>
-                                </div>
-
-                                {selectedApplication.bio && (
-                                  <div>
-                                    <label className="text-sm font-medium">Bio</label>
-                                    <p className="text-sm">{selectedApplication.bio}</p>
-                                  </div>
-                                )}
-
-                                {selectedApplication.specialties && (
-                                  <div>
-                                    <label className="text-sm font-medium">Keahlian</label>
-                                    <div className="flex flex-wrap gap-1 mt-1">
-                                      {selectedApplication.specialties.map((specialty, index) => (
-                                        <Badge key={index} variant="secondary">{specialty}</Badge>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-
-                                {selectedApplication.id_card_url && (
-                                  <div>
-                                    <label className="text-sm font-medium">Foto KTP</label>
-                                    <div className="mt-2">
-                                      <img 
-                                        src={selectedApplication.id_card_url} 
-                                        alt="ID Card" 
-                                        className="max-w-full h-48 object-contain border rounded"
-                                      />
-                                    </div>
-                                  </div>
-                                )}
-
-                                {selectedApplication.photo_url && (
-                                  <div>
-                                    <label className="text-sm font-medium">Foto Profil</label>
-                                    <div className="mt-2">
-                                      <img 
-                                        src={selectedApplication.photo_url} 
-                                        alt="Profile" 
-                                        className="w-24 h-24 object-cover rounded-full border"
-                                      />
-                                    </div>
-                                  </div>
-                                )}
-
-                                {selectedApplication.verification_status === 'pending' && (
-                                  <div className="flex gap-2 pt-4 border-t">
-                                    <Button
-                                      className="bg-green-500 hover:bg-green-600"
-                                      onClick={() => handleApproval(selectedApplication.id, true)}
-                                    >
-                                      <CheckCircle className="w-4 h-4 mr-1" />
-                                      Setujui Talent
-                                    </Button>
-                                    <Button
-                                      variant="destructive"
-                                      onClick={() => handleApproval(selectedApplication.id, false)}
-                                    >
-                                      <XCircle className="w-4 h-4 mr-1" />
-                                      Tolak Talent
-                                    </Button>
-                                  </div>
-                                )}
-                              </div>
+                {allApplications.map((application) => {
+                  const profileData = parseProfileData(application.profile_data);
+                  
+                  return (
+                    <TableRow key={application.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <User className="w-4 h-4" />
+                          <div>
+                            <div className="font-medium">{application.name || application.full_name}</div>
+                            <div className="text-sm text-gray-500">ID: {application.id.slice(0, 8)}...</div>
+                            {profileData?.hasIdCard && (
+                              <Badge variant="outline" className="text-xs mt-1">KTP ✓</Badge>
                             )}
-                          </DialogContent>
-                        </Dialog>
+                            {profileData?.hasProfilePhoto && (
+                              <Badge variant="outline" className="text-xs mt-1 ml-1">Foto ✓</Badge>
+                            )}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1 text-sm">
+                            <Mail className="w-3 h-3" />
+                            {application.email}
+                          </div>
+                          {application.phone && (
+                            <div className="flex items-center gap-1 text-sm">
+                              <Phone className="w-3 h-3" />
+                              {application.phone}
+                            </div>
+                          )}
+                          {profileData?.emergencyContact && (
+                            <div className="text-xs text-gray-500">
+                              Darurat: {profileData.emergencyContact}
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          {application.location && (
+                            <div className="flex items-center gap-1 text-sm">
+                              <MapPin className="w-3 h-3" />
+                              {application.location}
+                            </div>
+                          )}
+                          {application.age && (
+                            <div className="text-sm">
+                              Usia: {application.age} tahun
+                            </div>
+                          )}
+                          {profileData?.experienceYears !== undefined && (
+                            <div className="text-sm">
+                              Pengalaman: {profileData.experienceYears} tahun
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          {application.hourly_rate && (
+                            <div className="text-sm font-medium">
+                              Rp {application.hourly_rate.toLocaleString()}/jam
+                            </div>
+                          )}
+                          {profileData?.services && profileData.services.length > 0 && (
+                            <div className="text-xs">
+                              {profileData.services.slice(0, 2).join(', ')}
+                              {profileData.services.length > 2 && ` +${profileData.services.length - 2} lainnya`}
+                            </div>
+                          )}
+                          {profileData?.transportationMode && (
+                            <div className="text-xs text-gray-500">
+                              Transport: {profileData.transportationMode}
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {getStatusBadge(application.status, application.verification_status)}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1 text-sm">
+                          <Calendar className="w-3 h-3" />
+                          {new Date(application.created_at).toLocaleDateString('id-ID')}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setSelectedApplication(application)}
+                              >
+                                <Eye className="w-3 h-3 mr-1" />
+                                Detail
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                              <DialogHeader>
+                                <DialogTitle>Detail Pendaftaran Talent Lengkap</DialogTitle>
+                              </DialogHeader>
+                              {selectedApplication && (
+                                <div className="space-y-6">
+                                  {/* Personal Information */}
+                                  <div className="bg-gray-50 p-4 rounded-lg">
+                                    <h3 className="font-semibold mb-3">Informasi Personal</h3>
+                                    <div className="grid grid-cols-2 gap-4">
+                                      <div>
+                                        <label className="text-sm font-medium">Nama Lengkap</label>
+                                        <p className="text-sm">{selectedApplication.name || selectedApplication.full_name}</p>
+                                      </div>
+                                      <div>
+                                        <label className="text-sm font-medium">Email</label>
+                                        <p className="text-sm">{selectedApplication.email}</p>
+                                      </div>
+                                      <div>
+                                        <label className="text-sm font-medium">Nomor WhatsApp</label>
+                                        <p className="text-sm">{selectedApplication.phone}</p>
+                                      </div>
+                                      <div>
+                                        <label className="text-sm font-medium">Usia</label>
+                                        <p className="text-sm">{selectedApplication.age} tahun</p>
+                                      </div>
+                                      <div>
+                                        <label className="text-sm font-medium">Lokasi</label>
+                                        <p className="text-sm">{selectedApplication.location}</p>
+                                      </div>
+                                      {parseProfileData(selectedApplication.profile_data)?.emergencyContact && (
+                                        <>
+                                          <div>
+                                            <label className="text-sm font-medium">Kontak Darurat</label>
+                                            <p className="text-sm">{parseProfileData(selectedApplication.profile_data).emergencyContact}</p>
+                                          </div>
+                                          <div>
+                                            <label className="text-sm font-medium">Nomor Darurat</label>
+                                            <p className="text-sm">{parseProfileData(selectedApplication.profile_data).emergencyPhone}</p>
+                                          </div>
+                                        </>
+                                      )}
+                                    </div>
+                                    
+                                    {selectedApplication.bio && (
+                                      <div className="mt-4">
+                                        <label className="text-sm font-medium block mb-1">Bio</label>
+                                        <p className="text-sm bg-white p-3 rounded border">{selectedApplication.bio}</p>
+                                      </div>
+                                    )}
+                                  </div>
 
-                        {application.verification_status === 'pending' && (
-                          <>
-                            <Button
-                              size="sm"
-                              className="bg-green-500 hover:bg-green-600"
-                              onClick={() => handleApproval(application.id, true)}
-                            >
-                              <CheckCircle className="w-3 h-3 mr-1" />
-                              Setujui
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => handleApproval(application.id, false)}
-                            >
-                              <XCircle className="w-3 h-3 mr-1" />
-                              Tolak
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                                  {/* Service Information */}
+                                  {parseProfileData(selectedApplication.profile_data) && (
+                                    <div className="bg-blue-50 p-4 rounded-lg">
+                                      <h3 className="font-semibold mb-3">Informasi Layanan</h3>
+                                      <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                          <label className="text-sm font-medium">Tarif per Jam</label>
+                                          <p className="text-sm font-medium">Rp {selectedApplication.hourly_rate?.toLocaleString()}</p>
+                                        </div>
+                                        <div>
+                                          <label className="text-sm font-medium">Pengalaman</label>
+                                          <p className="text-sm">{parseProfileData(selectedApplication.profile_data)?.experienceYears || 0} tahun</p>
+                                        </div>
+                                        <div>
+                                          <label className="text-sm font-medium">Transportasi</label>
+                                          <p className="text-sm">{parseProfileData(selectedApplication.profile_data)?.transportationMode}</p>
+                                        </div>
+                                      </div>
+                                      
+                                      {parseProfileData(selectedApplication.profile_data)?.services && (
+                                        <div className="mt-4">
+                                          <label className="text-sm font-medium block mb-2">Services yang Ditawarkan</label>
+                                          <div className="flex flex-wrap gap-1">
+                                            {parseProfileData(selectedApplication.profile_data).services.map((service: string, index: number) => (
+                                              <Badge key={index} variant="secondary">{service}</Badge>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+                                      
+                                      {parseProfileData(selectedApplication.profile_data)?.languages && (
+                                        <div className="mt-4">
+                                          <label className="text-sm font-medium block mb-2">Bahasa</label>
+                                          <div className="flex flex-wrap gap-1">
+                                            {parseProfileData(selectedApplication.profile_data).languages.map((language: string, index: number) => (
+                                              <Badge key={index} variant="outline">{language}</Badge>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {/* Document Status */}
+                                  {parseProfileData(selectedApplication.profile_data) && (
+                                    <div className="bg-yellow-50 p-4 rounded-lg">
+                                      <h3 className="font-semibold mb-3">Status Dokumen</h3>
+                                      <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                          <label className="text-sm font-medium">Foto KTP</label>
+                                          <p className="text-sm">
+                                            {parseProfileData(selectedApplication.profile_data)?.hasIdCard ? 
+                                              <Badge className="bg-green-100 text-green-600">Sudah Upload</Badge> : 
+                                              <Badge className="bg-red-100 text-red-600">Belum Upload</Badge>
+                                            }
+                                          </p>
+                                        </div>
+                                        <div>
+                                          <label className="text-sm font-medium">Foto Profil</label>
+                                          <p className="text-sm">
+                                            {parseProfileData(selectedApplication.profile_data)?.hasProfilePhoto ? 
+                                              <Badge className="bg-green-100 text-green-600">Sudah Upload</Badge> : 
+                                              <Badge className="bg-red-100 text-red-600">Belum Upload</Badge>
+                                            }
+                                          </p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {selectedApplication.verification_status === 'pending' && (
+                                    <div className="flex gap-2 pt-4 border-t">
+                                      <Button
+                                        className="bg-green-500 hover:bg-green-600"
+                                        onClick={() => handleApproval(selectedApplication.id, true)}
+                                      >
+                                        <CheckCircle className="w-4 h-4 mr-1" />
+                                        Setujui Talent
+                                      </Button>
+                                      <Button
+                                        variant="destructive"
+                                        onClick={() => handleApproval(selectedApplication.id, false)}
+                                      >
+                                        <XCircle className="w-4 h-4 mr-1" />
+                                        Tolak Talent
+                                      </Button>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </DialogContent>
+                          </Dialog>
+
+                          {application.verification_status === 'pending' && (
+                            <>
+                              <Button
+                                size="sm"
+                                className="bg-green-500 hover:bg-green-600"
+                                onClick={() => handleApproval(application.id, true)}
+                              >
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                Setujui
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleApproval(application.id, false)}
+                              >
+                                <XCircle className="w-3 h-3 mr-1" />
+                                Tolak
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
