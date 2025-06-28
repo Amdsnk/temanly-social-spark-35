@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface AdminUser {
@@ -31,15 +30,30 @@ export const adminUserService = {
 
       // Try to get Auth users via function
       if (functionError || !authData?.success) {
-        console.warn('⚠️ Admin function failed, falling back to profiles only:', functionError);
-        console.log('Auth function response:', authData);
+        console.warn('⚠️ Admin function failed:', {
+          functionError: functionError?.message,
+          authDataSuccess: authData?.success,
+          authDataError: authData?.error
+        });
+        console.log('🔍 Full auth function response:', authData);
       } else {
         authUsers = authData.users || [];
         console.log('✅ Auth users fetched via function:', authUsers.length);
-        console.log('🔍 Raw Auth users sample:', authUsers.slice(0, 2));
+        
+        // Enhanced logging of Auth users
+        authUsers.forEach((user, index) => {
+          console.log(`🔐 Auth User ${index + 1}:`, {
+            id: user.id.slice(0, 8) + '...',
+            email: user.email,
+            email_confirmed: !!user.email_confirmed_at,
+            user_metadata: user.user_metadata,
+            created_at: user.created_at
+          });
+        });
       }
 
       // Always get profiles data
+      console.log('📊 Fetching profiles data...');
       const { data: profiles, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -52,13 +66,46 @@ export const adminUserService = {
 
       profileUsers = profiles || [];
       console.log('✅ Profile users fetched:', profileUsers.length);
-      console.log('🔍 Raw Profile users sample:', profileUsers.slice(0, 2));
+      
+      // Enhanced logging of Profile users
+      profileUsers.forEach((user, index) => {
+        console.log(`👤 Profile User ${index + 1}:`, {
+          id: user.id.slice(0, 8) + '...',
+          email: user.email,
+          user_type: user.user_type,
+          verification_status: user.verification_status,
+          status: user.status,
+          created_at: user.created_at
+        });
+      });
 
       // Merge and deduplicate users
       const mergedUsers = this.mergeAuthAndProfileUsers(authUsers, profileUsers);
       
-      console.log('✅ Total merged users:', mergedUsers.length);
-      console.log('🔍 Sample merged users:', mergedUsers.slice(0, 2));
+      console.log('🎯 Final merged results:');
+      console.log('Total merged users:', mergedUsers.length);
+      
+      // Status breakdown
+      const statusBreakdown = mergedUsers.reduce((acc: any, user) => {
+        acc[user.verification_status] = (acc[user.verification_status] || 0) + 1;
+        return acc;
+      }, {});
+      console.log('📊 Verification status breakdown:', statusBreakdown);
+      
+      // Type breakdown
+      const typeBreakdown = mergedUsers.reduce((acc: any, user) => {
+        acc[user.user_type] = (acc[user.user_type] || 0) + 1;
+        return acc;
+      }, {});
+      console.log('📊 User type breakdown:', typeBreakdown);
+      
+      // Auth vs Profile breakdown
+      const sourceBreakdown = mergedUsers.reduce((acc: any, user) => {
+        if (user.auth_only) acc.authOnly++;
+        else if (user.has_profile) acc.hasProfile++;
+        return acc;
+      }, { authOnly: 0, hasProfile: 0 });
+      console.log('📊 Source breakdown:', sourceBreakdown);
       
       return { users: mergedUsers, error: null };
 
@@ -76,12 +123,13 @@ export const adminUserService = {
     console.log('Profile users to merge:', profileUsers.length);
 
     // Add profile users first
-    profileUsers.forEach(profile => {
-      console.log('📝 Processing profile user:', {
-        id: profile.id.slice(0, 8),
+    profileUsers.forEach((profile, index) => {
+      console.log(`📝 Processing profile user ${index + 1}:`, {
+        id: profile.id.slice(0, 8) + '...',
         email: profile.email,
         verification_status: profile.verification_status,
-        user_type: profile.user_type
+        user_type: profile.user_type,
+        status: profile.status
       });
       
       userMap.set(profile.id, {
@@ -101,12 +149,12 @@ export const adminUserService = {
     });
 
     // Add or merge auth users
-    authUsers.forEach(authUser => {
-      console.log('🔐 Processing auth user:', {
-        id: authUser.id.slice(0, 8),
+    authUsers.forEach((authUser, index) => {
+      console.log(`🔐 Processing auth user ${index + 1}:`, {
+        id: authUser.id.slice(0, 8) + '...',
         email: authUser.email,
-        user_metadata: authUser.user_metadata,
-        email_confirmed_at: authUser.email_confirmed_at
+        email_confirmed: !!authUser.email_confirmed_at,
+        user_metadata: authUser.user_metadata
       });
       
       const existingUser = userMap.get(authUser.id);
@@ -120,12 +168,21 @@ export const adminUserService = {
       } else {
         // Add auth-only user
         console.log('➕ Adding auth-only user');
-        const userType = authUser.user_metadata?.user_type || 'user';
-        const verificationStatus = authUser.email_confirmed_at ? 'verified' : 'pending';
         
-        console.log('Auth user metadata:', authUser.user_metadata);
-        console.log('Determined user_type:', userType);
-        console.log('Determined verification_status:', verificationStatus);
+        // Determine user type from metadata or default to user
+        const userType = authUser.user_metadata?.user_type || 'user';
+        
+        // Determine verification status based on email confirmation
+        // For new auth-only users, they should be pending by default
+        const verificationStatus = 'pending'; // Default to pending for approval workflow
+        
+        console.log('🔍 Auth user metadata analysis:', {
+          user_metadata: authUser.user_metadata,
+          app_metadata: authUser.app_metadata,
+          email_confirmed_at: authUser.email_confirmed_at,
+          determined_user_type: userType,
+          determined_verification_status: verificationStatus
+        });
         
         userMap.set(authUser.id, {
           id: authUser.id,
@@ -147,12 +204,26 @@ export const adminUserService = {
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
     
-    console.log('🎯 Final user breakdown:');
-    const breakdown = finalUsers.reduce((acc: any, user) => {
+    console.log('🎯 Final user breakdown by verification status:');
+    const finalBreakdown = finalUsers.reduce((acc: any, user) => {
       acc[user.verification_status] = (acc[user.verification_status] || 0) + 1;
       return acc;
     }, {});
-    console.log('Status breakdown:', breakdown);
+    console.log('Final status breakdown:', finalBreakdown);
+    
+    console.log('🎯 Final users summary:');
+    finalUsers.forEach((user, index) => {
+      if (index < 5) { // Show first 5 users
+        console.log(`Final User ${index + 1}:`, {
+          id: user.id.slice(0, 8) + '...',
+          email: user.email,
+          user_type: user.user_type,
+          verification_status: user.verification_status,
+          auth_only: user.auth_only,
+          has_profile: user.has_profile
+        });
+      }
+    });
     
     return finalUsers;
   },

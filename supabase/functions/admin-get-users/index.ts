@@ -9,7 +9,7 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  console.log('Admin get users function called with method:', req.method)
+  console.log('🚀 Admin get users function called with method:', req.method)
   
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -21,20 +21,24 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     
-    console.log('Environment check:', {
+    console.log('🔍 Environment check:', {
       hasUrl: !!supabaseUrl,
       hasServiceKey: !!serviceRoleKey,
-      url: supabaseUrl
+      urlLength: supabaseUrl?.length || 0
     })
     
     if (!supabaseUrl || !serviceRoleKey) {
-      console.error('Missing environment variables')
+      console.error('❌ Missing environment variables')
       return new Response(
         JSON.stringify({ 
           success: false,
-          error: 'Missing environment variables',
+          error: 'Missing required environment variables',
           users: [],
-          count: 0
+          count: 0,
+          details: {
+            hasUrl: !!supabaseUrl,
+            hasServiceKey: !!serviceRoleKey
+          }
         }),
         { 
           status: 500,
@@ -51,19 +55,20 @@ serve(async (req) => {
       }
     })
 
-    console.log('Attempting to fetch Auth users...')
+    console.log('🔐 Attempting to fetch Auth users...')
 
     // Get all users from Supabase Auth
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.listUsers()
 
     if (authError) {
-      console.error('Auth list users error:', authError)
+      console.error('❌ Auth list users error:', authError)
       return new Response(
         JSON.stringify({ 
           success: false,
           error: `Auth error: ${authError.message}`,
           users: [],
-          count: 0
+          count: 0,
+          authError: authError
         }),
         { 
           status: 500,
@@ -73,17 +78,23 @@ serve(async (req) => {
     }
 
     const users = authData?.users || []
-    console.log(`Successfully fetched ${users.length} Auth users`)
+    console.log(`✅ Successfully fetched ${users.length} Auth users`)
     
-    // Log first few users for debugging
+    // Enhanced logging of users
     if (users.length > 0) {
-      console.log('Sample Auth users:', users.slice(0, 2).map(u => ({
-        id: u.id,
-        email: u.email,
-        created_at: u.created_at,
-        user_metadata: u.user_metadata,
-        email_confirmed_at: u.email_confirmed_at
-      })))
+      console.log('📊 Auth users details:')
+      users.forEach((user, index) => {
+        console.log(`User ${index + 1}:`, {
+          id: user.id.slice(0, 8) + '...',
+          email: user.email,
+          created_at: user.created_at,
+          email_confirmed_at: user.email_confirmed_at,
+          user_metadata: user.user_metadata,
+          app_metadata: user.app_metadata
+        })
+      })
+    } else {
+      console.log('⚠️ No Auth users found')
     }
 
     return new Response(
@@ -91,7 +102,8 @@ serve(async (req) => {
         success: true, 
         users: users,
         count: users.length,
-        message: `Successfully fetched ${users.length} Auth users`
+        message: `Successfully fetched ${users.length} Auth users`,
+        timestamp: new Date().toISOString()
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -99,13 +111,14 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('Function execution error:', error)
+    console.error('💥 Function execution error:', error)
     return new Response(
       JSON.stringify({ 
         success: false,
         error: `Function error: ${error.message}`,
         users: [],
-        count: 0
+        count: 0,
+        stack: error.stack
       }),
       { 
         status: 500,
