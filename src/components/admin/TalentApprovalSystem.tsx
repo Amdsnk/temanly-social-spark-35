@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -76,10 +75,11 @@ const TalentApprovalSystem = () => {
         let profileData = null;
         let comprehensiveData: any = {};
         
-        // Parse profile_data if exists
-        if (profile.profile_data) {
+        // Parse profile_data if exists - need to cast profile as any to access profile_data
+        const profileWithData = profile as any;
+        if (profileWithData.profile_data) {
           try {
-            profileData = JSON.parse(profile.profile_data);
+            profileData = JSON.parse(profileWithData.profile_data);
             comprehensiveData = profileData;
           } catch (error) {
             console.warn('⚠️ Failed to parse profile_data for user:', profile.id, error);
