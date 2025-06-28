@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { CheckCircle, XCircle, Clock, Mail, Phone, User, FileText, Eye, Calendar, MapPin, RefreshCw, AlertCircle, Database } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { adminUserService } from '@/services/adminUserService';
+import { adminUserService, AdminUser } from '@/services/adminUserService';
 
 interface TalentApplication {
   id: string;
@@ -16,9 +15,9 @@ interface TalentApplication {
   full_name: string;
   email: string;
   phone: string;
-  age: number;
-  location: string;
-  bio: string;
+  age: number | null;
+  location: string | null;
+  bio: string | null;
   verification_status: 'pending' | 'verified' | 'rejected';
   status: string;
   created_at: string;
@@ -37,7 +36,7 @@ interface TalentApplication {
 
 const TalentRegistrationManagement = () => {
   const [applications, setApplications] = useState<TalentApplication[]>([]);
-  const [allUsers, setAllUsers] = useState<TalentApplication[]>([]);
+  const [allUsers, setAllUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedApplication, setSelectedApplication] = useState<TalentApplication | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -48,6 +47,27 @@ const TalentRegistrationManagement = () => {
     fetchTalentApplications();
     setupRealTimeUpdates();
   }, []);
+
+  const transformAdminUserToTalentApplication = (user: AdminUser): TalentApplication => {
+    return {
+      id: user.id,
+      name: user.name || user.full_name || 'No Name',
+      full_name: user.full_name || user.name || '',
+      email: user.email,
+      phone: user.phone || '',
+      age: null, // Will be populated from profile data if available
+      location: null, // Will be populated from profile data if available
+      bio: null, // Will be populated from profile data if available
+      verification_status: user.verification_status,
+      status: user.status,
+      created_at: user.created_at,
+      updated_at: user.updated_at || user.created_at,
+      user_type: user.user_type,
+      profile_data: null,
+      auth_only: user.auth_only,
+      has_profile: user.has_profile
+    };
+  };
 
   const fetchTalentApplications = async () => {
     try {
@@ -65,9 +85,8 @@ const TalentRegistrationManagement = () => {
       console.log('📊 All users data:', users);
       
       // Filter for talent users (companions) - including both auth-only and profile users
-      const talentUsers = users.filter((user: any) => 
-        user.user_type === 'companion' || 
-        (user.auth_only && user.user_type === 'companion')
+      const talentUsers = users.filter((user: AdminUser) => 
+        user.user_type === 'companion'
       );
       
       console.log(`✅ Total users fetched: ${users.length}`);
@@ -75,25 +94,7 @@ const TalentRegistrationManagement = () => {
       console.log('📋 Talent users details:', talentUsers);
       
       // Transform the data to match our interface
-      const transformedTalents = talentUsers.map((user: any) => ({
-        id: user.id,
-        name: user.name || user.full_name || 'No Name',
-        full_name: user.full_name || user.name,
-        email: user.email,
-        phone: user.phone,
-        age: user.age,
-        location: user.location,
-        bio: user.bio,
-        verification_status: user.verification_status,
-        status: user.status || 'pending',
-        created_at: user.created_at,
-        updated_at: user.updated_at,
-        hourly_rate: user.hourly_rate,
-        user_type: user.user_type,
-        profile_data: user.profile_data,
-        auth_only: user.auth_only,
-        has_profile: user.has_profile
-      }));
+      const transformedTalents = talentUsers.map(transformAdminUserToTalentApplication);
       
       setAllUsers(users);
       setApplications(transformedTalents);
@@ -151,8 +152,11 @@ const TalentRegistrationManagement = () => {
       
       if (userToUpdate.auth_only && !userToUpdate.has_profile) {
         // User is auth-only, need to create profile first
-        await adminUserService.createMissingProfiles([userToUpdate as any]);
-        console.log('✅ Created profile for auth-only user');
+        const adminUser = allUsers.find(u => u.id === applicationId);
+        if (adminUser) {
+          await adminUserService.createMissingProfiles([adminUser]);
+          console.log('✅ Created profile for auth-only user');
+        }
       }
       
       // Now update the profile
