@@ -124,12 +124,12 @@ export const adminUserService = {
       const profilesData = authOnlyUsers.map(user => ({
         id: user.id,
         email: user.email,
-        name: user.name,
+        name: user.name || user.email?.split('@')[0] || 'User',
         full_name: user.full_name || user.name,
         phone: user.phone,
         user_type: user.user_type,
         verification_status: user.verification_status,
-        status: user.status,
+        status: user.verification_status === 'verified' ? 'active' as const : 'pending' as const,
         created_at: user.created_at,
         updated_at: new Date().toISOString()
       }));

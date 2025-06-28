@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CheckCircle, XCircle, Clock, Mail, Phone, User, RefreshCw, Database, AlertCircle, Sync } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Mail, Phone, User, RefreshCw, Database, AlertCircle, ArrowUpDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Database as DatabaseType } from '@/integrations/supabase/types';
@@ -270,7 +269,7 @@ const UserApprovalManagement = () => {
                   disabled={syncing}
                   className="flex items-center gap-1 bg-orange-500 hover:bg-orange-600"
                 >
-                  <Sync className={`h-3 w-3 ${syncing ? 'animate-spin' : ''}`} />
+                  <ArrowUpDown className={`h-3 w-3 ${syncing ? 'animate-spin' : ''}`} />
                   Sync Auth to Profiles ({authOnlyUsers.length})
                 </Button>
               )}
@@ -316,7 +315,7 @@ const UserApprovalManagement = () => {
                     className="bg-orange-500 hover:bg-orange-600"
                     size="sm"
                   >
-                    <Sync className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+                    <ArrowUpDown className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
                     Sync {authOnlyUsers.length} Auth Users to Profiles
                   </Button>
                 </div>

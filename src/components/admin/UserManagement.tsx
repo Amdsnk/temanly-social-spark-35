@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Users, Search, Eye, UserCheck, UserX, Mail, Phone, Calendar, RefreshCw, AlertTriangle, Database, Sync } from 'lucide-react';
+import { Users, Search, Eye, UserCheck, UserX, Mail, Phone, Calendar, RefreshCw, AlertTriangle, Database, ArrowUpDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Database as DatabaseType } from '@/integrations/supabase/types';
@@ -349,7 +349,7 @@ const UserManagement = () => {
                   disabled={syncing}
                   className="flex items-center gap-1 bg-orange-500 hover:bg-orange-600"
                 >
-                  <Sync className={`h-3 w-3 ${syncing ? 'animate-spin' : ''}`} />
+                  <ArrowUpDown className={`h-3 w-3 ${syncing ? 'animate-spin' : ''}`} />
                   Sync Auth to Profiles ({stats.authOnlyUsers})
                 </Button>
               )}
