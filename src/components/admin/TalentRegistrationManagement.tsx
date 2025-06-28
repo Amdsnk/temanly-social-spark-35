@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { CheckCircle, XCircle, Clock, Mail, Phone, User, FileText, Eye, Calendar, MapPin, RefreshCw, AlertCircle, Database } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { adminUserService } from '@/services/adminUserService';
 
 interface TalentApplication {
   id: string;
@@ -30,6 +31,8 @@ interface TalentApplication {
   languages?: string[];
   user_type: string;
   profile_data?: string;
+  auth_only: boolean;
+  has_profile: boolean;
 }
 
 const TalentRegistrationManagement = () => {
@@ -52,31 +55,49 @@ const TalentRegistrationManagement = () => {
       setRefreshing(true);
       setConnectionStatus('Connecting to database...');
       
-      // Fetch all profiles
-      const { data: profiles, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
-
+      // Get all users using the admin service which includes both Auth and Profile data
+      const { users, error } = await adminUserService.getAllUsers();
+      
       if (error) {
-        console.error('❌ Database query error:', error);
-        throw error;
+        throw new Error(error);
       }
 
-      console.log('📊 Raw profiles data:', profiles);
+      console.log('📊 All users data:', users);
       
-      const allUsers = profiles || [];
+      // Filter for talent users (companions) - including both auth-only and profile users
+      const talentUsers = users.filter((user: any) => 
+        user.user_type === 'companion' || 
+        (user.auth_only && user.user_type === 'companion')
+      );
       
-      // Filter talent users (companions)
-      const talentUsers = allUsers.filter((user: any) => user.user_type === 'companion');
-      
-      console.log(`✅ Total users fetched: ${allUsers.length}`);
+      console.log(`✅ Total users fetched: ${users.length}`);
       console.log(`✅ Talent users found: ${talentUsers.length}`);
-      console.log('📋 Sample talent users:', talentUsers.slice(0, 3));
+      console.log('📋 Talent users details:', talentUsers);
       
-      setAllUsers(allUsers);
-      setApplications(talentUsers);
-      setConnectionStatus(`Successfully loaded ${allUsers.length} total users, ${talentUsers.length} talents`);
+      // Transform the data to match our interface
+      const transformedTalents = talentUsers.map((user: any) => ({
+        id: user.id,
+        name: user.name || user.full_name || 'No Name',
+        full_name: user.full_name || user.name,
+        email: user.email,
+        phone: user.phone,
+        age: user.age,
+        location: user.location,
+        bio: user.bio,
+        verification_status: user.verification_status,
+        status: user.status || 'pending',
+        created_at: user.created_at,
+        updated_at: user.updated_at,
+        hourly_rate: user.hourly_rate,
+        user_type: user.user_type,
+        profile_data: user.profile_data,
+        auth_only: user.auth_only,
+        has_profile: user.has_profile
+      }));
+      
+      setAllUsers(users);
+      setApplications(transformedTalents);
+      setConnectionStatus(`Successfully loaded ${users.length} total users, ${transformedTalents.length} talents`);
 
     } catch (error: any) {
       console.error('❌ Error fetching talent applications:', error);
@@ -121,6 +142,20 @@ const TalentRegistrationManagement = () => {
       
       console.log(`${approved ? '✅' : '❌'} Processing approval for talent:`, applicationId);
       
+      // First, check if user has a profile
+      const userToUpdate = applications.find(app => app.id === applicationId);
+      
+      if (!userToUpdate) {
+        throw new Error('User not found');
+      }
+      
+      if (userToUpdate.auth_only && !userToUpdate.has_profile) {
+        // User is auth-only, need to create profile first
+        await adminUserService.createMissingProfiles([userToUpdate as any]);
+        console.log('✅ Created profile for auth-only user');
+      }
+      
+      // Now update the profile
       const { error } = await supabase
         .from('profiles')
         .update({ 
@@ -142,7 +177,7 @@ const TalentRegistrationManagement = () => {
       setApplications(prev => 
         prev.map(app => 
           app.id === applicationId 
-            ? { ...app, verification_status: verificationStatus as any, status: profileStatus }
+            ? { ...app, verification_status: verificationStatus as any, status: profileStatus, auth_only: false, has_profile: true }
             : app
         )
       );
@@ -357,6 +392,9 @@ const TalentRegistrationManagement = () => {
                             <div className="font-medium">{application.name || application.full_name || 'No Name'}</div>
                             <div className="text-sm text-gray-500">ID: {application.id.slice(0, 8)}...</div>
                             <div className="flex gap-1 mt-1">
+                              {application.auth_only && (
+                                <Badge variant="outline" className="text-xs bg-orange-100 text-orange-600">Auth Only</Badge>
+                              )}
                               {profileData?.hasIdCard && (
                                 <Badge variant="outline" className="text-xs">📄 KTP</Badge>
                               )}
@@ -529,6 +567,16 @@ const TalentDetailView = ({
           <div>
             <label className="text-sm font-medium text-gray-700">Tanggal Daftar</label>
             <p className="text-sm mt-1">{new Date(application.created_at).toLocaleString('id-ID')}</p>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700">Status Data</label>
+            <p className="text-sm mt-1">
+              {application.auth_only ? (
+                <Badge className="bg-orange-100 text-orange-700">Auth Only - Belum ada Profile</Badge>
+              ) : (
+                <Badge className="bg-green-100 text-green-700">Profile Lengkap</Badge>
+              )}
+            </p>
           </div>
         </div>
         
