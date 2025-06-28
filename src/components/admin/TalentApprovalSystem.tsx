@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -55,8 +56,9 @@ const TalentApprovalSystem = () => {
   const fetchTalentRegistrations = async () => {
     try {
       setLoading(true);
-      console.log('🔍 Fetching comprehensive talent registrations...');
+      console.log('🔍 Fetching talent registrations...');
 
+      // Fetch all companion profiles
       const { data: profiles, error } = await supabase
         .from('profiles')
         .select('*')
@@ -70,26 +72,24 @@ const TalentApprovalSystem = () => {
 
       console.log('📊 Raw profiles data:', profiles);
 
-      // Transform profiles data to match our interface with comprehensive data extraction
+      // Transform profiles data to match our interface
       const transformedTalents: TalentRegistrationData[] = profiles.map(profile => {
         let profileData = null;
         let comprehensiveData: any = {};
         
-        // Parse profile_data if exists - need to cast profile as any to access profile_data
-        const profileWithData = profile as any;
-        if (profileWithData.profile_data) {
+        // Parse profile_data if exists
+        if ((profile as any).profile_data) {
           try {
-            profileData = JSON.parse(profileWithData.profile_data);
+            profileData = JSON.parse((profile as any).profile_data);
             comprehensiveData = profileData;
           } catch (error) {
             console.warn('⚠️ Failed to parse profile_data for user:', profile.id, error);
           }
         }
 
-        // Merge all data sources with priority: profile_data > direct fields > defaults
+        // Merge all data sources
         const combinedData = {
           ...comprehensiveData,
-          // Direct fields take precedence
           age: profile.age || comprehensiveData.age || 0,
           location: profile.location || comprehensiveData.location || 'Tidak diisi',
           bio: profile.bio || comprehensiveData.bio || '',
@@ -123,7 +123,7 @@ const TalentApprovalSystem = () => {
         };
       });
 
-      console.log('✅ Transformed comprehensive talents:', transformedTalents);
+      console.log('✅ Transformed talents:', transformedTalents);
       setTalents(transformedTalents);
 
     } catch (error: any) {
@@ -163,7 +163,6 @@ const TalentApprovalSystem = () => {
   const filterTalents = () => {
     let filtered = talents;
 
-    // Filter by search term
     if (searchTerm) {
       filtered = filtered.filter(talent =>
         talent.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -173,12 +172,10 @@ const TalentApprovalSystem = () => {
       );
     }
 
-    // Filter by status
     if (statusFilter !== 'all') {
       filtered = filtered.filter(talent => talent.verification_status === statusFilter);
     }
 
-    // Filter by service
     if (serviceFilter !== 'all') {
       filtered = filtered.filter(talent => 
         talent.services.some(service => 
@@ -211,9 +208,6 @@ const TalentApprovalSystem = () => {
         throw error;
       }
 
-      // Send notification email
-      await sendApprovalNotification(talentId, approved);
-
       // Update local state
       setTalents(prev => 
         prev.map(talent => 
@@ -225,7 +219,7 @@ const TalentApprovalSystem = () => {
       
       toast({
         title: approved ? "✅ Talent Disetujui" : "❌ Talent Ditolak",
-        description: `Pendaftaran talent telah ${approved ? 'disetujui' : 'ditolak'} dan notifikasi telah dikirim.`,
+        description: `Pendaftaran talent telah ${approved ? 'disetujui' : 'ditolak'}.`,
         className: approved ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"
       });
       
@@ -236,23 +230,6 @@ const TalentApprovalSystem = () => {
         description: "Gagal mengupdate status talent: " + error.message,
         variant: "destructive"
       });
-    }
-  };
-
-  const sendApprovalNotification = async (talentId: string, approved: boolean) => {
-    try {
-      console.log('📧 Sending approval notification...');
-      const { error } = await supabase.functions.invoke('send-approval-notification', {
-        body: { userId: talentId, approved }
-      });
-      
-      if (error) {
-        console.error('❌ Error sending notification:', error);
-      } else {
-        console.log('✅ Notification sent successfully');
-      }
-    } catch (error) {
-      console.error('❌ Error sending notification:', error);
     }
   };
 
@@ -281,7 +258,7 @@ const TalentApprovalSystem = () => {
 
   return (
     <div className="space-y-6">
-      {/* Enhanced Summary Cards */}
+      {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -339,7 +316,7 @@ const TalentApprovalSystem = () => {
         </Card>
       </div>
 
-      {/* Enhanced Filters */}
+      {/* Filters */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
@@ -411,7 +388,9 @@ const TalentApprovalSystem = () => {
           <Card>
             <CardContent className="p-8 text-center">
               <FileCheck className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Tidak Ada Data</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                {loading ? "Memuat data..." : "Tidak Ada Data"}
+              </h3>
               <p className="text-gray-500">
                 {searchTerm || statusFilter !== 'all' || serviceFilter !== 'all'
                   ? 'Tidak ada talent yang sesuai dengan filter yang dipilih.'

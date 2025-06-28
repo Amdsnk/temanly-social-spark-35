@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,9 +6,11 @@ import { Separator } from '@/components/ui/separator';
 import { 
   User, Mail, Phone, MapPin, Calendar, Clock, Star, 
   CreditCard, Users, Shield, Car, Heart, Languages,
-  AlertTriangle, CheckCircle, XCircle, Eye, UserCheck, UserX
+  AlertTriangle, CheckCircle, XCircle, Eye, UserCheck, UserX,
+  FileText, Image
 } from 'lucide-react';
 import TalentDetailModal from './TalentDetailModal';
+import DocumentPreviewModal from './DocumentPreviewModal';
 
 interface TalentData {
   id: string;
@@ -49,6 +50,16 @@ const TalentApprovalCard: React.FC<TalentApprovalCardProps> = ({
   onReject
 }) => {
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showDocumentModal, setShowDocumentModal] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState<{
+    url: string;
+    type: 'id_card' | 'profile_photo';
+  } | null>(null);
+
+  const handleViewDocument = (url: string, type: 'id_card' | 'profile_photo') => {
+    setSelectedDocument({ url, type });
+    setShowDocumentModal(true);
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -223,7 +234,7 @@ const TalentApprovalCard: React.FC<TalentApprovalCardProps> = ({
 
           <Separator />
 
-          {/* Document Status */}
+          {/* Enhanced Document Status */}
           <div className="space-y-2">
             <div className="font-medium text-sm flex items-center gap-2">
               <AlertTriangle className="w-4 h-4" />
@@ -233,28 +244,54 @@ const TalentApprovalCard: React.FC<TalentApprovalCardProps> = ({
               <div className="flex items-center gap-2">
                 <span className="text-sm">KTP:</span>
                 {talent.has_id_card ? (
-                  <Badge className="bg-green-100 text-green-600 text-xs">
-                    <CheckCircle className="w-3 h-3 mr-1" />
-                    OK
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-green-100 text-green-600 text-xs">
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      Tersedia
+                    </Badge>
+                    {talent.id_card_url && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleViewDocument(talent.id_card_url!, 'id_card')}
+                        className="h-6 px-2 text-xs"
+                      >
+                        <FileText className="w-3 h-3 mr-1" />
+                        Lihat
+                      </Button>
+                    )}
+                  </div>
                 ) : (
                   <Badge className="bg-red-100 text-red-600 text-xs">
                     <XCircle className="w-3 h-3 mr-1" />
-                    Belum
+                    Belum Upload
                   </Badge>
                 )}
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm">Foto:</span>
                 {talent.has_profile_photo ? (
-                  <Badge className="bg-green-100 text-green-600 text-xs">
-                    <CheckCircle className="w-3 h-3 mr-1" />
-                    OK
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-green-100 text-green-600 text-xs">
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      Tersedia
+                    </Badge>
+                    {talent.profile_photo_url && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleViewDocument(talent.profile_photo_url!, 'profile_photo')}
+                        className="h-6 px-2 text-xs"
+                      >
+                        <Image className="w-3 h-3 mr-1" />
+                        Lihat
+                      </Button>
+                    )}
+                  </div>
                 ) : (
                   <Badge className="bg-red-100 text-red-600 text-xs">
                     <XCircle className="w-3 h-3 mr-1" />
-                    Belum
+                    Belum Upload
                   </Badge>
                 )}
               </div>
@@ -322,6 +359,19 @@ const TalentApprovalCard: React.FC<TalentApprovalCardProps> = ({
         onApprove={onApprove}
         onReject={onReject}
       />
+
+      {selectedDocument && (
+        <DocumentPreviewModal
+          isOpen={showDocumentModal}
+          onClose={() => {
+            setShowDocumentModal(false);
+            setSelectedDocument(null);
+          }}
+          documentUrl={selectedDocument.url}
+          documentType={selectedDocument.type}
+          userName={talent.full_name}
+        />
+      )}
     </>
   );
 };
