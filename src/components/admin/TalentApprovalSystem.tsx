@@ -8,6 +8,7 @@ import { Clock, CheckCircle, XCircle, User, Search, Filter, RefreshCw, AlertTria
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import TalentApprovalCard from './TalentApprovalCard';
+import { adminUserService } from '@/services/adminUserService';
 
 interface TalentRegistrationData {
   id: string;
@@ -56,81 +57,92 @@ const TalentApprovalSystem = () => {
   const fetchTalentRegistrations = async () => {
     try {
       setLoading(true);
-      console.log('🔍 Fetching talent registrations...');
+      console.log('🔍 [TalentApproval] Fetching talent registrations...');
 
-      // Fetch all companion profiles
-      const { data: profiles, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_type', 'companion')
-        .order('created_at', { ascending: false });
-
+      // Use adminUserService to get all users including auth-only users
+      const { users, error } = await adminUserService.getAllUsers();
+      
       if (error) {
-        console.error('❌ Error fetching profiles:', error);
-        throw error;
+        console.error('❌ [TalentApproval] Error fetching users:', error);
+        throw new Error(error);
       }
 
-      console.log('📊 Raw profiles data:', profiles);
+      console.log('📊 [TalentApproval] All users received:', users.length);
+      
+      // Filter for companion users only
+      const companionUsers = users.filter(user => user.user_type === 'companion');
+      
+      console.log('🎯 [TalentApproval] Companion users found:', companionUsers.length);
+      console.log('👥 [TalentApproval] Companion users details:', companionUsers);
 
-      // Transform profiles data to match our interface
-      const transformedTalents: TalentRegistrationData[] = profiles.map(profile => {
+      // Transform users to talent registration data
+      const transformedTalents: TalentRegistrationData[] = companionUsers.map(user => {
         let profileData = null;
-        let comprehensiveData: any = {};
         
         // Parse profile_data if exists
-        if ((profile as any).profile_data) {
+        if (user.profile_data) {
           try {
-            profileData = JSON.parse((profile as any).profile_data);
-            comprehensiveData = profileData;
+            profileData = JSON.parse(user.profile_data);
+            console.log('📝 [TalentApproval] Parsed profile data for:', user.id.slice(0, 8), profileData);
           } catch (error) {
-            console.warn('⚠️ Failed to parse profile_data for user:', profile.id, error);
+            console.warn('⚠️ [TalentApproval] Failed to parse profile_data for user:', user.id, error);
           }
         }
 
-        // Merge all data sources
-        const combinedData = {
-          ...comprehensiveData,
-          age: profile.age || comprehensiveData.age || 0,
-          location: profile.location || comprehensiveData.location || 'Tidak diisi',
-          bio: profile.bio || comprehensiveData.bio || '',
-          hourlyRate: profile.hourly_rate || comprehensiveData.hourlyRate || 0,
+        const talent = {
+          id: user.id,
+          email: user.email || '',
+          full_name: user.full_name || user.name || 'Tidak ada nama',
+          phone: user.phone || '',
+          age: profileData?.age || user.age || 0,
+          location: profileData?.location || user.location || 'Tidak diisi',
+          bio: profileData?.bio || user.bio || '',
+          hourly_rate: profileData?.hourlyRate || user.hourly_rate || 0,
+          services: profileData?.services || [],
+          languages: profileData?.languages || ['Bahasa Indonesia'],
+          interests: profileData?.interests || [],
+          experience_years: profileData?.experienceYears || 0,
+          transportation_mode: profileData?.transportationMode || '',
+          emergency_contact: profileData?.emergencyContact || '',
+          emergency_phone: profileData?.emergencyPhone || '',
+          availability: profileData?.availability || [],
+          has_id_card: profileData?.hasIdCard || false,
+          has_profile_photo: profileData?.hasProfilePhoto || false,
+          id_card_url: profileData?.idCardUrl,
+          profile_photo_url: profileData?.profilePhotoUrl,
+          created_at: user.created_at,
+          verification_status: user.verification_status as 'pending' | 'verified' | 'rejected',
+          specialties: profileData?.services || []
         };
 
-        return {
-          id: profile.id,
-          email: profile.email || '',
-          full_name: profile.full_name || profile.name || 'Tidak ada nama',
-          phone: profile.phone || '',
-          age: combinedData.age,
-          location: combinedData.location,
-          bio: combinedData.bio,
-          hourly_rate: combinedData.hourlyRate,
-          services: combinedData.services || [],
-          languages: combinedData.languages || ['Bahasa Indonesia'],
-          interests: combinedData.interests || [],
-          experience_years: combinedData.experienceYears || 0,
-          transportation_mode: combinedData.transportationMode || '',
-          emergency_contact: combinedData.emergencyContact || '',
-          emergency_phone: combinedData.emergencyPhone || '',
-          availability: combinedData.availability || [],
-          has_id_card: combinedData.hasIdCard || false,
-          has_profile_photo: combinedData.hasProfilePhoto || false,
-          id_card_url: combinedData.idCardUrl,
-          profile_photo_url: combinedData.profilePhotoUrl,
-          created_at: profile.created_at,
-          verification_status: profile.verification_status as 'pending' | 'verified' | 'rejected',
-          specialties: combinedData.specialties || []
-        };
+        console.log('🔄 [TalentApproval] Transformed talent:', {
+          id: talent.id.slice(0, 8),
+          name: talent.full_name,
+          verification_status: talent.verification_status,
+          user_type: user.user_type,
+          auth_only: user.auth_only,
+          has_profile: user.has_profile
+        });
+
+        return talent;
       });
 
-      console.log('✅ Transformed talents:', transformedTalents);
+      console.log('✅ [TalentApproval] Final transformed talents:', transformedTalents.length);
+      
+      // Show status breakdown
+      const statusBreakdown = transformedTalents.reduce((acc: any, talent) => {
+        acc[talent.verification_status] = (acc[talent.verification_status] || 0) + 1;
+        return acc;
+      }, {});
+      console.log('📊 [TalentApproval] Status breakdown:', statusBreakdown);
+
       setTalents(transformedTalents);
 
     } catch (error: any) {
-      console.error('❌ Error fetching talent registrations:', error);
+      console.error('❌ [TalentApproval] Error fetching talent registrations:', error);
       toast({
         title: "Error",
-        description: "Gagal memuat data pendaftaran talent.",
+        description: "Gagal memuat data pendaftaran talent: " + error.message,
         variant: "destructive"
       });
     } finally {
@@ -139,8 +151,10 @@ const TalentApprovalSystem = () => {
   };
 
   const setupRealTimeUpdates = () => {
+    console.log('🔄 [TalentApproval] Setting up real-time updates...');
+    
     const channel = supabase
-      .channel('talent-registrations')
+      .channel('talent-registrations-approval')
       .on('postgres_changes',
         { 
           event: '*', 
@@ -149,7 +163,7 @@ const TalentApprovalSystem = () => {
           filter: 'user_type=eq.companion'
         },
         (payload) => {
-          console.log('🔄 Real-time update received:', payload);
+          console.log('🔄 [TalentApproval] Real-time update received:', payload);
           fetchTalentRegistrations();
         }
       )
@@ -184,6 +198,7 @@ const TalentApprovalSystem = () => {
       );
     }
 
+    console.log('🔍 [TalentApproval] Filtered talents:', filtered.length, 'from', talents.length);
     setFilteredTalents(filtered);
   };
 
@@ -192,7 +207,21 @@ const TalentApprovalSystem = () => {
       const verificationStatus = approved ? 'verified' : 'rejected';
       const profileStatus = approved ? 'active' : 'suspended';
       
-      console.log(`${approved ? '✅' : '❌'} Processing approval for talent:`, talentId);
+      console.log(`${approved ? '✅' : '❌'} [TalentApproval] Processing approval for talent:`, talentId);
+      
+      // Check if user needs profile creation first
+      const userToUpdate = talents.find(t => t.id === talentId);
+      
+      if (userToUpdate) {
+        // Get full user data to check if profile exists
+        const { users } = await adminUserService.getAllUsers();
+        const fullUserData = users.find(u => u.id === talentId);
+        
+        if (fullUserData && fullUserData.auth_only && !fullUserData.has_profile) {
+          console.log('🔧 [TalentApproval] Creating profile for auth-only user...');
+          await adminUserService.createMissingProfiles([fullUserData]);
+        }
+      }
       
       const { error } = await supabase
         .from('profiles')
@@ -204,11 +233,11 @@ const TalentApprovalSystem = () => {
         .eq('id', talentId);
 
       if (error) {
-        console.error('❌ Error updating talent status:', error);
+        console.error('❌ [TalentApproval] Error updating talent status:', error);
         throw error;
       }
 
-      // Update local state
+      // Update local state immediately
       setTalents(prev => 
         prev.map(talent => 
           talent.id === talentId 
@@ -222,9 +251,12 @@ const TalentApprovalSystem = () => {
         description: `Pendaftaran talent telah ${approved ? 'disetujui' : 'ditolak'}.`,
         className: approved ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"
       });
+
+      // Refresh data after a short delay
+      setTimeout(() => fetchTalentRegistrations(), 1000);
       
     } catch (error: any) {
-      console.error('❌ Error updating talent status:', error);
+      console.error('❌ [TalentApproval] Error updating talent status:', error);
       toast({
         title: "Error",
         description: "Gagal mengupdate status talent: " + error.message,
@@ -391,11 +423,17 @@ const TalentApprovalSystem = () => {
               <h3 className="text-lg font-medium text-gray-900 mb-2">
                 {loading ? "Memuat data..." : "Tidak Ada Data"}
               </h3>
-              <p className="text-gray-500">
+              <p className="text-gray-500 mb-4">
                 {searchTerm || statusFilter !== 'all' || serviceFilter !== 'all'
                   ? 'Tidak ada talent yang sesuai dengan filter yang dipilih.'
                   : 'Belum ada pendaftaran talent yang masuk.'}
               </p>
+              <div className="text-sm text-gray-400 space-y-1">
+                <p>Debug Info:</p>
+                <p>Total talents found: {talents.length}</p>
+                <p>Filtered result: {filteredTalents.length}</p>
+                <p>Pending: {pendingCount}, Verified: {approvedCount}, Rejected: {rejectedCount}</p>
+              </div>
               {(searchTerm || statusFilter !== 'all' || serviceFilter !== 'all') && (
                 <Button 
                   variant="outline" 

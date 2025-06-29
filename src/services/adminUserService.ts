@@ -30,7 +30,7 @@ export interface AdminUser {
 export const adminUserService = {
   async getAllUsers(): Promise<{ users: AdminUser[], error: string | null }> {
     try {
-      console.log('🔍 AdminUserService: Starting comprehensive data fetch...');
+      console.log('🔍 [AdminUserService] Starting comprehensive data fetch...');
       
       // Get all users from Supabase Auth using admin function
       const { data: authData, error: functionError } = await supabase.functions.invoke('admin-get-users', {
@@ -42,19 +42,19 @@ export const adminUserService = {
 
       // Try to get Auth users via function
       if (functionError || !authData?.success) {
-        console.warn('⚠️ Admin function failed:', {
+        console.warn('⚠️ [AdminUserService] Admin function failed:', {
           functionError: functionError?.message,
           authDataSuccess: authData?.success,
           authDataError: authData?.error
         });
-        console.log('🔍 Full auth function response:', authData);
+        console.log('🔍 [AdminUserService] Full auth function response:', authData);
       } else {
         authUsers = authData.users || [];
-        console.log('✅ Auth users fetched via function:', authUsers.length);
+        console.log('✅ [AdminUserService] Auth users fetched via function:', authUsers.length);
         
         // Enhanced logging of Auth users
         authUsers.forEach((user, index) => {
-          console.log(`🔐 Auth User ${index + 1}:`, {
+          console.log(`🔐 [AdminUserService] Auth User ${index + 1}:`, {
             id: user.id.slice(0, 8) + '...',
             email: user.email,
             email_confirmed: !!user.email_confirmed_at,
@@ -64,24 +64,24 @@ export const adminUserService = {
         });
       }
 
-      // Always get profiles data
-      console.log('📊 Fetching profiles data...');
+      // Always get profiles data with fresh fetch
+      console.log('📊 [AdminUserService] Fetching profiles data...');
       const { data: profiles, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (profileError) {
-        console.error('❌ Error fetching profiles:', profileError);
+        console.error('❌ [AdminUserService] Error fetching profiles:', profileError);
         throw profileError;
       }
 
       profileUsers = profiles || [];
-      console.log('✅ Profile users fetched:', profileUsers.length);
+      console.log('✅ [AdminUserService] Profile users fetched:', profileUsers.length);
       
       // Enhanced logging of Profile users
       profileUsers.forEach((user, index) => {
-        console.log(`👤 Profile User ${index + 1}:`, {
+        console.log(`👤 [AdminUserService] Profile User ${index + 1}:`, {
           id: user.id.slice(0, 8) + '...',
           email: user.email,
           user_type: user.user_type,
@@ -98,7 +98,7 @@ export const adminUserService = {
       // Merge and deduplicate users
       const mergedUsers = this.mergeAuthAndProfileUsers(authUsers, profileUsers);
       
-      console.log('🎯 Final merged results:');
+      console.log('🎯 [AdminUserService] Final merged results:');
       console.log('Total merged users:', mergedUsers.length);
       
       // Status breakdown
@@ -106,14 +106,14 @@ export const adminUserService = {
         acc[user.verification_status] = (acc[user.verification_status] || 0) + 1;
         return acc;
       }, {});
-      console.log('📊 Verification status breakdown:', statusBreakdown);
+      console.log('📊 [AdminUserService] Verification status breakdown:', statusBreakdown);
       
       // Type breakdown
       const typeBreakdown = mergedUsers.reduce((acc: any, user) => {
         acc[user.user_type] = (acc[user.user_type] || 0) + 1;
         return acc;
       }, {});
-      console.log('📊 User type breakdown:', typeBreakdown);
+      console.log('📊 [AdminUserService] User type breakdown:', typeBreakdown);
       
       // Auth vs Profile breakdown
       const sourceBreakdown = mergedUsers.reduce((acc: any, user) => {
@@ -121,12 +121,26 @@ export const adminUserService = {
         else if (user.has_profile) acc.hasProfile++;
         return acc;
       }, { authOnly: 0, hasProfile: 0 });
-      console.log('📊 Source breakdown:', sourceBreakdown);
+      console.log('📊 [AdminUserService] Source breakdown:', sourceBreakdown);
+      
+      // Companion user specific logging
+      const companionUsers = mergedUsers.filter(u => u.user_type === 'companion');
+      console.log('🎯 [AdminUserService] Companion users found:', companionUsers.length);
+      companionUsers.forEach((user, index) => {
+        console.log(`👨‍💼 [AdminUserService] Companion ${index + 1}:`, {
+          id: user.id.slice(0, 8),
+          name: user.name || user.full_name,
+          email: user.email,
+          verification_status: user.verification_status,
+          auth_only: user.auth_only,
+          has_profile: user.has_profile
+        });
+      });
       
       return { users: mergedUsers, error: null };
 
     } catch (error: any) {
-      console.error('❌ AdminUserService error:', error);
+      console.error('❌ [AdminUserService] error:', error);
       return { users: [], error: error.message };
     }
   },
@@ -134,13 +148,13 @@ export const adminUserService = {
   mergeAuthAndProfileUsers(authUsers: any[], profileUsers: any[]): AdminUser[] {
     const userMap = new Map<string, AdminUser>();
     
-    console.log('🔄 Starting merge process...');
+    console.log('🔄 [AdminUserService] Starting merge process...');
     console.log('Auth users to merge:', authUsers.length);
     console.log('Profile users to merge:', profileUsers.length);
 
     // Add profile users first
     profileUsers.forEach((profile, index) => {
-      console.log(`📝 Processing profile user ${index + 1}:`, {
+      console.log(`📝 [AdminUserService] Processing profile user ${index + 1}:`, {
         id: profile.id.slice(0, 8) + '...',
         email: profile.email,
         verification_status: profile.verification_status,
@@ -176,7 +190,7 @@ export const adminUserService = {
 
     // Add or merge auth users
     authUsers.forEach((authUser, index) => {
-      console.log(`🔐 Processing auth user ${index + 1}:`, {
+      console.log(`🔐 [AdminUserService] Processing auth user ${index + 1}:`, {
         id: authUser.id.slice(0, 8) + '...',
         email: authUser.email,
         email_confirmed: !!authUser.email_confirmed_at,
@@ -187,13 +201,14 @@ export const adminUserService = {
       
       if (existingUser) {
         // Update existing profile user with auth data
-        console.log('🔄 Merging with existing profile user');
+        console.log('🔄 [AdminUserService] Merging with existing profile user');
         existingUser.email = authUser.email || existingUser.email;
         existingUser.created_at = authUser.created_at || existingUser.created_at;
         existingUser.auth_only = false; // Has both auth and profile
+        existingUser.raw_user_meta_data = authUser.user_metadata;
       } else {
         // Add auth-only user
-        console.log('➕ Adding auth-only user');
+        console.log('➕ [AdminUserService] Adding auth-only user');
         
         // Determine user type from metadata or default to user
         const userType = authUser.user_metadata?.user_type || 'user';
@@ -202,7 +217,7 @@ export const adminUserService = {
         // For new auth-only users, they should be pending by default
         const verificationStatus = 'pending'; // Default to pending for approval workflow
         
-        console.log('🔍 Auth user metadata analysis:', {
+        console.log('🔍 [AdminUserService] Auth user metadata analysis:', {
           user_metadata: authUser.user_metadata,
           app_metadata: authUser.app_metadata,
           email_confirmed_at: authUser.email_confirmed_at,
@@ -227,7 +242,8 @@ export const adminUserService = {
           location: null,
           bio: null,
           hourly_rate: null,
-          profile_data: null
+          profile_data: null,
+          raw_user_meta_data: authUser.user_metadata
         });
       }
     });
@@ -236,14 +252,14 @@ export const adminUserService = {
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
     
-    console.log('🎯 Final user breakdown by verification status:');
+    console.log('🎯 [AdminUserService] Final user breakdown by verification status:');
     const finalBreakdown = finalUsers.reduce((acc: any, user) => {
       acc[user.verification_status] = (acc[user.verification_status] || 0) + 1;
       return acc;
     }, {});
     console.log('Final status breakdown:', finalBreakdown);
     
-    console.log('🎯 Final users summary:');
+    console.log('🎯 [AdminUserService] Final users summary:');
     finalUsers.forEach((user, index) => {
       if (index < 5) { // Show first 5 users
         console.log(`Final User ${index + 1}:`, {
@@ -264,11 +280,11 @@ export const adminUserService = {
   async createMissingProfiles(authOnlyUsers: AdminUser[]): Promise<void> {
     if (authOnlyUsers.length === 0) return;
 
-    console.log('🔧 Creating missing profiles for', authOnlyUsers.length, 'users');
+    console.log('🔧 [AdminUserService] Creating missing profiles for', authOnlyUsers.length, 'users');
     
     try {
       const profilesData = authOnlyUsers.map(user => {
-        console.log('📝 Preparing profile data for user:', {
+        console.log('📝 [AdminUserService] Preparing profile data for user:', {
           id: user.id.slice(0, 8),
           email: user.email,
           user_type: user.user_type,
@@ -289,20 +305,20 @@ export const adminUserService = {
         };
       });
 
-      console.log('🚀 Inserting profiles:', profilesData);
+      console.log('🚀 [AdminUserService] Inserting profiles:', profilesData);
 
       const { error } = await supabase
         .from('profiles')
         .upsert(profilesData, { onConflict: 'id' });
 
       if (error) {
-        console.error('❌ Error creating missing profiles:', error);
+        console.error('❌ [AdminUserService] Error creating missing profiles:', error);
         throw error;
       }
 
-      console.log('✅ Successfully created missing profiles');
+      console.log('✅ [AdminUserService] Successfully created missing profiles');
     } catch (error) {
-      console.error('❌ Failed to create missing profiles:', error);
+      console.error('❌ [AdminUserService] Failed to create missing profiles:', error);
       throw error;
     }
   }
