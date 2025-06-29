@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -204,40 +203,28 @@ const TalentApprovalSystem = () => {
 
   const handleApproval = async (talentId: string, approved: boolean) => {
     try {
-      const verificationStatus = approved ? 'verified' : 'rejected';
-      const profileStatus = approved ? 'active' : 'suspended';
-      
       console.log(`${approved ? '✅' : '❌'} [TalentApproval] Processing approval for talent:`, talentId);
       
-      // Check if user needs profile creation first
-      const userToUpdate = talents.find(t => t.id === talentId);
-      
-      if (userToUpdate) {
-        // Get full user data to check if profile exists
-        const { users } = await adminUserService.getAllUsers();
-        const fullUserData = users.find(u => u.id === talentId);
-        
-        if (fullUserData && fullUserData.auth_only && !fullUserData.has_profile) {
-          console.log('🔧 [TalentApproval] Creating profile for auth-only user...');
-          await adminUserService.createMissingProfiles([fullUserData]);
+      // Use the admin Edge Function instead of direct database update
+      const { data, error } = await supabase.functions.invoke('admin-update-talent-status', {
+        body: { 
+          talentId: talentId, 
+          approved: approved 
         }
-      }
-      
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          verification_status: verificationStatus,
-          status: profileStatus,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', talentId);
+      });
 
       if (error) {
-        console.error('❌ [TalentApproval] Error updating talent status:', error);
-        throw error;
+        console.error('❌ [TalentApproval] Error from admin function:', error);
+        throw new Error(error.message || 'Failed to update talent status');
+      }
+
+      if (!data?.success) {
+        console.error('❌ [TalentApproval] Admin function returned failure:', data);
+        throw new Error(data?.error || 'Failed to update talent status');
       }
 
       // Update local state immediately
+      const verificationStatus = approved ? 'verified' : 'rejected';
       setTalents(prev => 
         prev.map(talent => 
           talent.id === talentId 
