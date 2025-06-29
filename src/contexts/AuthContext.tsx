@@ -33,10 +33,29 @@ interface SignupData {
     age?: number;
     location?: string;
     bio?: string;
+    zodiac?: string;
+    loveLanguage?: string;
     services?: string[];
+    availableServices?: string[];
+    rentLoverDetails?: {
+      price: number;
+      inclusions: string[];
+      description: string;
+    };
     hourlyRate?: number;
     experienceYears?: number;
-    availability?: string[];
+    availability?: {
+      offlineDate: {
+        weekdays: string[];
+        timeSlots: string[];
+      };
+      partyBuddy: {
+        available: boolean;
+        weekends: string[];
+      };
+      general: string[];
+    } | string[];
+    dateInterests?: string[];
     languages?: string[];
     specialties?: string[];
     transportationMode?: string;
@@ -45,6 +64,10 @@ interface SignupData {
     hasIdCard?: boolean;
     hasProfilePhoto?: boolean;
     interests?: string[];
+    registrationTimestamp?: string;
+    formVersion?: string;
+    completionStatus?: string;
+    businessModel?: string;
   };
 }
 
