@@ -168,22 +168,49 @@ const TalentRegistrationForm = () => {
 
   const toggleArrayItem = (field: string, item: string, nested?: string) => {
     if (nested) {
-      setFormData(prev => ({
-        ...prev,
-        [field]: {
-          ...prev[field] as any,
-          [nested]: (prev[field] as any)[nested].includes(item) 
-            ? (prev[field] as any)[nested].filter((i: string) => i !== item)
-            : [...(prev[field] as any)[nested], item]
+      setFormData(prev => {
+        const parentData = prev[field as keyof TalentRegistrationData] as any;
+        const nestedPath = nested.split('.');
+        
+        if (nestedPath.length === 2) {
+          const [nestedField, subField] = nestedPath;
+          const currentArray = parentData[nestedField]?.[subField] || [];
+          
+          return {
+            ...prev,
+            [field]: {
+              ...parentData,
+              [nestedField]: {
+                ...parentData[nestedField],
+                [subField]: currentArray.includes(item) 
+                  ? currentArray.filter((i: string) => i !== item)
+                  : [...currentArray, item]
+              }
+            }
+          };
         }
-      }));
+        
+        const currentArray = parentData[nested] || [];
+        return {
+          ...prev,
+          [field]: {
+            ...parentData,
+            [nested]: currentArray.includes(item) 
+              ? currentArray.filter((i: string) => i !== item)
+              : [...currentArray, item]
+          }
+        };
+      });
     } else {
-      setFormData(prev => ({
-        ...prev,
-        [field]: (prev[field] as string[]).includes(item) 
-          ? (prev[field] as string[]).filter(i => i !== item)
-          : [...(prev[field] as string[]), item]
-      }));
+      setFormData(prev => {
+        const currentArray = (prev[field as keyof TalentRegistrationData] as string[]) || [];
+        return {
+          ...prev,
+          [field]: currentArray.includes(item) 
+            ? currentArray.filter(i => i !== item)
+            : [...currentArray, item]
+        };
+      });
     }
   };
 
