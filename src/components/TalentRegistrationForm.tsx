@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -111,6 +110,10 @@ const TalentRegistrationForm = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
+  
+  // Add password state at component level
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   
   const [formData, setFormData] = useState<TalentRegistrationData>({
     fullName: '',
@@ -757,9 +760,6 @@ const TalentRegistrationForm = () => {
   );
 
   const renderStep5 = () => {
-    const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
-    
     return (
       <div className="space-y-4">
         <div className="text-center mb-6">
